@@ -67,7 +67,17 @@ reachable through explicit per-host or per-group choices. Post-quantum key excha
 JDK 17. Android SDK for the `compileSdk` in `gradle/libs.versions.toml`. Instrumentation tests
 (`connectedOssDebugAndroidTest`) need an emulator and, for `OpenSSHContainerTest`, Docker.
 Version code and name come from upstream git tags (`v1.12.*` filter) through the app-versioning
-plugin, so keep the tags and full history when cloning.
+plugin, so the build needs full history and the tag `v1.12.0-alpha`. A fresh clone of this repo has
+neither the `upstream` remote nor that tag, so after cloning run once:
+
+```
+git remote add upstream https://github.com/connectbot/connectbot.git
+git fetch upstream 'refs/tags/v1.12.0-alpha:refs/tags/v1.12.0-alpha'
+git push origin v1.12.0-alpha     # so the repo carries its own copy of the tag
+```
+
+(The cloud session that prepared this repo could not push tags: its git proxy answered 403.
+CI works around it by fetching that one tag from upstream, see `.github/workflows/build.yml`.)
 
 ## Icon and branding
 
