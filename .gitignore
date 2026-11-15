@@ -30,3 +30,19 @@ build/
 
 # Jenkinsfile-runner
 \.jenkinsfile-runner/
+
+# Shelldon SSH: never commit signing material, credentials or private keys
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+id_ecdsa*
+*.ppk
+.env
+.env.*
+keystore.properties
+secrets.properties

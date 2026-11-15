@@ -1,0 +1,20 @@
+Shelldon SSH
+Copyright 2026 the Shelldon SSH contributors
+
+Shelldon SSH is a modified version of ConnectBot
+(https://github.com/connectbot/connectbot), copyright 2007 and later
+Kenny Root, Jeffrey Sharkey and the ConnectBot contributors, licensed under
+the Apache License, Version 2.0 (see LICENSE).
+
+Fork point: upstream commit 1798d07927e610e60c50885dc78001dfe1d1b74d
+(2026-10-23). All changes since then are recorded in this repository's git
+history. Original copyright and licence headers in source files are kept as
+they are.
+
+"ConnectBot" and its logo are not used as the name or icon of this product.
+This project is not affiliated with or endorsed by the ConnectBot project.
+
+Third-party libraries keep their own licences. This includes the SSH library
+(sshlib/cbssh, Apache-2.0) and the terminal library (termlib), both from the
+ConnectBot organisation, plus the other dependencies listed in
+gradle/libs.versions.toml.
