@@ -248,7 +248,7 @@ class ConnectionNotifierTest {
         assertEquals(NotificationCompat.PRIORITY_DEFAULT, summary().priority)
         val public = alert(second.id).publicVersion
         assertEquals("1 session connected · 2 need attention", text(public))
-        assertEquals("ConnectBot", public.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
+        assertEquals(service.getString(org.connectbot.R.string.app_name), public.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
         assertTrue(public.actions.isNullOrEmpty())
         assertFalse(public.extras.toString().contains("staging"))
         notifier.handleAction(service, ConnectionNotifier.ACTION_SEEN_ALL, "")
