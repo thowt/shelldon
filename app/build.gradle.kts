@@ -87,7 +87,10 @@ android {
     dynamicFeatures += setOf(":mosh")
 
     defaultConfig {
-        applicationId = "org.connectbot"
+        // Shelldon SSH: differs from upstream ConnectBot ("org.connectbot") so both can be
+        // installed side by side. The code namespace above is intentionally unchanged to keep
+        // upstream merges cheap.
+        applicationId = "io.github.thowt.shelldon"
 
         minSdk =
             libs.versions.minSdk
@@ -105,7 +108,7 @@ android {
             debugSymbolLevel = "full"
         }
 
-        testApplicationId = "org.connectbot.tests"
+        testApplicationId = "io.github.thowt.shelldon.tests"
         testInstrumentationRunner = "org.connectbot.HiltTestRunner"
 
         // The following argument makes the Android Test Orchestrator run its
