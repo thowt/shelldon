@@ -6,6 +6,12 @@ name: Build
 #   - read-only token, no secrets, no publishing, no signing keys
 #   - every third-party action pinned to a full commit SHA (taken from upstream's actions.lock)
 #   - runs only on push to main, pull requests and manual dispatch (no cron)
+#
+# Memory note: private repositories get a 2-vCPU / 7 GB runner, while upstream's pipeline runs
+# on the 16 GB runners public repositories get. The defaults in gradle.properties (5 GB Gradle
+# heap plus a 2 GB unit-test JVM plus a Kotlin daemon) got the first run killed during the unit
+# tests ("The runner has received a shutdown signal"). So this workflow lowers the heap, compiles
+# Kotlin in-process, adds swap, and builds the APK before the tests so it is kept either way.
 
 on:
   push:
@@ -15,7 +21,8 @@ on:
 
 concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Only supersede older pull-request runs; never cancel a build of main halfway.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -39,6 +46,17 @@ jobs:
         # copy of the tag until it is pushed once (see CLAUDE.md). A no-op when the tag exists.
         run: git fetch --no-tags https://github.com/connectbot/connectbot.git 'refs/tags/v1.12.0-alpha:refs/tags/v1.12.0-alpha'
 
+      - name: Add swap and show runner resources
+        continue-on-error: true
+        run: |
+          sudo fallocate -l 8G /mnt/gradle-swap
+          sudo chmod 600 /mnt/gradle-swap
+          sudo mkswap /mnt/gradle-swap
+          sudo swapon /mnt/gradle-swap
+          free -h
+          df -h / /mnt
+          nproc
+
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
@@ -61,8 +79,13 @@ jobs:
         with:
           packages: 'cmdline-tools;latest platform-tools'
 
-      - name: Build open-source debug APK and run unit tests
-        run: ./gradlew --stacktrace :app:assembleOssDebug :app:testOssDebugUnitTest
+      - name: Build open-source debug APK
+        # Command-line properties override gradle.properties (lower heap, no separate Kotlin daemon).
+        run: |
+          ./gradlew --stacktrace --console=plain --max-workers=2 \
+            "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            :app:assembleOssDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -71,6 +94,24 @@ jobs:
           path: app/build/outputs/apk/oss/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Release Gradle memory before the tests
+        run: |
+          ./gradlew --stop
+          free -h
+
+      - name: Run unit tests
+        run: |
+          ./gradlew --stacktrace --console=plain --max-workers=2 \
+            "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            :app:testOssDebugUnitTest
+
+      - name: Show resources after the build
+        if: always()
+        run: |
+          free -h
+          df -h / /mnt
 
       - name: Upload test reports
         if: always()
