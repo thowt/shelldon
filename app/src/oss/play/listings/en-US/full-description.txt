@@ -1,5 +1,7 @@
-ConnectBot is a secure shell client for Android that lets you connect to remote servers over a cryptographically secure link.
+Shelldon SSH is a free, open-source SSH client for Android. It is in early development.
 
-Use ConnectBot to manage SSH sessions from your phone or tablet, keep connections active while you switch apps, and work with the terminal tools you already use. It supports saved hosts, SSH public key authentication, port forwarding, terminal color schemes, custom fonts, and other settings for tailoring each connection.
+Save your servers once and connect with one tap, or type user@host to connect on the spot. Sessions stay alive while you switch apps. It supports public-key authentication (including hardware security keys), port forwarding, jump hosts, terminal color schemes and fonts, and a per-host crypto policy, so older devices such as legacy switches and routers stay reachable only when you choose it for that host.
 
-The F-Droid build uses the open-source ConnectBot flavor. It includes the cryptography provider in the APK and does not depend on Google Play Services.
+No ads, no analytics, no crash reporting and no account.
+
+Shelldon SSH is based on the ConnectBot project and is licensed under the Apache License 2.0.

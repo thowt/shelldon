@@ -111,7 +111,7 @@ fun HintsScreen(
             item {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Here are some tips to help you get the most out of ConnectBot:",
+                        text = stringResource(R.string.shelldon_hints_intro),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )

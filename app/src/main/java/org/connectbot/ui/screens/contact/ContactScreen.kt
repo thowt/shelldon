@@ -80,14 +80,6 @@ fun ContactScreen(
 
             item {
                 ContactLinkItem(
-                    label = stringResource(R.string.help_website),
-                    url = stringResource(R.string.help_website_url),
-                    onClick = openUri,
-                )
-            }
-
-            item {
-                ContactLinkItem(
                     label = stringResource(R.string.help_github),
                     url = stringResource(R.string.help_github_url),
                     onClick = openUri,
@@ -103,25 +95,9 @@ fun ContactScreen(
             }
 
             item {
-                Text(
-                    text = stringResource(R.string.help_section_donate),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 16.dp),
-                )
-            }
-
-            item {
                 ContactLinkItem(
-                    label = stringResource(R.string.help_donate_github),
-                    url = stringResource(R.string.help_donate_github_url),
-                    onClick = openUri,
-                )
-            }
-
-            item {
-                ContactLinkItem(
-                    label = stringResource(R.string.help_donate_coffee),
-                    url = stringResource(R.string.help_donate_coffee_url),
+                    label = stringResource(R.string.shelldon_upstream_label),
+                    url = stringResource(R.string.shelldon_upstream_url),
                     onClick = openUri,
                 )
             }

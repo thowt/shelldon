@@ -467,7 +467,7 @@
   <string name="logs_title">سجلات التطبيق</string>
   <string name="copy_logs">نسخ السجلات</string>
   <string name="logs_copied">تم نسخ السجلات إلى الحافظة</string>
-  <string name="logs_bug_report_info">لإبلاغ عن خطأ، انسخ سجلات الأخطاء هذه وافتح مشكلة جديدة على الرابط التالي: https://connectbot.org/bug</string>
+  <string name="logs_bug_report_info">لإبلاغ عن خطأ، انسخ سجلات الأخطاء هذه وافتح مشكلة جديدة على الرابط التالي: https://github.com/thowt/shelldon/issues</string>
   <string name="no_logs_available">لا توجد سجلات متاحة</string>
   <string name="help_section_about">حول</string>
   <string name="title_contact">اتصل بنا للحصول على الدعم</string>
@@ -519,9 +519,9 @@
   <string name="pref_auth_on_launch_title">المصادقة عند التشغيل</string>
   <string name="pref_auth_on_launch_summary">اطلب بصمة الإصبع أو التعرف على الوجه أو رمز PIN الخاص بالجهاز عند فتح التطبيق.</string>
   <string name="pref_security_category">الأمان</string>
-  <string name="auth_screen_title">تم قفل ConnectBot</string>
+  <string name="auth_screen_title">تم قفل Shelldon SSH</string>
   <string name="auth_screen_unlock_button">اضغط لفتح القفل</string>
-  <string name="auth_prompt_title">افتح ConnectBot</string>
+  <string name="auth_prompt_title">افتح Shelldon SSH</string>
   <string name="auth_prompt_subtitle">تحقق من هويتك للمتابعة.</string>
   <string name="pref_language_download" tools:machine_translated="true">تنزيل حزمة اللغة</string>
   <string name="pref_language_download_failed" tools:machine_translated="true">فشل التنزيل، اضغط لإعادة المحاولة</string>
@@ -705,11 +705,11 @@
   <string name="pref_connection_alerts_summary" tools:machine_translated="true">عرض تنبيهات صوت الجرس وإشارة فقدان الاتصال.</string>
   <string name="pref_connection_alerts_disabled_summary" tools:machine_translated="true">تم إيقاف تنبيهات الاتصال. لا يزال دعم الاتصال في الخلفية مفعّلاً.</string>
   <string name="pref_service_notification_visibility" tools:machine_translated="true">يتحكم نظام التشغيل أندرويد في عرض إشعار الاتصال المستمر بشكل مستقل عن تنبيهات الاتصال.</string>
-  <string name="pref_notifications_blocked" tools:machine_translated="true">حظر نظام Android الإشعارات لتطبيق ConnectBot. لا تزال ميزة دعم الاتصال في الخلفية مُفعَّلة.</string>
+  <string name="pref_notifications_blocked" tools:machine_translated="true">حظر نظام Android الإشعارات لتطبيق Shelldon SSH. لا تزال ميزة دعم الاتصال في الخلفية مُفعَّلة.</string>
   <string name="connection_alert_permission_title" tools:machine_translated="true">إشعارات الاتصال</string>
   <string name="connection_alert_permission_message" tools:machine_translated="true">السماح بالإشعارات لعرض الأجهزة المتصلة وتلقي تنبيهات حول إشارات الصوت وفقدان الاتصال. يمكن أن تستمر الاتصالات في العمل في الخلفية حتى بدون هذا الإذن.</string>
   <string name="connection_alert_permission_denied_title" tools:machine_translated="true">تفعيل الإشعارات</string>
-  <string name="connection_alert_permission_denied_message" tools:machine_translated="true">فعِّل الإشعارات لتطبيق ConnectBot في إعدادات نظام Android لعرض الأجهزة المتصلة وتلقي تنبيهات حول صوت الجرس وفقدان الاتصال. سيظل دعم الاتصال في الخلفية مفعّلاً.</string>
+  <string name="connection_alert_permission_denied_message" tools:machine_translated="true">فعِّل الإشعارات لتطبيق Shelldon SSH في إعدادات نظام Android لعرض الأجهزة المتصلة وتلقي تنبيهات حول صوت الجرس وفقدان الاتصال. سيظل دعم الاتصال في الخلفية مفعّلاً.</string>
   <string name="profile_bold_as_bright" tools:machine_translated="true">ألوان زاهية للنص الغامق</string>
   <string name="profile_bold_as_bright_summary" tools:machine_translated="true">استخدم ألوان ANSI الزاهية للنص الغامق. يتم تطبيق هذا على جلسات المحطة الطرفية الجديدة.</string>
   <string name="known_hosts_title" tools:machine_translated="true">المضيفون الموثوق بهم</string>
@@ -953,7 +953,7 @@
   <string name="keyboard_preset_scribe" tools:machine_translated="true">سكرايب</string>
   <string name="keyboard_preset_scribe_subtitle" tools:machine_translated="true">محسّن للاستخدام مع واجهة سطر الأوامر Codex.</string>
   <string name="keyboard_choose_preset" tools:machine_translated="true">اختر تصميمًا مسبقًا للوحة المفاتيح.</string>
-  <string name="keyboard_original_layout" tools:machine_translated="true">تخطيط لوحة مفاتيح ConnectBot الكلاسيكي</string>
+  <string name="keyboard_original_layout" tools:machine_translated="true">تخطيط لوحة مفاتيح Shelldon SSH الكلاسيكي</string>
   <string name="keyboard_fit_to_width" tools:machine_translated="true">تعديل العرض ليناسب الشاشة</string>
   <string name="keyboard_layer" tools:machine_translated="true">الطبقة رقم %1$d</string>
   <string name="keyboard_layer_short" tools:machine_translated="true">الطبقة %1$d</string>

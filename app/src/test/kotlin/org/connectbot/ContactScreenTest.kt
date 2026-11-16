@@ -79,15 +79,27 @@ class ContactScreenTest {
     }
 
     @Test
-    fun contactScreen_displaysWebsiteLink() {
+    fun contactScreen_displaysSourceBugAndUpstreamLinks() {
         composeTestRule.setContent {
             ConnectBotTheme {
                 ContactScreen(onNavigateBack = {})
             }
         }
 
-        composeTestRule
-            .onNodeWithText("Website")
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText("Source Code").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Report a Bug").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Upstream project (ConnectBot)").assertIsDisplayed()
+    }
+
+    @Test
+    fun contactScreen_hasNoDonationLinks() {
+        composeTestRule.setContent {
+            ConnectBotTheme {
+                ContactScreen(onNavigateBack = {})
+            }
+        }
+
+        composeTestRule.onNodeWithText("Buy Me a Coffee").assertDoesNotExist()
+        composeTestRule.onNodeWithText("GitHub Sponsors").assertDoesNotExist()
     }
 }

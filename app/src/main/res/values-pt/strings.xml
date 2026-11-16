@@ -325,7 +325,7 @@
   <string name="dialog_title_edit_color">Editar cor %1$d</string>
   <string name="dialog_title_reset_all">Redefinir todas as cores?</string>
   <string name="dialog_message_reset_all">Isto irá redefinir todas as 256 cores para os seus valores predefinidos. Esta ação não pode ser desfeita.</string>
-  <string name="app_is_running">O ConnectBot em execução</string>
+  <string name="app_is_running">O Shelldon SSH em execução</string>
   <string name="label_red">Vermelho</string>
   <string name="label_green">Verde</string>
   <string name="label_blue">Azul</string>
@@ -449,7 +449,7 @@
   <string name="logs_title">Registros do aplicativo</string>
   <string name="copy_logs">Copiar logs</string>
   <string name="logs_copied">Logs copiados para a área de transferência</string>
-  <string name="logs_bug_report_info">Para relatar um erro, copie estes registros e abra um novo chamado em https://connectbot.org/bug</string>
+  <string name="logs_bug_report_info">Para relatar um erro, copie estes registros e abra um novo chamado em https://github.com/thowt/shelldon/issues</string>
   <string name="no_logs_available">Nenhum registro disponível</string>
   <string name="help_section_about">Sobre</string>
   <string name="title_contact">Contato e suporte</string>
@@ -496,9 +496,9 @@
   <string name="pref_auth_on_launch_title">Autenticação ao iniciar o aplicativo</string>
   <string name="pref_auth_on_launch_summary">Exija impressão digital, reconhecimento facial ou PIN do dispositivo ao abrir o aplicativo</string>
   <string name="pref_security_category">Segurança</string>
-  <string name="auth_screen_title">O ConnectBot está bloqueado</string>
+  <string name="auth_screen_title">O Shelldon SSH está bloqueado</string>
   <string name="auth_screen_unlock_button">Toque para desbloquear</string>
-  <string name="auth_prompt_title">Desbloqueie o ConnectBot</string>
+  <string name="auth_prompt_title">Desbloqueie o Shelldon SSH</string>
   <string name="auth_prompt_subtitle">Verifique sua identidade para continuar</string>
   <string name="pref_language_download" tools:machine_translated="true">Descarregar pacote de idiomas</string>
   <string name="pref_language_download_failed" tools:machine_translated="true">O download falhou, toque para tentar novamente.</string>
@@ -660,11 +660,11 @@
   <string name="pref_connection_alerts_summary" tools:machine_translated="true">Mostrar alertas de sinal sonoro do terminal e de perda de conexão.</string>
   <string name="pref_connection_alerts_disabled_summary" tools:machine_translated="true">Os alertas de conexão estão desativados. O suporte para conexão em segundo plano permanece ativado.</string>
   <string name="pref_service_notification_visibility" tools:machine_translated="true">O Android controla a visibilidade da notificação da conexão ativa, independentemente dos alertas de conexão.</string>
-  <string name="pref_notifications_blocked" tools:machine_translated="true">O Android bloqueou as notificações do ConnectBot. O suporte para conexão em segundo plano permanece ativado.</string>
+  <string name="pref_notifications_blocked" tools:machine_translated="true">O Android bloqueou as notificações do Shelldon SSH. O suporte para conexão em segundo plano permanece ativado.</string>
   <string name="connection_alert_permission_title" tools:machine_translated="true">Notificações de conexão</string>
   <string name="connection_alert_permission_message" tools:machine_translated="true">Permita o envio de notificações para visualizar os dispositivos conectados e receber alertas sobre o sinal sonoro do terminal e a perda de conexão. As conexões ainda podem ser executadas em segundo plano, mesmo sem essa permissão.</string>
   <string name="connection_alert_permission_denied_title" tools:machine_translated="true">Ativar notificações</string>
-  <string name="connection_alert_permission_denied_message" tools:machine_translated="true">Ative as notificações para o ConnectBot nas configurações do Android para visualizar os dispositivos conectados e receber alertas sobre o sinal sonoro do terminal e a perda de conexão. O suporte para conexão em segundo plano permanece ativado.</string>
+  <string name="connection_alert_permission_denied_message" tools:machine_translated="true">Ative as notificações para o Shelldon SSH nas configurações do Android para visualizar os dispositivos conectados e receber alertas sobre o sinal sonoro do terminal e a perda de conexão. O suporte para conexão em segundo plano permanece ativado.</string>
   <string name="profile_bold_as_bright" tools:machine_translated="true">Cores brilhantes para texto em negrito</string>
   <string name="profile_bold_as_bright_summary" tools:machine_translated="true">Use cores ANSI vibrantes para o texto em negrito. Aplica-se a novas sessões de terminal.</string>
   <string name="known_hosts_title" tools:machine_translated="true">Hosts confiáveis</string>
@@ -888,7 +888,7 @@
   <string name="keyboard_preset_claw_subtitle" tools:machine_translated="true">Otimizado para Claude Code.</string>
   <string name="keyboard_preset_scribe_subtitle" tools:machine_translated="true">Otimizado para a interface de linha de comando (CLI) do Codex.</string>
   <string name="keyboard_choose_preset" tools:machine_translated="true">Escolha um modelo de teclado.</string>
-  <string name="keyboard_original_layout" tools:machine_translated="true">Layout clássico do ConnectBot.</string>
+  <string name="keyboard_original_layout" tools:machine_translated="true">Layout clássico do Shelldon SSH.</string>
   <string name="keyboard_fit_to_width" tools:machine_translated="true">Ajustar à largura</string>
   <string name="keyboard_layer" tools:machine_translated="true">Camada %1$d</string>
   <string name="keyboard_layer_short" tools:machine_translated="true">Camada %1$d</string>
