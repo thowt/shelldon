@@ -191,16 +191,28 @@ jobs:
             :app:testOssDebugUnitTest
 
       - name: Room schema is committed and current
-        # Room rewrites app/schemas/ on every build. If that changes a tracked file, the committed
-        # schema JSON is stale (or missing for a new database version), which breaks migration tests
-        # and the next version bump. The diff below is what to commit.
+        # Room's own schema export may leave app/schemas untouched, so two checks: (1) no tracked file
+        # under app/schemas changed during the build, and (2) the identity hash in the newest schema
+        # JSON equals the hash Room compiled into ConnectBotDatabase_Impl. A mismatch means the JSON
+        # was not produced by Room for the current entities; the log shows the hash to commit.
         if: always() && steps.plan.outputs.variant == 'debug'
         run: |
           git add -N app/schemas
-          if ! git diff --exit-code -- app/schemas; then
-            echo "::error::app/schemas is not up to date with the Room entities: commit the diff above."
-            exit 1
+          status=0
+          git diff --exit-code -- app/schemas || status=1
+          newest="$(ls -v app/schemas/org.connectbot.data.ConnectBotDatabase/*.json | tail -n 1)"
+          committed="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['database']['identityHash'])" "$newest")"
+          impl="$(find app/build -name 'ConnectBotDatabase_Impl*' \( -name '*.java' -o -name '*.kt' \) | head -n 1)"
+          echo "newest schema: $newest"
+          echo "generated:     ${impl:-<not found>}"
+          real="$(grep -hoE '"[0-9a-f]{32}", "[0-9a-f]{32}"' "$impl" 2>/dev/null | head -n 1 | grep -oE '[0-9a-f]{32}' | head -n 1 || true)"
+          echo "committed identityHash: $committed"
+          echo "generated identityHash: ${real:-<not found>}"
+          if [ -n "$real" ] && [ "$real" != "$committed" ]; then
+            echo "::error::$newest has identityHash $committed but Room generated $real. Put $real in the file."
+            status=1
           fi
+          exit $status
 
       - name: Prepare the internal signing key (optional)
         if: steps.plan.outputs.variant == 'release'
