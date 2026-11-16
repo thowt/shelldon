@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.combine
 import org.connectbot.data.ConnectBotDatabase
 import org.connectbot.data.EntityIds
 import org.connectbot.data.entity.Host
+import org.connectbot.data.entity.KnownHost
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,11 +46,14 @@ data class GroupSnapshot(
 ) {
     val groupsById: Map<UUID, HostGroup> by lazy { groups.associateBy { it.id } }
     val identitiesById: Map<UUID, Identity> by lazy { identities.associateBy { it.id } }
+    val tagsById: Map<UUID, Tag> by lazy { tags.associateBy { it.id } }
 
     /** Tag ids per host. */
     val tagIdsByHost: Map<UUID, Set<UUID>> by lazy { hostTags.groupBy({ it.hostId }, { it.tagId }).mapValues { it.value.toSet() } }
 
     fun effectiveLogin(host: Host): EffectiveLogin = IdentityResolver.effectiveLogin(host, groupsById, identitiesById)
+
+    fun resolvedHost(host: Host): Host = IdentityResolver.resolvedHost(host, groupsById, identitiesById)
 }
 
 /**
@@ -71,6 +75,18 @@ class ShelldonGroupRepository @Inject constructor(private val database: ConnectB
     suspend fun snapshot(): GroupSnapshot = database.withTransaction {
         GroupSnapshot(dao.getGroups(), dao.getTags(), dao.getAllHostTags(), dao.getIdentities())
     }
+
+    /**
+     * [host] with the user name and key an identity supplies, for opening a connection. A host with
+     * neither a group nor an identity is returned as it is, without touching the database.
+     */
+    suspend fun resolveHost(host: Host): Host = if (host.groupId == null && host.identityId == null) host else snapshot().resolvedHost(host)
+
+    /** Every known host key, for the Keychain. */
+    fun observeAllKnownHosts(): Flow<List<KnownHost>> = dao.observeAllKnownHosts()
+
+    /** The identity id of every host that has one (opt-outs included), to count how often each is used. */
+    fun observeHostIdentityIds(): Flow<List<UUID>> = dao.observeHostIdentityIds()
 
     // Groups
 

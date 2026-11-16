@@ -12,11 +12,21 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import org.connectbot.data.entity.KnownHost
 import java.util.UUID
 
 /** Queries for groups, tags and identities. Kept apart from the upstream DAOs on purpose. */
 @Dao
 interface ShelldonGroupDao {
+    // Known hosts (read-only overview for the Keychain; changes go through the upstream DAO)
+
+    @Query("SELECT * FROM known_hosts ORDER BY hostname COLLATE NOCASE, port, host_key_algo")
+    fun observeAllKnownHosts(): Flow<List<KnownHost>>
+
+    /** One entry per host that names an identity (or opts out with the NONE id), to count users of an identity. */
+    @Query("SELECT identity_id FROM hosts WHERE identity_id IS NOT NULL")
+    fun observeHostIdentityIds(): Flow<List<UUID>>
+
     // Groups
 
     @Query("SELECT * FROM host_groups ORDER BY sort_order, name COLLATE NOCASE")

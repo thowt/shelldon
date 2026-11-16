@@ -1180,7 +1180,10 @@ open class SSH : AbsTransport {
         val currentHost = host ?: return
 
         val jumpHosts = try {
-            resolveJumpHostChain(currentHost) { manager?.hostRepository?.findHostByIdBlocking(it) }
+            resolveJumpHostChain(currentHost) { id ->
+                // A jump host in a group or with an identity logs in as that identity says.
+                manager?.hostRepository?.findHostByIdBlocking(id)?.let { jump -> manager?.withEffectiveLoginBlocking(jump) ?: jump }
+            }
         } catch (e: JumpHostChainException) {
             bridge?.outputLine(manager?.res?.getString(e.messageResId))
             onDisconnect()
