@@ -79,4 +79,25 @@ class QuickConnectTest {
         assertThat(looksLikeAddress("root@nas")).isTrue()
         assertThat(looksLikeAddress("nas:2222")).isTrue()
     }
+
+    @Test
+    fun temporaryHost_keepsUserHostAndPortSeparate() {
+        val host = parseQuickConnect("user@host.example:2022")!!.toTemporaryHost()
+
+        assertThat(host.protocol).isEqualTo("ssh")
+        assertThat(host.username).isEqualTo("user")
+        assertThat(host.hostname).isEqualTo("host.example")
+        assertThat(host.port).isEqualTo(2022)
+        assertThat(host.nickname).isEqualTo("user@host.example")
+        assertThat(host.isTemporary).isTrue()
+    }
+
+    @Test
+    fun temporaryHost_withoutUserHasEmptyUsername() {
+        val host = parseQuickConnect("nas.lan")!!.toTemporaryHost()
+
+        assertThat(host.username).isEmpty()
+        assertThat(host.hostname).isEqualTo("nas.lan")
+        assertThat(host.port).isEqualTo(22)
+    }
 }

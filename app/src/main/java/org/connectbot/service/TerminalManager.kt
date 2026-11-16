@@ -453,6 +453,11 @@ class TerminalManager :
     }
 
     /**
+     * Open a connection to a host that is not saved in the database (quick connect).
+     */
+    fun openTemporaryConnection(host: Host): TerminalBridge = openConnection(host.copy(isTemporary = true))
+
+    /**
      * Open a new connection by reading parameters from the given URI. Follows
      * format specified by an individual transport.
      */

@@ -6,6 +6,8 @@
 
 package org.connectbot.shelldon.ui.hostlist
 
+import org.connectbot.data.entity.Host
+
 private const val DEFAULT_SSH_PORT = 22
 private const val MAX_PORT = 65535
 private const val MAX_HOSTNAME_LENGTH = 253
@@ -25,6 +27,15 @@ data class QuickConnectTarget(
     val nickname: String
         get() = if (username.isEmpty()) hostname else "$username@$hostname"
 }
+
+/**
+ * An unsaved [Host] for this target. It is handed to the terminal manager as it is: going through
+ * a `Host.getUri()` round trip percent-encodes `user@host:port` into one authority string, which
+ * the SSH transport then reads back as a single hostname with no user.
+ */
+fun QuickConnectTarget.toTemporaryHost(): Host = Host
+    .createSshHost(nickname, hostname, port, username)
+    .copy(isTemporary = true)
 
 /**
  * Parses `[user@]host[:port]`. Returns null for anything else, including empty input, spaces,
