@@ -34,6 +34,7 @@ import org.connectbot.data.entity.Host
 import org.connectbot.shelldon.ui.hostlist.ShelldonHostListScreen
 import org.connectbot.shelldon.ui.keychain.KnownHostsOverviewScreen
 import org.connectbot.shelldon.ui.keychain.ShelldonKeychainScreen
+import org.connectbot.shelldon.ui.vault.SecurityScreen
 import org.connectbot.ui.screens.colors.ColorsScreen
 import org.connectbot.ui.screens.colors.PaletteEditorScreen
 import org.connectbot.ui.screens.console.ConsoleScreen
@@ -254,7 +255,12 @@ fun ConnectBotNavHost(
                     onNavigateBack = { navController.safePopBackStack() },
                     highlightItem = highlight,
                     onNavigateToKeyboard = { navController.navigateSafely("keyboard_settings") },
+                    onNavigateToSecurity = { navController.navigateSafely(NavDestinations.SECURITY) },
                 )
+            }
+
+            composable(NavDestinations.SECURITY) {
+                SecurityScreen(onNavigateBack = { navController.safePopBackStack() })
             }
 
             composable("keyboard_layout/{layoutId}", arguments = listOf(navArgument("layoutId") { type = NavType.StringType })) { entry ->

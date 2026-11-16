@@ -26,6 +26,7 @@ object NavDestinations {
     const val KNOWN_HOST_LIST = "known_host_list"
     const val KEYCHAIN = "keychain"
     const val KEYCHAIN_KNOWN_HOSTS = "known_hosts_overview"
+    const val SECURITY = "shelldon_security"
     const val GENERATE_PUBKEY = "generate_pubkey"
     const val PUBKEY_EDITOR = "pubkey_editor"
     const val PORT_FORWARD_LIST = "port_forward_list"

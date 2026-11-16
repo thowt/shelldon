@@ -195,6 +195,31 @@
     <string name="shelldon_vault_bio_prompt_unlock_subtitle">Unlocks your keys and saved passwords</string>
     <string name="shelldon_vault_bio_prompt_negative">Use password</string>
 
+    <!-- Security screen -->
+    <string name="shelldon_settings_security_title">Security, backup and import</string>
+    <string name="shelldon_settings_security_summary">Master password, auto-lock, biometrics, encrypted backup, OpenSSH config</string>
+    <string name="shelldon_security_title">Security</string>
+    <string name="shelldon_security_lock_now">Lock now</string>
+    <string name="shelldon_security_lock_now_summary">Open sessions keep running; keys and passwords need the master password again.</string>
+    <string name="shelldon_security_autolock">Auto-lock</string>
+    <string name="shelldon_security_autolock_0">As soon as the app is left</string>
+    <string name="shelldon_security_autolock_60">After 1 minute away</string>
+    <string name="shelldon_security_autolock_300">After 5 minutes away</string>
+    <string name="shelldon_security_autolock_900">After 15 minutes away</string>
+    <string name="shelldon_security_autolock_3600">After 1 hour away</string>
+    <string name="shelldon_security_biometric">Unlock with biometrics</string>
+    <string name="shelldon_security_biometric_on">Fingerprint or face opens the vault</string>
+    <string name="shelldon_security_biometric_off">Only the master password opens the vault</string>
+    <string name="shelldon_security_biometric_unavailable">No strong biometric is enrolled on this phone</string>
+    <string name="shelldon_security_change_password">Change master password</string>
+    <string name="shelldon_security_change_password_summary">Saved keys and passwords stay as they are</string>
+    <string name="shelldon_security_current_password">Current master password</string>
+    <string name="shelldon_security_new_password">New master password</string>
+    <string name="shelldon_security_err_current">The current password is wrong.</string>
+    <string name="shelldon_security_password_changed">Master password changed</string>
+    <string name="shelldon_security_reset">Reset vault</string>
+    <string name="shelldon_security_reset_summary">Deletes saved passwords and private keys</string>
+
     <!-- Security screen: sections and backup -->
     <string name="shelldon_security_section_vault">Vault</string>
     <string name="shelldon_security_section_backup">Encrypted backup</string>
