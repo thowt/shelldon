@@ -182,8 +182,16 @@ jobs:
           free -h
           df -h / /mnt
 
-      - name: Run unit tests
+      - name: Run unit tests (including the OpenSSH container tests)
         if: steps.plan.outputs.variant == 'debug'
+        # SHELLDON_CONTAINER_TESTS=1 switches on org.connectbot.shelldon.container.*: they start throw-away
+        # OpenSSH servers in Docker (loopback only, nothing from the runner is passed in). With the
+        # variable set a missing Docker fails the run instead of skipping. The base image comes from
+        # Google's mirror of Docker Hub's official images because anonymous pulls from shared runners
+        # are rate limited; it only builds a test server and never touches a secret.
+        env:
+          SHELLDON_CONTAINER_TESTS: '1'
+          SHELLDON_TEST_BASE_IMAGE: mirror.gcr.io/library/debian:trixie-slim
         run: |
           ./gradlew --stacktrace --console=plain --max-workers=2 \
             "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" \

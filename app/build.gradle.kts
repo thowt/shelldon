@@ -443,6 +443,10 @@ tasks.withType<Test>().configureEach {
     // Robolectric's cached Android resources use a heap separate from the Gradle daemon.
     maxHeapSize = "2g"
     maxParallelForks = 1
+    // The OpenSSH container tests (org.connectbot.shelldon.container) read these. Declaring them keeps a
+    // cached "skipped" result from standing in for a real run.
+    inputs.property("shelldonContainerTests", providers.environmentVariable("SHELLDON_CONTAINER_TESTS").orElse(""))
+    inputs.property("shelldonTestBaseImage", providers.environmentVariable("SHELLDON_TEST_BASE_IMAGE").orElse(""))
 }
 
 // Generate filtered export schema from Room schema
