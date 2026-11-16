@@ -156,6 +156,10 @@ android {
 
             if (project.hasProperty("keystorePassword")) {
                 signingConfig = signingConfigs.getByName("release")
+            } else if (project.hasProperty("shelldonSignWithDebugKey")) {
+                // CI fallback while no internal signing key is configured: a release-style build
+                // that can be installed, signed with the throw-away debug key.
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
 

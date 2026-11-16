@@ -227,6 +227,11 @@ State on 2026-11-15:
 - **CI debug APKs are signed with a throw-away key**, so each one has a different signature and
   cannot be installed over the previous one. For upgrade-in-place on the phone, build on the VM
   (stable `~/.android/debug.keystore`), or later add a stable debug keystore as a CI secret.
+- **Update in place (decided 2026-11-16):** CI also builds an optimised release APK
+  (`io.github.thowt.shelldon`, R8, async memory tagging, no coverage). With the three
+  `SHELLDON_KEYSTORE_*` secrets (see `docs/SIGNING.md`) it carries a fixed internal signature and
+  installs over the previous build. Debug and release APKs have different application ids, so they
+  coexist with separate data.
 - Release signing keys never go in the repo. They stay on the VM or in CI secrets.
 - Free-tier budget: GitHub Actions gives 2,000 minutes a month for private repos. Android Gradle
   builds are heavy, so watch usage. A self-hosted runner on the VM costs no minutes.
