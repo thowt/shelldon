@@ -238,6 +238,9 @@ class HostRepository @Inject constructor(
      */
     fun observePortForwardsForHost(hostId: UUID): Flow<List<PortForward>> = portForwardDao.observeByHost(hostId)
 
+    /** Every port forward of every host. */
+    fun observeAllPortForwards(): Flow<List<PortForward>> = portForwardDao.observeAll()
+
     /**
      * Get all port forwards for a host.
      *
