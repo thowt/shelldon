@@ -131,6 +131,11 @@ fun ShelldonHostListContent(
     onExportHosts: () -> Unit = {},
     onImportHosts: () -> Unit = {},
     onQuickConnect: (QuickConnectTarget) -> Unit = {},
+    unsavedSessions: List<Host> = emptyList(),
+    lastSessions: List<LastSession> = emptyList(),
+    onSaveActiveSession: (Host) -> Unit = {},
+    onOpenLastSession: (LastSession) -> Unit = {},
+    onSaveLastSession: (LastSession.Unsaved) -> Unit = {},
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var filterIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -151,6 +156,8 @@ fun ShelldonHostListContent(
             state == ConnectionState.CONNECTED || state == ConnectionState.UNREAD_OUTPUT
         }
     }
+    val activeUnsaved = if (makingShortcut) emptyList() else unsavedSessions
+    val shownLastSessions = if (makingShortcut || query.isNotBlank()) emptyList() else lastSessions
     val quickTarget = parseQuickConnect(query)
     val suggestQuickConnect = !makingShortcut && quickTarget != null && looksLikeAddress(query)
 
@@ -295,7 +302,7 @@ fun ShelldonHostListContent(
                     }
                 }
 
-                if (sessionHosts.isNotEmpty()) {
+                if (sessionHosts.isNotEmpty() || activeUnsaved.isNotEmpty()) {
                     item(key = "sessions_header") {
                         SectionHeader(
                             title = stringResource(R.string.shelldon_sessions_title),
@@ -319,7 +326,31 @@ fun ShelldonHostListContent(
                                     onClick = { onNavigateToConsole(host) },
                                 )
                             }
+                            activeUnsaved.forEach { host ->
+                                SessionCard(
+                                    host = host,
+                                    connectionState = ConnectionState.CONNECTED,
+                                    onClick = { onNavigateToConsole(host) },
+                                    onSave = { onSaveActiveSession(host) },
+                                )
+                            }
                         }
+                    }
+                }
+
+                if (shownLastSessions.isNotEmpty()) {
+                    item(key = "last_sessions_header") {
+                        SectionHeader(
+                            title = stringResource(R.string.shelldon_last_sessions_title),
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
+                    items(items = shownLastSessions, key = { "last_${it.key}" }) { session ->
+                        LastSessionRow(
+                            session = session,
+                            onClick = { onOpenLastSession(session) },
+                            onSave = { (session as? LastSession.Unsaved)?.let(onSaveLastSession) },
+                        )
                     }
                 }
 

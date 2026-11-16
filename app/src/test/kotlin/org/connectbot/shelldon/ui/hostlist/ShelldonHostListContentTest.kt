@@ -148,6 +148,76 @@ class ShelldonHostListContentTest {
         assertEquals(host, navigatedHost)
     }
 
+    @Test
+    fun lastSessions_unsavedOneCanBeSavedAndReopened() {
+        var opened: LastSession? = null
+        var saved: LastSession.Unsaved? = null
+        val unsaved = LastSession.Unsaved(QuickConnectTarget("root", "10.0.0.2", 2222), System.currentTimeMillis() - 60_000)
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(testHost(id = UUID(0, 7), nickname = "prod"))),
+            lastSessions = listOf(unsaved),
+            onOpenLastSession = { opened = it },
+            onSaveLastSession = { saved = it },
+        )
+
+        composeTestRule
+            .onNodeWithText(composeTestRule.activity.getString(R.string.shelldon_last_sessions_title).uppercase())
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithTag("shelldon_last_save_${unsaved.key}").performClick()
+        assertEquals(unsaved, saved)
+        assertNull(opened)
+
+        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").performClick()
+        assertEquals(unsaved, opened)
+    }
+
+    @Test
+    fun lastSessions_savedHostHasNoSaveButton() {
+        val host = testHost(id = UUID(0, 8), nickname = "db")
+        val session = LastSession.Saved(host.copy(lastConnect = System.currentTimeMillis()))
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(host)),
+            lastSessions = listOf(session),
+        )
+
+        composeTestRule.onNodeWithTag("shelldon_last_${session.key}").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("shelldon_last_save_${session.key}").assertDoesNotExist()
+    }
+
+    @Test
+    fun lastSessions_areHiddenWhileSearching() {
+        val unsaved = LastSession.Unsaved(QuickConnectTarget("root", "10.0.0.2", 22), System.currentTimeMillis())
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(testHost(id = UUID(0, 9), nickname = "prod"))),
+            lastSessions = listOf(unsaved),
+        )
+        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag("shelldon_search").performTextInput("prod")
+
+        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").assertDoesNotExist()
+    }
+
+    @Test
+    fun runningQuickConnect_isAnActiveSessionWithSaveButton() {
+        var saved: Host? = null
+        val temp = testHost(id = UUID(0, 10), nickname = "root@10.0.0.9").copy(isTemporary = true)
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(testHost(id = UUID(0, 11), nickname = "prod"))),
+            unsavedSessions = listOf(temp),
+            onSaveActiveSession = { saved = it },
+        )
+
+        composeTestRule.onNodeWithTag("shelldon_session_${temp.id}").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("shelldon_session_save_${temp.id}").performClick()
+
+        assertEquals(temp, saved)
+    }
+
     private fun setContent(
         uiState: HostListUiState = HostListUiState(),
         makingShortcut: Boolean = false,
@@ -155,6 +225,11 @@ class ShelldonHostListContentTest {
         onSelectShortcut: (Host) -> Unit = {},
         onNavigateToEditHost: (Host?) -> Unit = {},
         onQuickConnect: (QuickConnectTarget) -> Unit = {},
+        unsavedSessions: List<Host> = emptyList(),
+        lastSessions: List<LastSession> = emptyList(),
+        onSaveActiveSession: (Host) -> Unit = {},
+        onOpenLastSession: (LastSession) -> Unit = {},
+        onSaveLastSession: (LastSession.Unsaved) -> Unit = {},
     ) {
         composeTestRule.setContent {
             ConnectBotTheme {
@@ -174,6 +249,11 @@ class ShelldonHostListContentTest {
                     onDisconnectHost = {},
                     onDisconnectAll = {},
                     onQuickConnect = onQuickConnect,
+                    unsavedSessions = unsavedSessions,
+                    lastSessions = lastSessions,
+                    onSaveActiveSession = onSaveActiveSession,
+                    onOpenLastSession = onOpenLastSession,
+                    onSaveLastSession = onSaveLastSession,
                 )
             }
         }

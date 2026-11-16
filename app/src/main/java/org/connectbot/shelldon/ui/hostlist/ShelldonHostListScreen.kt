@@ -23,12 +23,14 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.connectbot.R
 import org.connectbot.data.JsonImportReader
 import org.connectbot.data.JsonImportTooLargeException
 import org.connectbot.data.entity.Host
+import org.connectbot.service.TerminalBridge
 import org.connectbot.ui.LocalTerminalManager
 import org.connectbot.ui.components.ShortcutCustomizationDialog
 import org.connectbot.ui.screens.hostlist.HostListViewModel
@@ -51,6 +53,7 @@ fun ShelldonHostListScreen(
     makingShortcut: Boolean = false,
     onSelectShortcut: (Host, String?, IconStyle) -> Unit = { _, _, _ -> },
     viewModel: HostListViewModel = hiltViewModel(),
+    recentsViewModel: ShelldonRecentsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -62,6 +65,61 @@ fun ShelldonHostListScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
+
+    val recents by recentsViewModel.recents.collectAsState()
+    val bridgesFlow = remember(terminalManager) {
+        terminalManager?.bridgesFlow ?: MutableStateFlow(emptyList<TerminalBridge>())
+    }
+    val bridges by bridgesFlow.collectAsState()
+    val savedIds = uiState.hosts.map { it.id }.toSet()
+    // Running sessions that are not in the host list (quick connect), and everything that is running.
+    val unsavedSessions = bridges.map { it.host }.filter { it.isTemporary && it.id !in savedIds }
+    val activeHostIds = bridges.map { it.host.id }.toSet()
+    val activeTargets = unsavedSessions.filter { it.protocol == "ssh" }.map { it.asTarget() }.toSet()
+    val lastSessions = remember(uiState.hosts, recents, activeHostIds, activeTargets) {
+        buildLastSessions(uiState.hosts, recents, activeHostIds, activeTargets)
+    }
+
+    fun connectQuick(target: QuickConnectTarget) {
+        scope.launch {
+            val manager = terminalManager
+            if (manager == null) {
+                Toast.makeText(context, R.string.shelldon_quick_connect_unavailable, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            try {
+                // Not saved: the connection is opened as a temporary host.
+                val bridge = manager.openTemporaryConnection(target.toTemporaryHost())
+                recentsViewModel.recordQuickConnect(target)
+                onNavigateToConsole(bridge.host)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Toast.makeText(
+                    context,
+                    e.message ?: resources.getString(R.string.shelldon_quick_connect_failed),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    fun save(block: suspend () -> Host) {
+        scope.launch {
+            try {
+                val saved = block()
+                Toast.makeText(context, resources.getString(R.string.shelldon_saved_toast, saved.nickname), Toast.LENGTH_SHORT).show()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Toast.makeText(
+                    context,
+                    resources.getString(R.string.shelldon_save_failed, e.message ?: e.javaClass.simpleName),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
@@ -192,28 +250,17 @@ fun ShelldonHostListScreen(
         onExportHosts = viewModel::exportHosts,
         // Some document providers label JSON exports as text/plain or application/octet-stream.
         onImportHosts = { importLauncher.launch(arrayOf("*/*")) },
-        onQuickConnect = { target ->
-            scope.launch {
-                val manager = terminalManager
-                if (manager == null) {
-                    Toast.makeText(context, R.string.shelldon_quick_connect_unavailable, Toast.LENGTH_LONG).show()
-                    return@launch
-                }
-                try {
-                    // Not saved: the connection is opened as a temporary host.
-                    val bridge = manager.openTemporaryConnection(target.toTemporaryHost())
-                    onNavigateToConsole(bridge.host)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Toast.makeText(
-                        context,
-                        e.message ?: resources.getString(R.string.shelldon_quick_connect_failed),
-                        Toast.LENGTH_LONG,
-                    ).show()
-                }
+        onQuickConnect = ::connectQuick,
+        unsavedSessions = unsavedSessions,
+        lastSessions = lastSessions,
+        onSaveActiveSession = { host -> save { recentsViewModel.saveActive(host) } },
+        onOpenLastSession = { session ->
+            when (session) {
+                is LastSession.Saved -> onNavigateToConsole(session.host)
+                is LastSession.Unsaved -> connectQuick(session.target)
             }
         },
+        onSaveLastSession = { session -> save { recentsViewModel.saveRecent(session) } },
         modifier = modifier,
     )
 }

@@ -199,6 +199,7 @@ internal fun SessionCard(
     connectionState: ConnectionState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onSave: (() -> Unit)? = null,
 ) {
     val extras = LocalShelldonExtraColors.current
     val unread = connectionState == ConnectionState.UNREAD_OUTPUT
@@ -242,12 +243,25 @@ internal fun SessionCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 4.dp),
             )
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+            Row(
                 modifier = Modifier.padding(top = 8.dp),
-            )
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                // Only quick-connect sessions that are not in the host list get a Save action.
+                if (onSave != null) {
+                    SaveSessionButton(
+                        description = stringResource(R.string.shelldon_save_session_cd, host.nickname),
+                        onClick = onSave,
+                        modifier = Modifier.testTag("shelldon_session_save_${host.id}"),
+                    )
+                }
+            }
         }
     }
 }
