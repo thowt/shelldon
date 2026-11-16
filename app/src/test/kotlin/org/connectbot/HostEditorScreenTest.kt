@@ -208,7 +208,7 @@ class HostEditorScreenTest {
 
         composeTestRule.onNodeWithText("Nickname").assertIsDisplayed()
         composeTestRule.onNodeWithText("Quick connect").assertDoesNotExist()
-        composeTestRule.onNodeWithText("ssh").assertIsDisplayed()
+        composeTestRule.onNodeWithText("SSH").assertIsDisplayed()
         composeTestRule.onNodeWithText("Username").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText("Host").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText("Port").performScrollTo().assertIsDisplayed()
@@ -322,8 +322,8 @@ class HostEditorScreenTest {
     @Test
     fun hostEditorScreen_telnetProtocolShowsHostAndPortWithoutUsernameOrPassword() {
         navigateToHostEditorScreen(EntityIds.NONE)
-        composeTestRule.onNodeWithText("ssh").performClick()
-        composeTestRule.onNodeWithText("telnet").performClick()
+        composeTestRule.onNodeWithText("SSH").performClick()
+        composeTestRule.onNodeWithText("Telnet").performClick()
 
         composeTestRule.onNodeWithText("Nickname").assertIsDisplayed()
         composeTestRule.onNodeWithText("Username").assertDoesNotExist()
@@ -370,14 +370,14 @@ class HostEditorScreenTest {
             .assertIsDisplayed()
 
         composeTestRule
-            .onNodeWithText("ssh")
+            .onNodeWithText("SSH")
             .performScrollTo()
             .performClick()
 
         composeTestRule.waitForIdle()
 
         composeTestRule
-            .onNodeWithText("local")
+            .onNodeWithText("Local")
             .performClick()
 
         composeTestRule.waitForIdle()
@@ -402,14 +402,14 @@ class HostEditorScreenTest {
             .assertIsNotDisplayed()
 
         composeTestRule
-            .onNodeWithText("ssh")
+            .onNodeWithText("SSH")
             .performScrollTo()
             .performClick()
 
         composeTestRule.waitForIdle()
 
         composeTestRule
-            .onNodeWithText("local")
+            .onNodeWithText("Local")
             .performClick()
 
         composeTestRule.waitForIdle()
@@ -425,8 +425,8 @@ class HostEditorScreenTest {
     @SuppressLint("NewApi") // The native screenshot runs under Robolectric SDK 34.
     fun telnetAdvancedOptionsAreSelectableAndHiddenForSsh() {
         navigateToHostEditorScreen(EntityIds.NONE)
-        composeTestRule.onNodeWithText("ssh").performClick()
-        composeTestRule.onNodeWithText("telnet").performClick()
+        composeTestRule.onNodeWithText("SSH").performClick()
+        composeTestRule.onNodeWithText("Telnet").performClick()
         val advanced = composeTestRule.activity.getString(R.string.host_editor_show_advanced)
         composeTestRule.onNodeWithText(advanced).performScrollTo().performClick()
         val echoTitle = composeTestRule.activity.getString(R.string.telnet_echo_title)
@@ -441,8 +441,8 @@ class HostEditorScreenTest {
         screenshot.outputStream().use { output ->
             composeTestRule.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, output)
         }
-        composeTestRule.onNodeWithText("telnet").performScrollTo().performClick()
-        composeTestRule.onNodeWithText("ssh").performClick()
+        composeTestRule.onNodeWithText("Telnet").performScrollTo().performClick()
+        composeTestRule.onNodeWithText("SSH").performClick()
         composeTestRule.onNodeWithText(echoTitle).assertDoesNotExist()
     }
 }
