@@ -268,6 +268,34 @@ then fine-tuning. Each round is one pull request. Decisions taken with it:
   sshlib already brings it in.
 - **Publishing:** IzzyOnDroid first, official F-Droid later (see `docs/FDROID.md`).
 
+### Round 1: what was built and how (2026-11-16)
+
+Status: written, **not yet verified by CI or on the phone** when this was recorded. Update after the run.
+
+- **Keychain tab** is a hub, not a copy of the upstream screens: Identities (create, edit, delete, usage
+  count, warning when the named key was deleted), the stored keys (a tap opens the existing key editor,
+  "Manage" opens the existing key screen with generate/import/FIDO2), and a Known hosts overview across all
+  hosts (`known_hosts_overview`, forget one key). Identities hold a user name and an optional key and
+  **no password**: stored secrets wait for the vault in round 2.
+- **Resolution order** (host, then group chain nearest first, then nothing; `EntityIds.NONE` opts out;
+  a deleted identity counts as unset) is applied **only when a connection opens**, on a copy of the host
+  (`TerminalManager.withEffectiveLogin`, and for jump hosts in `SSH.kt`). Nothing is written back, so a
+  host keeps following its folder. A login the host states itself (user name, a specific key, "never use
+  keys") always wins over the identity.
+- **Hosts screen**: one folder level at a time with a breadcrumb; folders first, then hosts. A text search
+  or a tag filter looks across all folders (flat list, the folder path shown under each host) so a match
+  is never hidden. Tags combine with AND. Create, edit, delete folders and "Move to folder" from the host
+  menu. Deleting a folder moves its hosts and sub-folders up one level.
+- **Host editor** got an "Organise" section (folder, tags, identity) with a plain-language preview of the
+  login that will be used. This also fixed a data-loss bug in the upstream editor: it rebuilt the host
+  from the form and would have dropped `groupId` and `identityId` on every save.
+- **Version line**: `shelldon.version` in `gradle.properties` gives the name (`0.1.0`, plus `+N` for builds
+  after the anchor tag). The version code still comes from the upstream tag anchor until the owner pushes
+  an own `v0.1.0` tag. Shown at the bottom of Settings (needed for bug reports and releases).
+- **Not in round 1**: crypto-policy inheritance from folders (needs schema 22 and an explicit "inherit"
+  value on the host), group colour picker, drag-to-reorder, creating a host directly inside the open
+  folder. Fine-tuning candidates.
+
 ## Security rules and features to drop
 
 - No accept-all host-key mode. A changed host key blocks the connection.
