@@ -45,10 +45,11 @@ that can later be offered to the public.
   Phase 1 (PR #1): theme, bottom bar, Hosts screen, protocol selector. Later phases: Keychain
   (Identities / Keys / Known hosts), group screen with inherited defaults (needs M5), Snippets and
   Tunnels tabs (M7), post-quantum badge (needs the negotiated KEX reported by the transport).
-- **Icon:** the first drawings were rejected as crude. Two redrawn directions exist as concept
-  art (A: side-view turtle whose shell is a terminal window with `#_`; B: top-down turtle with a
-  plated shell carrying a `#`). Pick one, then build the adaptive icon (foreground, background,
-  monochrome layer).
+- **Icon (decided 2026-11-16):** a 3D-style green turtle with a cream `#` on its shell, drawn by the
+  owner with an AI image tool (the first vector drawings were rejected as crude). Adaptive icon
+  with a safe-zone-fitted foreground, dark background `#0C1916` and a monochrome layer for themed
+  icons. Source and build script are in `branding/`. Open point: confirm the licence position of
+  AI-generated artwork before a public release.
 
 ## What was checked
 
@@ -246,6 +247,7 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - User may find an old Cisco 2960/3750 for real-device legacy testing.
 - ShellDroid is worth a second look if its licence is permissive.
 - Name and trademark check before any public release.
+- Icon provenance: AI-generated artwork. Check the tool's terms and the copyright position before release.
 - Decide where new code lives: new Gradle modules (for example `:vault`, `:sync`, pure Kotlin where
   possible) keep upstream merges cheap and the code unit-testable.
 
