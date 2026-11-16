@@ -398,15 +398,6 @@ fun SettingsScreenContent(
             }
 
             item {
-                SwitchPreference(
-                    title = stringResource(R.string.pref_backupkeys_title),
-                    summary = stringResource(R.string.pref_backupkeys_summary),
-                    checked = uiState.backupkeys,
-                    onCheckedChange = onBackupkeysChange,
-                )
-            }
-
-            item {
                 PreferenceCategory(title = stringResource(R.string.pref_emulation_category))
             }
 

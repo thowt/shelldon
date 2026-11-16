@@ -47,8 +47,7 @@
 
 	<application
 		android:name=".ConnectBotApplication"
-		android:allowBackup="true"
-		android:backupAgent=".service.BackupAgent"
+		android:allowBackup="false"
 		android:description="@string/app_desc"
 		android:enableOnBackInvokedCallback="true"
 		android:icon="@mipmap/icon"
@@ -117,10 +116,6 @@
 				android:name="autoStoreLocales"
 				android:value="true" />
 		</service>
-
-		<meta-data
-			android:name="com.google.android.backup.api_key"
-			android:value="unused"/>
 
 	</application>
 </manifest>
