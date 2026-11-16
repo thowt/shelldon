@@ -62,7 +62,7 @@ class PubkeyRepositoryVaultTest {
     )
 
     @Test
-    fun privateKeyIsSealedAtRestAndPlainWhenRead() = runBlocking {
+    fun privateKeyIsSealedAtRestAndPlainWhenRead() = runBlocking<Unit> {
         val key = key()
         repository.save(key)
 
@@ -78,7 +78,7 @@ class PubkeyRepositoryVaultTest {
     }
 
     @Test
-    fun lockedVaultHidesPrivateKeysButKeepsPublicData() = runBlocking {
+    fun lockedVaultHidesPrivateKeysButKeepsPublicData() = runBlocking<Unit> {
         val key = key()
         repository.save(key)
         vault.lock()
@@ -94,7 +94,7 @@ class PubkeyRepositoryVaultTest {
     }
 
     @Test
-    fun savingWhileLockedNeverStoresPlaintextAndNeverWipesSealedData() = runBlocking {
+    fun savingWhileLockedNeverStoresPlaintextAndNeverWipesSealedData() = runBlocking<Unit> {
         val key = key()
         repository.save(key)
         vault.lock()
@@ -114,7 +114,7 @@ class PubkeyRepositoryVaultTest {
     }
 
     @Test
-    fun aSealedBlobMovedToAnotherKeyDoesNotOpen() = runBlocking {
+    fun aSealedBlobMovedToAnotherKeyDoesNotOpen() = runBlocking<Unit> {
         val a = key("a")
         val b = key("b", privateKey = byteArrayOf(9, 9, 9))
         repository.save(a)
@@ -127,7 +127,7 @@ class PubkeyRepositoryVaultTest {
     }
 
     @Test
-    fun legacyPlaintextKeysAreSealedOnce() = runBlocking {
+    fun legacyPlaintextKeysAreSealedOnce() = runBlocking<Unit> {
         val legacy = key("legacy")
         database.pubkeyDao().insert(legacy)
         // Read as-is before conversion.
@@ -140,7 +140,7 @@ class PubkeyRepositoryVaultTest {
     }
 
     @Test
-    fun keysWithoutPrivateMaterialAreLeftAlone() = runBlocking {
+    fun keysWithoutPrivateMaterialAreLeftAlone() = runBlocking<Unit> {
         val hardware = key("hardware", privateKey = null, storage = KeyStorageType.ANDROID_KEYSTORE)
         repository.save(hardware)
         assertThat(database.pubkeyDao().getById(hardware.id)!!.privateKey).isNull()
@@ -150,7 +150,7 @@ class PubkeyRepositoryVaultTest {
     }
 
     @Test
-    fun resettingRemovesOnlyKeysThatWereSealed() = runBlocking {
+    fun resettingRemovesOnlyKeysThatWereSealed() = runBlocking<Unit> {
         val sealed = key("sealed")
         val hardware = key("hardware", privateKey = null, storage = KeyStorageType.ANDROID_KEYSTORE)
         repository.save(sealed)
