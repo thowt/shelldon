@@ -7,6 +7,7 @@ name: Build
 #     (SHELLDON_KEYSTORE_BASE64, SHELLDON_KEYSTORE_PASSWORD, SHELLDON_KEY_ALIAS), see docs/SIGNING.md
 #   - every third-party action pinned to a full commit SHA (taken from upstream's actions.lock)
 #   - runs only on push to main, pull requests and manual dispatch (no cron)
+#   - changes to nothing but docs/** and Markdown files do not start a build (see paths-ignore below)
 #   - one job, two variants (a full run of both took ~37 minutes):
 #       pull request          -> debug APK + unit tests only, no secrets are touched
 #       push to main          -> optimised release APK only (signed with the internal key); the unit
@@ -23,7 +24,12 @@ name: Build
 on:
   push:
     branches: [ main ]
+    # Docs and Markdown do not go into the APK, so they should not cost a ~25 minute build. For pull
+    # requests GitHub applies the filter to the whole PR, not to each push: a PR that also changes code
+    # still builds on every push, a docs-only follow-up commit included.
+    paths-ignore: [ 'docs/**', '**/*.md' ]
   pull_request:
+    paths-ignore: [ 'docs/**', '**/*.md' ]
   workflow_dispatch:
     inputs:
       build:
