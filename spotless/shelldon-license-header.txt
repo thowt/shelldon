@@ -1,0 +1,6 @@
+/*
+ * Shelldon SSH
+ * Copyright $YEAR the Shelldon SSH contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
