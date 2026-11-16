@@ -27,6 +27,8 @@ import org.connectbot.di.CoroutineDispatchers
 import org.connectbot.service.TerminalBridge
 import org.connectbot.service.TerminalManager
 import org.connectbot.sshlib.ConnectionInfo
+import org.connectbot.sshlib.SftpClient
+import org.connectbot.sshlib.SftpResult
 import java.io.IOException
 
 /**
@@ -184,6 +186,19 @@ abstract class AbsTransport {
      * @return true on ability to forward ports
      */
     open fun canForwardPorts(): Boolean = false
+
+    /**
+     * Whether a file-transfer (SFTP) channel can be opened on this connection right now.
+     * Only SSH can; Telnet, Mosh and local shells answer false.
+     */
+    open fun canOpenSftp(): Boolean = false
+
+    /**
+     * Opens an SFTP channel on the connection that is already logged in: a second channel, not a
+     * second login. The caller closes the client when done.
+     * @return null if this transport has no SFTP
+     */
+    open suspend fun openSftp(): SftpResult<SftpClient>? = null
 
     /**
      * Adds the [PortForward] to the list.

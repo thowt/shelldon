@@ -77,6 +77,8 @@ import org.connectbot.sshlib.KeyFingerprint
 import org.connectbot.sshlib.KeyboardInteractiveCallback
 import org.connectbot.sshlib.PortForwarder
 import org.connectbot.sshlib.SessionExit
+import org.connectbot.sshlib.SftpClient
+import org.connectbot.sshlib.SftpResult
 import org.connectbot.sshlib.SshClient
 import org.connectbot.sshlib.SshClientConfig
 import org.connectbot.sshlib.SshCryptoPolicy
@@ -1522,6 +1524,13 @@ open class SSH : AbsTransport {
     override fun isConnected(): Boolean = connected
 
     override fun canForwardPorts(): Boolean = true
+
+    override fun canOpenSftp(): Boolean = connected && authenticated && client != null
+
+    override suspend fun openSftp(): SftpResult<SftpClient>? {
+        if (!canOpenSftp()) return null
+        return client?.openSftp()
+    }
 
     override fun getPortForwards(): List<PortForward> = portForwards
 
