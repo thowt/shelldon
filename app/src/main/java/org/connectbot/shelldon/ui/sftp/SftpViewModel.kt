@@ -64,9 +64,9 @@ data class TransferUi(
 )
 
 /** Files the user picked for upload, some of which are already on the server. */
-data class UploadConflict(val names: List<String>, internal val targets: List<UploadTarget>)
+data class UploadConflict(val names: List<String>, val targets: List<UploadTarget>)
 
-internal data class UploadTarget(val uri: Uri, val name: String, val size: Long?, val path: String)
+data class UploadTarget(val uri: Uri, val name: String, val size: Long?, val path: String)
 
 /** Something to tell the user once: what was being done, to what, and why it failed. [serial] makes two equal notices distinct. */
 data class SftpNotice(
