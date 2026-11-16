@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shelldon SSH
+  Copyright 2026 the Shelldon SSH contributors
+  SPDX-License-Identifier: Apache-2.0
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Bottom navigation -->
+    <string name="shelldon_tab_hosts">Hosts</string>
+    <string name="shelldon_tab_keychain">Keychain</string>
+    <string name="shelldon_tab_settings">Settings</string>
+
+    <!-- Hosts screen -->
+    <string name="shelldon_hosts_title">Hosts</string>
+    <string name="shelldon_search_hint">Search, or type user@host</string>
+    <string name="shelldon_quick_connect">Quick connect</string>
+    <string name="shelldon_connect_to">Connect to %1$s</string>
+    <string name="shelldon_connect_to_hint">Connect once without saving</string>
+    <string name="shelldon_quick_connect_unavailable">The connection service is not ready yet. Try again in a moment.</string>
+    <string name="shelldon_quick_connect_failed">Could not open the connection.</string>
+    <string name="shelldon_new">New</string>
+    <string name="shelldon_sessions_title">Active sessions</string>
+    <string name="shelldon_hosts_section">Hosts</string>
+    <string name="shelldon_disconnect_all">Disconnect all</string>
+    <string name="shelldon_no_matches">No hosts match \"%1$s\"</string>
+
+    <!-- Filter chips -->
+    <string name="shelldon_filter_all">All</string>
+    <string name="shelldon_filter_ssh">SSH</string>
+    <string name="shelldon_filter_mosh">Mosh</string>
+    <string name="shelldon_filter_telnet">Telnet</string>
+    <string name="shelldon_filter_local">Local</string>
+    <string name="shelldon_filter_legacy">Legacy crypto</string>
+    <string name="shelldon_sort_color">By colour</string>
+
+    <!-- Host badges -->
+    <string name="shelldon_badge_mosh">Mosh</string>
+    <string name="shelldon_badge_telnet">Telnet, not encrypted</string>
+    <string name="shelldon_badge_legacy">Legacy crypto</string>
+    <string name="shelldon_badge_custom">Custom crypto</string>
+    <string name="shelldon_badge_jump">Jump host</string>
+    <string name="shelldon_local_shell">Local shell</string>
+
+    <!-- Empty state -->
+    <string name="shelldon_empty_title">No hosts yet</string>
+    <string name="shelldon_empty_body">Add your first server, import a hosts file, or type user@host above to connect once.</string>
+    <string name="shelldon_empty_add">Add host</string>
+    <string name="shelldon_empty_import">Import hosts</string>
+
+    <!-- Host editor -->
+    <string name="shelldon_mosh_requirements">Mosh needs mosh-server on the remote host and UDP ports 60000 to 61000 open.</string>
+</resources>
