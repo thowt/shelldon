@@ -29,6 +29,7 @@ activityCompose = "1.13.0"
 zmodemlib = "0.1.1"
 telnetlib = "0.1.1"
 sshlib = "0.6.9"
+bouncycastle = "1.85.2"
 termlib = "0.3.15"
 
 yubikit = "3.3.0"
@@ -82,6 +83,7 @@ sshlib = { module = "org.connectbot.sshlib:sshlib", version.ref = "sshlib" }
 termlib = { module = "org.connectbot:termlib", version.ref = "termlib" }
 play-services-basement = { module = "com.google.android.gms:play-services-basement", version.ref = "playServicesBasement" }
 play-feature-delivery = { module = "com.google.android.play:feature-delivery-ktx", version.ref = "playFeatureDelivery" }
+bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 conscrypt-android = { module = "org.conscrypt:conscrypt-android", version.ref = "conscrypt" }
 
 androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }

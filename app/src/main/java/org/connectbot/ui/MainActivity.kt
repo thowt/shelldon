@@ -66,6 +66,8 @@ import org.connectbot.data.entity.Host
 import org.connectbot.fido2.Fido2Manager
 import org.connectbot.service.ConnectionNotifier
 import org.connectbot.service.TerminalManager
+import org.connectbot.shelldon.vault.VaultController
+import org.connectbot.shelldon.vault.VaultState
 import org.connectbot.ui.components.DisconnectAllDialog
 import org.connectbot.ui.navigation.NavDestinations
 import org.connectbot.ui.navigation.navigateToConsole
@@ -89,6 +91,9 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var fido2Manager: Fido2Manager
+
+    @Inject
+    lateinit var vaultController: VaultController
 
     internal lateinit var appViewModel: AppViewModel
     private var bound = false
@@ -181,6 +186,7 @@ class MainActivity : AppCompatActivity() {
             val pendingDisconnectAll by appViewModel.pendingDisconnectAll.collectAsState()
             val isAuthenticated by appViewModel.isAuthenticated.collectAsState()
             val authOnLaunchEnabled = appViewModel.authOnLaunchEnabled
+            val vaultState by vaultController.state.collectAsState()
             val themeMode by appViewModel.themeMode.collectAsState()
             val navController = rememberNavController()
             val context = LocalContext.current
@@ -204,9 +210,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            LaunchedEffect(requestedUri, navController, appUiState, isAuthenticated) {
+            LaunchedEffect(requestedUri, navController, appUiState, isAuthenticated, vaultState) {
                 Timber.d("LaunchedEffect: requestedUri=$requestedUri, appUiState=$appUiState")
-                if (appUiState is AppUiState.Ready && (!authOnLaunchEnabled || isAuthenticated)) {
+                // Connection links wait for the vault: without it there are no keys or saved passwords to use.
+                if (appUiState is AppUiState.Ready && (!authOnLaunchEnabled || isAuthenticated) && (vaultState == VaultState.UNLOCKED || makingShortcut)) {
                     requestedUri?.let { uri ->
                         Timber.d("Processing URI: $uri")
                         navController.let { controller ->

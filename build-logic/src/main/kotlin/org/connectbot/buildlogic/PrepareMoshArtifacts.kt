@@ -20,13 +20,20 @@ package org.connectbot.buildlogic
 import de.undercouch.gradle.tasks.download.DownloadAction
 import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import java.util.concurrent.ExecutionException
 import java.util.zip.ZipInputStream
 
@@ -40,6 +47,16 @@ abstract class PrepareMoshArtifacts : DefaultTask() {
     @get:Input abstract val releaseBaseUrl: Property<String>
 
     @get:Input abstract val releaseApiBaseUrl: Property<String>
+
+    /**
+     * Shelldon SSH: `release <tag>` and one `<sha256>  <archive name>` line per archive (see
+     * gradle/mosh4android.sha256). The plugin always sets it for the real tasks, so a missing file fails
+     * the build. It is optional only so that fixtures which register this task by hand keep working.
+     */
+    @get:Optional
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val checksums: RegularFileProperty
 
     // Construct actions during configuration so they capture only cache-compatible services.
     private val directDownloads = ABIS.associateWith { newDownload() }
@@ -62,6 +79,8 @@ abstract class PrepareMoshArtifacts : DefaultTask() {
     @TaskAction
     fun prepare() {
         val tag = releaseTag.get()
+        val expected = checksums.orNull?.asFile?.let { readChecksums(it, tag) }
+        if (expected == null) logger.warn("No checksum file is configured: the Mosh archives are NOT verified")
         val jniLibsRoot = jniLibsDirectory.get().asFile
         val assetsRoot = assetsDirectory.get().asFile
         jniLibsRoot.deleteRecursively()
@@ -93,9 +112,48 @@ abstract class PrepareMoshArtifacts : DefaultTask() {
                     throw e
                 }
             }
+            if (expected != null) verifySha256(archive, "mosh-android-$abi.zip", expected)
             extractArchive(archive, abi, abi == ABIS.first(), jniLibsRoot, assetsRoot)
         }
         assetsRoot.resolve("mosh-release.txt").writeText(tag)
+    }
+
+    private fun readChecksums(file: File, tag: String): Map<String, String> {
+        val lines = file.readLines().map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
+        val release = lines.firstOrNull { it.startsWith("release ") }?.removePrefix("release ")?.trim()
+        if (release != tag) {
+            throw GradleException(
+                "${file.name} is for release '$release' but the build uses '$tag'. " +
+                    "Update the hashes together with the tag, after checking what changed upstream.",
+            )
+        }
+        return lines.filterNot { it.startsWith("release ") }.associate { line ->
+            val parts = line.split(Regex("\\s+"))
+            if (parts.size != 2 || !Regex("[0-9a-f]{64}").matches(parts[0])) {
+                throw GradleException("Bad line in ${file.name}: $line")
+            }
+            parts[1] to parts[0]
+        }
+    }
+
+    private fun verifySha256(archive: File, name: String, expected: Map<String, String>) {
+        val want = expected[name]
+            ?: throw GradleException("No SHA-256 for $name in the checksum file; refusing to use an unverified Mosh binary")
+        val digest = MessageDigest.getInstance("SHA-256")
+        archive.inputStream().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+        if (actual != want) {
+            // Do not leave a rejected file where a later run could pick it up.
+            archive.delete()
+            throw GradleException("SHA-256 of $name is $actual but the checksum file says $want. The download was not used.")
+        }
     }
 
     private fun download(action: DownloadAction, url: String, destination: File, accept: String = "application/octet-stream") {

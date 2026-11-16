@@ -102,12 +102,19 @@ object HostConfigJson {
      * @param jsonString JSON string containing host configurations
      * @return Import counts for hosts and profiles
      */
-    fun importFromJson(context: Context, database: RoomDatabase, jsonString: String): ImportCounts {
+    fun importFromJson(context: Context, database: RoomDatabase, jsonString: String): ImportCounts = importWithDetails(context, database, jsonString).first
+
+    /**
+     * Same as [importFromJson], and also reports which ids the imported rows got, so that data kept
+     * outside these tables can be attached to them. Safe to call inside a Room transaction.
+     */
+    fun importWithDetails(context: Context, database: RoomDatabase, jsonString: String): Pair<ImportCounts, ImportDetails> {
         val schema = DatabaseSchema.load(context)
         val exporter = SchemaBasedExporter(database, schema)
+        val details = ImportDetails()
         val results = database.runInTransaction(
             Callable {
-                val imported = exporter.importFromJson(jsonString, EXPORT_TABLES)
+                val imported = exporter.importFromJson(jsonString, EXPORT_TABLES, details)
                 ConnectBotDatabase.migratePostLogin(database.openHelper.writableDatabase)
                 imported
             },
@@ -116,11 +123,12 @@ object HostConfigJson {
         val hostCounts = results["hosts"] ?: Pair(0, 0)
         val profileCounts = results["profiles"] ?: Pair(0, 0)
 
-        return ImportCounts(
+        val counts = ImportCounts(
             hostsImported = hostCounts.first,
             hostsSkipped = hostCounts.second,
             profilesImported = profileCounts.first,
             profilesSkipped = profileCounts.second,
         )
+        return Pair(counts, details)
     }
 }

@@ -104,6 +104,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     highlightItem: String? = null,
     onNavigateToKeyboard: () -> Unit = {},
+    onNavigateToSecurity: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -181,6 +182,7 @@ fun SettingsScreen(
         onNavigateBack = onNavigateBack,
         highlightItem = highlightItem,
         onNavigateToKeyboard = onNavigateToKeyboard,
+        onNavigateToSecurity = onNavigateToSecurity,
         onAuthOnLaunchChange = viewModel::updateAuthOnLaunch,
         onMemkeysChange = viewModel::updateMemkeys,
         onConnectionAlertsChange = viewModel::updateConnectionAlerts,
@@ -273,6 +275,7 @@ fun SettingsScreenContent(
     highlightItem: String? = null,
     onZmodemChange: (Boolean) -> Unit = {},
     onNavigateToKeyboard: () -> Unit = {},
+    onNavigateToSecurity: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -394,15 +397,6 @@ fun SettingsScreenContent(
                     summary = stringResource(R.string.pref_wifilock_summary),
                     checked = uiState.wifilock,
                     onCheckedChange = onWifilockChange,
-                )
-            }
-
-            item {
-                SwitchPreference(
-                    title = stringResource(R.string.pref_backupkeys_title),
-                    summary = stringResource(R.string.pref_backupkeys_summary),
-                    checked = uiState.backupkeys,
-                    onCheckedChange = onBackupkeysChange,
                 )
             }
 
@@ -618,6 +612,16 @@ fun SettingsScreenContent(
                     trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) },
                     modifier = Modifier.clickable(onClick = onNavigateToKeyboard),
                 ) { Text(stringResource(R.string.keyboard_settings_title)) }
+                HorizontalDivider()
+            }
+
+            item {
+                PreferenceCategory(title = stringResource(R.string.shelldon_security_title))
+                ListItem(
+                    supportingContent = { Text(stringResource(R.string.shelldon_settings_security_summary)) },
+                    trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) },
+                    modifier = Modifier.clickable(onClick = onNavigateToSecurity),
+                ) { Text(stringResource(R.string.shelldon_settings_security_title)) }
                 HorizontalDivider()
             }
 

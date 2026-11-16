@@ -154,4 +154,104 @@
     <string name="shelldon_known_hosts_empty">No host keys saved yet. They appear after you trust a server on first connect.</string>
     <string name="shelldon_known_hosts_forget">Forget host key</string>
     <string name="shelldon_known_hosts_forget_body">Forget the saved key of %1$s? The next connection asks you to trust the server again.</string>
+
+    <!-- Vault: first-run setup -->
+    <string name="shelldon_vault_setup_title">Protect your secrets</string>
+    <string name="shelldon_vault_setup_body">Choose a master password. It seals your private keys and saved passwords on this phone. It is never stored or sent anywhere, and it cannot be recovered: if you forget it, those keys and passwords have to be created again.</string>
+    <string name="shelldon_vault_password">Master password</string>
+    <string name="shelldon_vault_password_confirm">Repeat master password</string>
+    <string name="shelldon_vault_password_hint">At least %1$d characters. A few random words are better than a short clever password.</string>
+    <string name="shelldon_vault_create">Create vault</string>
+    <string name="shelldon_vault_working">Working…</string>
+    <string name="shelldon_vault_show_password">Show password</string>
+    <string name="shelldon_vault_hide_password">Hide password</string>
+    <string name="shelldon_vault_err_short">Use at least %1$d characters.</string>
+    <string name="shelldon_vault_err_mismatch">The two passwords are different.</string>
+    <string name="shelldon_vault_err_create">The vault could not be created.</string>
+
+    <!-- Vault: unlock -->
+    <string name="shelldon_vault_locked_title">Shelldon is locked</string>
+    <string name="shelldon_vault_unlock">Unlock</string>
+    <string name="shelldon_vault_unlock_biometric">Use biometrics</string>
+    <string name="shelldon_vault_err_wrong">Wrong password.</string>
+    <string name="shelldon_vault_err_damaged">The vault file is damaged. Resetting it removes saved passwords and private keys.</string>
+    <string name="shelldon_vault_err_wait">Too many attempts. Try again in %1$d s.</string>
+    <string name="shelldon_vault_bio_changed">Your biometrics changed, so biometric unlock was switched off. Enter the master password.</string>
+    <string name="shelldon_vault_err_bio">Biometric unlock failed. Enter the master password.</string>
+    <string name="shelldon_vault_forgot">Forgot the password?</string>
+
+    <!-- Vault: reset -->
+    <string name="shelldon_vault_reset_title">Reset the vault?</string>
+    <string name="shelldon_vault_reset_body">This deletes every saved password and every private key stored in Shelldon. It cannot be undone. Hosts, folders, tags and identities stay.</string>
+    <string name="shelldon_vault_reset_confirm">Reset</string>
+
+    <!-- Vault: biometric -->
+    <string name="shelldon_vault_bio_offer_title">Unlock with biometrics?</string>
+    <string name="shelldon_vault_bio_offer_body">Use your fingerprint or face instead of typing the master password. The password keeps working and is needed again if the biometrics enrolled on this phone change.</string>
+    <string name="shelldon_vault_bio_enable">Enable</string>
+    <string name="shelldon_vault_bio_not_now">Not now</string>
+    <string name="shelldon_vault_bio_prompt_title">Unlock Shelldon</string>
+    <string name="shelldon_vault_bio_prompt_enable_subtitle">Confirm to use biometrics for the vault</string>
+    <string name="shelldon_vault_bio_prompt_unlock_subtitle">Unlocks your keys and saved passwords</string>
+    <string name="shelldon_vault_bio_prompt_negative">Use password</string>
+
+    <!-- Security screen -->
+    <string name="shelldon_settings_security_title">Security, backup and import</string>
+    <string name="shelldon_settings_security_summary">Master password, auto-lock, biometrics, encrypted backup, OpenSSH config</string>
+    <string name="shelldon_security_title">Security</string>
+    <string name="shelldon_security_lock_now">Lock now</string>
+    <string name="shelldon_security_lock_now_summary">Open sessions keep running; keys and passwords need the master password again.</string>
+    <string name="shelldon_security_autolock">Auto-lock</string>
+    <string name="shelldon_security_autolock_0">As soon as the app is left</string>
+    <string name="shelldon_security_autolock_60">After 1 minute away</string>
+    <string name="shelldon_security_autolock_300">After 5 minutes away</string>
+    <string name="shelldon_security_autolock_900">After 15 minutes away</string>
+    <string name="shelldon_security_autolock_3600">After 1 hour away</string>
+    <string name="shelldon_security_biometric">Unlock with biometrics</string>
+    <string name="shelldon_security_biometric_on">Fingerprint or face opens the vault</string>
+    <string name="shelldon_security_biometric_off">Only the master password opens the vault</string>
+    <string name="shelldon_security_biometric_unavailable">No strong biometric is enrolled on this phone</string>
+    <string name="shelldon_security_change_password">Change master password</string>
+    <string name="shelldon_security_change_password_summary">Saved keys and passwords stay as they are</string>
+    <string name="shelldon_security_current_password">Current master password</string>
+    <string name="shelldon_security_new_password">New master password</string>
+    <string name="shelldon_security_err_current">The current password is wrong.</string>
+    <string name="shelldon_security_password_changed">Master password changed</string>
+    <string name="shelldon_security_reset">Reset vault</string>
+    <string name="shelldon_security_reset_summary">Deletes saved passwords and private keys</string>
+
+    <!-- Security screen: sections and backup -->
+    <string name="shelldon_security_section_vault">Vault</string>
+    <string name="shelldon_security_section_backup">Encrypted backup</string>
+    <string name="shelldon_security_section_import">Import</string>
+    <string name="shelldon_security_section_danger">Danger zone</string>
+    <string name="shelldon_backup_export">Export encrypted backup</string>
+    <string name="shelldon_backup_export_summary">Hosts, folders, tags and identities in one file, locked with its own password</string>
+    <string name="shelldon_backup_export_title">Encrypt the backup</string>
+    <string name="shelldon_backup_password">Backup password</string>
+    <string name="shelldon_backup_password_confirm">Repeat backup password</string>
+    <string name="shelldon_backup_password_hint">This password locks the file and is separate from the master password. Without it the backup cannot be opened.</string>
+    <string name="shelldon_backup_include_keys">Include private keys</string>
+    <string name="shelldon_backup_include_passwords">Include saved host passwords</string>
+    <string name="shelldon_backup_continue">Choose where to save</string>
+    <string name="shelldon_backup_import">Restore from encrypted backup</string>
+    <string name="shelldon_backup_import_summary">Adds what is missing. Nothing you already have is changed.</string>
+    <string name="shelldon_backup_import_title">Open the backup</string>
+    <string name="shelldon_backup_import_confirm">Restore</string>
+    <string name="shelldon_backup_exported">Backup saved.</string>
+    <string name="shelldon_backup_failed_wrong">Wrong backup password, or the file was changed.</string>
+    <string name="shelldon_backup_failed_not_backup">This is not a Shelldon backup.</string>
+    <string name="shelldon_backup_failed_new">This backup was made by a newer version of Shelldon.</string>
+    <string name="shelldon_backup_failed_other">The backup could not be completed. Nothing was changed.</string>
+    <string name="shelldon_backup_result_title">Restore finished</string>
+    <string name="shelldon_backup_result_body">Hosts added: %1$d (already there: %2$d)\nKeys added: %3$d (already there: %4$d)\nFolders added: %5$d\nTags added: %6$d\nIdentities added: %7$d\nPasswords restored: %8$d</string>
+    <string name="shelldon_sshconfig_import">Import OpenSSH config</string>
+    <string name="shelldon_sshconfig_import_summary">Adds hosts from an ssh_config file. No passwords or keys are read.</string>
+    <string name="shelldon_sshconfig_result_title">Import finished</string>
+    <string name="shelldon_sshconfig_result_body">Hosts added: %1$d (already there: %2$d)\nJump hosts linked: %3$d</string>
+    <string name="shelldon_sshconfig_result_unresolved">Jump host not set (several hops or unknown host): %1$s</string>
+    <string name="shelldon_sshconfig_result_unsupported">Options not imported: %1$s</string>
+    <string name="shelldon_sshconfig_result_skipped_blocks">Match blocks and Include lines were skipped.</string>
+    <string name="shelldon_sshconfig_failed">That file could not be read.</string>
+    <string name="shelldon_security_ok">OK</string>
 </resources>

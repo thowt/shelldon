@@ -28,6 +28,8 @@ import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.net.InetSocketAddress
+import java.security.MessageDigest
+import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipEntry
@@ -109,16 +111,66 @@ class MoshArtifactsPluginTest {
         assertTrue(!root.resolve("build/artifacts/assets/mosh-release.txt").exists())
     }
 
+    // Shelldon SSH: pinned SHA-256 checks.
+
+    @Test
+    fun acceptsArchivesThatMatchThePinnedHashes() = withServer { server, _ ->
+        val root = fixture(server.address.port, checksums("test", ABIS.associateWith { sha256(archive(it)) }))
+        serveArchives(server)
+        assertTrue(runner(root).build().output.contains("BUILD SUCCESSFUL"))
+        assertArtifacts(root)
+    }
+
+    @Test
+    fun rejectsAnArchiveWhoseHashDoesNotMatch() = withServer { server, _ ->
+        val hashes = ABIS.associateWith { sha256(archive(it)) }.toMutableMap()
+        hashes["x86"] = "0".repeat(64)
+        val root = fixture(server.address.port, checksums("test", hashes))
+        serveArchives(server)
+        val result = runner(root).buildAndFail()
+        assertTrue(result.output.contains("The download was not used"))
+        assertTrue(!root.resolve("build/artifacts/assets/mosh-release.txt").exists())
+    }
+
+    @Test
+    fun rejectsChecksumsThatBelongToAnotherRelease() = withServer { server, _ ->
+        val root = fixture(server.address.port, checksums("older", ABIS.associateWith { sha256(archive(it)) }))
+        serveArchives(server)
+        assertTrue(runner(root).buildAndFail().output.contains("is for release 'older' but the build uses 'test'"))
+    }
+
+    @Test
+    fun refusesAnArchiveThatHasNoPinnedHash() = withServer { server, _ ->
+        val root = fixture(server.address.port, checksums("test", ABIS.filter { it != "x86_64" }.associateWith { sha256(archive(it)) }))
+        serveArchives(server)
+        assertTrue(runner(root).buildAndFail().output.contains("No SHA-256 for mosh-android-x86_64.zip"))
+    }
+
+    private fun serveArchives(server: HttpServer) {
+        server.createContext("/downloads/") { exchange ->
+            val bytes = archive(abiFromPath(exchange.requestURI.path))
+            exchange.sendResponseHeaders(200, bytes.size.toLong())
+            exchange.responseBody.use { it.write(bytes) }
+            exchange.close()
+        }
+    }
+
+    private fun checksums(release: String, hashes: Map<String, String>) = "release $release\n" + hashes.entries.joinToString("") { (abi, hash) -> "$hash  mosh-android-$abi.zip\n" }
+
+    private fun sha256(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
     private fun runner(root: File) = GradleRunner.create()
         .withProjectDir(root)
         .withPluginClasspath()
         .withArguments("prepareFixture", "--configuration-cache", "--rerun-tasks", "--max-workers=1", "-Dorg.gradle.jvmargs=-Xmx512m")
 
-    private fun fixture(port: Int): File {
+    private fun fixture(port: Int, checksums: String? = null): File {
         val root = temporary.newFolder()
         root.resolve("settings.gradle.kts").writeText("""rootProject.name = "mosh-fixture" """.trim())
         root.resolve("gradle").mkdirs()
         root.resolve("gradle/mosh4android.version").writeText("test\n")
+        if (checksums != null) root.resolve("gradle/mosh4android.sha256").writeText(checksums)
+        val pinned = if (checksums != null) """checksums.set(layout.projectDirectory.file("gradle/mosh4android.sha256"))""" else ""
         root.resolve("build.gradle.kts").writeText(
             """
             import org.connectbot.buildlogic.PrepareMoshArtifacts
@@ -127,6 +179,7 @@ class MoshArtifactsPluginTest {
                 releaseTag.set("test")
                 releaseBaseUrl.set("http://127.0.0.1:$port/downloads")
                 releaseApiBaseUrl.set("http://127.0.0.1:$port/releases")
+                $pinned
                 jniLibsDirectory.set(layout.buildDirectory.dir("artifacts/jniLibs"))
                 assetsDirectory.set(layout.buildDirectory.dir("artifacts/assets"))
             }
@@ -157,7 +210,8 @@ class MoshArtifactsPluginTest {
         val output = ByteArrayOutputStream()
         ZipOutputStream(output).use { zip ->
             entries.forEach { (name, bytes) ->
-                zip.putNextEntry(ZipEntry(name))
+                // A fixed timestamp keeps the archives, and so their hashes, identical from run to run.
+                zip.putNextEntry(ZipEntry(name).apply { timeLocal = LocalDateTime.of(1980, 1, 1, 0, 0) })
                 zip.write(bytes)
                 zip.closeEntry()
             }

@@ -27,6 +27,7 @@ import androidx.navigation.NavHostController
 import org.connectbot.data.entity.Host
 import org.connectbot.service.TerminalManager
 import org.connectbot.shelldon.ui.shell.ShelldonShell
+import org.connectbot.shelldon.ui.vault.VaultGate
 import org.connectbot.ui.navigation.ConnectBotNavHost
 import org.connectbot.ui.navigation.NavDestinations
 import org.connectbot.ui.theme.ConnectBotTheme
@@ -83,19 +84,21 @@ fun ConnectBotApp(
                         modifier = modifier,
                     )
                 } else {
-                    CompositionLocalProvider(LocalTerminalManager provides appUiState.terminalManager) {
-                        ShelldonShell(
-                            navController = navController,
-                            makingShortcut = makingShortcut,
-                        ) { shellModifier ->
-                            ConnectBotNavHost(
+                    VaultGate(makingShortcut = makingShortcut, modifier = modifier) {
+                        CompositionLocalProvider(LocalTerminalManager provides appUiState.terminalManager) {
+                            ShelldonShell(
                                 navController = navController,
-                                startDestination = NavDestinations.HOST_LIST,
                                 makingShortcut = makingShortcut,
-                                onSelectShortcut = onSelectShortcut,
-                                onNavigateToConsole = onNavigateToConsole,
-                                modifier = modifier.then(shellModifier),
-                            )
+                            ) { shellModifier ->
+                                ConnectBotNavHost(
+                                    navController = navController,
+                                    startDestination = NavDestinations.HOST_LIST,
+                                    makingShortcut = makingShortcut,
+                                    onSelectShortcut = onSelectShortcut,
+                                    onNavigateToConsole = onNavigateToConsole,
+                                    modifier = modifier.then(shellModifier),
+                                )
+                            }
                         }
                     }
                 }

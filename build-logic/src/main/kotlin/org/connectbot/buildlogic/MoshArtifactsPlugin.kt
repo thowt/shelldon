@@ -44,6 +44,8 @@ class MoshArtifactsPlugin : Plugin<Project> {
     private fun registerArtifacts(project: Project, extension: MoshArtifactsExtension, name: String, flavor: String) {
         project.tasks.register("prepare${name}MoshArtifacts", PrepareMoshArtifacts::class.java) {
             releaseTag.set(extension.releaseTag)
+            // Shelldon SSH: pinned hashes, see gradle/mosh4android.sha256.
+            checksums.set(project.rootProject.layout.projectDirectory.file("gradle/mosh4android.sha256"))
             jniLibsDirectory.set(project.layout.buildDirectory.dir("generated/mosh/$flavor/jniLibs"))
             assetsDirectory.set(project.layout.buildDirectory.dir("generated/mosh/$flavor/assets"))
         }

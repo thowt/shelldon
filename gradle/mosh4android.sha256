@@ -1,0 +1,16 @@
+# Shelldon SSH: SHA-256 of the Mosh archives that the build downloads from
+# github.com/connectbot/mosh4android. The build fails when a download does not match, or when the
+# `release` line below differs from the tag in mosh4android.version, so a bumped tag, a replaced
+# release asset or a tampered download is noticed instead of shipped.
+#
+# The archives contain `mosh-client`, a native program that runs under this app's user id.
+#
+# To update: change gradle/mosh4android.version, read what changed upstream, download the four
+# archives, compare their hashes with the digests GitHub shows for the release assets, then put
+# the tag and the hashes here in the same commit. These hashes were taken from the release as
+# served on 2026-11-16 (trust on first use) and match the files in the CI-built APK by size.
+release android-2026.11.12
+3f2fa115aa88a905024d395400e974cc1830616df7acc7da0f9c796416d8941e  mosh-android-arm64-v8a.zip
+eab3a70f5c95b45224a0a017f951f2650a0638d3845877d64461e87da28a5c0e  mosh-android-armeabi-v7a.zip
+c04068890bbfce3ae2fe2a9cf9135ea238ec6c05402661ef4e89258e17263dd1  mosh-android-x86.zip
+a437bb90679152aa12855aceb2edae44f720a3d3692bac36cde87d140b638575  mosh-android-x86_64.zip

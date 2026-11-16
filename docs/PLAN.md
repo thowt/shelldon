@@ -258,8 +258,9 @@ then fine-tuning. Each round is one pull request. Decisions taken with it:
 - **Round 1 (branch `m6-keychain-groups`):** Keychain with Identities, Keys and Known hosts; group tree,
   tags, host-list filters; group, tag and identity pickers in the host editor; the resolved login applied
   when a connection opens; version line at the bottom of Settings; F-Droid notes (`docs/FDROID.md`).
-- **Round 2:** vault (required from first launch, master password with Argon2id, biometric unlock,
-  auto-lock; identity passwords move in), export/import, OpenSSH container tests (M3).
+- **Round 2 (branch `m7-vault-export`, see "Round 2" below):** vault (required from first launch, master
+  password with Argon2id, biometric unlock, auto-lock), encrypted export/import plus `ssh_config` import,
+  OpenSSH container tests (M3). Identity passwords did not make it and are a fine-tuning candidate.
 - **Round 3:** SFTP browser, snippets, tunnels tab, WebDAV sync. **Sync is the first thing to slip** to a
   later round if this one is too big.
 - **Vault is required, not optional**: one code path to test, and secrets are never stored in the clear.
@@ -270,7 +271,8 @@ then fine-tuning. Each round is one pull request. Decisions taken with it:
 
 ### Round 1: what was built and how (2026-11-16)
 
-Status: written, **not yet verified by CI or on the phone** when this was recorded. Update after the run.
+Status: CI is green on the pull request (debug APK, unit tests, Room schema check) and on the optimised
+release build of `main` after the merge (run 43924739116). **Not yet tried on the phone.**
 
 - **Keychain tab** is a hub, not a copy of the upstream screens: Identities (create, edit, delete, usage
   count, warning when the named key was deleted), the stored keys (a tap opens the existing key editor,
@@ -295,6 +297,121 @@ Status: written, **not yet verified by CI or on the phone** when this was record
 - **Not in round 1**: crypto-policy inheritance from folders (needs schema 22 and an explicit "inherit"
   value on the host), group colour picker, drag-to-reorder, creating a host directly inside the open
   folder. Fine-tuning candidates.
+
+### Round 2: what was built and how (2026-11-16, branch `m7-vault-export`)
+
+Status: written, **not compiled or run by me** (the VM has no Android SDK or Kotlin compiler; CI is the first
+compile). Spotless and lint were not run either. Update this section after the CI run and the phone test.
+
+**Vault** (`org.connectbot.shelldon.vault`, UI in `shelldon.ui.vault`)
+- Required from first launch: the app shows "Create master password" before anything else, then an unlock
+  screen on every start and after auto-lock. The shortcut picker is exempt (it shows no secrets). A
+  `connectbot://` URI waits for the unlock.
+- A random 256-bit data key (DEK) seals each secret with AES-256-GCM. The DEK is stored wrapped by a key
+  derived from the master password with **Argon2id** (RFC 9106, v1.3; default 64 MiB, 3 passes, 1 lane; the
+  password is NFC-normalised UTF-8, minimum 8 characters). The parameters live in the header file
+  `shelldon-vault.hdr` (109 bytes, authenticated as GCM associated data, written atomically). Parameters read
+  from a file are range-checked (8 to 256 MiB, 1 to 10 passes, 1 to 8 lanes), so a damaged or hostile header
+  cannot make the app allocate gigabytes.
+- Sealed values carry a context (`pubkey/<id>/private-key`, `password/<hostId>`) in the associated data, so a
+  blob moved to another record refuses to open. What is sealed: private keys and saved passwords.
+  Public keys, host names and the rest stay in the clear in Room, as before.
+- Argon2id comes from BouncyCastle `bcprov-jdk18on` 1.85.2 (MIT-style licence, maven central, actively
+  maintained; 1.85 (released 2026-07-28) fixed a long list of CVEs in earlier versions, so 1.85.2 is the floor). The answer to "does sshlib already bring it?"
+  is no: sshlib copies a few BouncyCastle classes (sntrup, Poly1305) into its own package, so there is
+  neither a clash nor an Argon2id to reuse. (Read in the sshlib sources at 0.6.10-SNAPSHOT, not in the 0.6.9 jar.)
+  The implementation is checked against known-answer vectors made with an independent implementation
+  (argon2-cffi) in `VaultTest`.
+- **Biometric unlock** is a shortcut to the same DEK: an Android Keystore AES-GCM key (alias
+  `shelldon_vault_biometric`, biometric-strong, per-use authentication, invalidated when fingerprints
+  change, StrongBox when the device has it) wraps the DEK into `shelldon-vault.bio`. If the key is
+  invalidated, the unlock screen says so, the master password still works, and the shortcut can be turned
+  on again under Security.
+- **Auto-lock**: after 0, 1, 5, 15 or 60 minutes in the background (default 5; there is no "never"). Locking
+  zeroes the DEK. A connection that is already open keeps working because it holds what it needs; a new
+  connection that needs a key or a saved password fails while locked.
+- **Migration**: the first unlock after the update seals the plaintext private keys in Room and moves
+  passwords out of the old Android-Keystore store into the vault. Remnants of the old plaintext may stay in
+  free database pages or flash; this cannot be cleaned from app code. Changing the master password
+  re-wraps the DEK only (no re-encryption of the data).
+- **Forgotten password**: the only way out is "Reset vault", which deletes the saved passwords and the
+  stored private keys (the key entries are removed; hosts and everything else stay). That is the price of
+  no backdoor.
+- **Cloud backup**: found and fixed in this round. The upstream manifest still had `allowBackup="true"` with
+  ConnectBot's backup agent, against our rule. The agent left private keys out unless the "Backup pubkeys"
+  setting was on (default off), but it did back up the host database. Builds up to and including round 1 are
+  affected. The agent and the setting are gone. `BackupFilter.kt` and its tests are dead code left for a
+  later clean-up (upstream merges).
+
+**Encrypted backup and restore** (`shelldon.backup`, "Settings > Security, backup and import")
+- File format `SHBK`: magic(4) version(1) Argon2id memory(4) passes(4) lanes(4) salt(16) nonce(12), then
+  the AES-256-GCM ciphertext; the first 45 bytes are the associated data. It uses its **own backup
+  password** (minimum 8, default 64 MiB and 4 passes), not the vault password, so a backup opens on any
+  install. Maximum file size 64 MiB.
+- Payload (JSON): the existing host export (hosts, port forwards, profiles, keyboard), host links (jump
+  hosts), folders, tags with their host assignments, identities, and optionally private keys (only those
+  that can be exported, not hardware-backed ones) and saved passwords (off by default).
+- Restore is **merge only**: hosts are matched by nickname, keys by nickname, identities and tags by
+  lower-case name, folders by parent and name; what exists is left alone, everything new gets fresh random
+  ids, and links, tags and passwords attach only to hosts that the restore itself created. One database
+  transaction, so a failure leaves nothing half-imported. A wrong password and a damaged file look the same
+  by design (authenticated encryption cannot tell them apart).
+- `~/.ssh/config` import (`shelldon.sshconfig`): `Host`, `HostName`, `User`, `Port`, `ProxyJump`; first value
+  wins in file order as in OpenSSH; wildcard and negated patterns act as defaults for the hosts after them;
+  `Match` and `Include` are reported and not evaluated; options that are read but not imported are listed.
+  Only adds hosts (existing nicknames are skipped); a single-hop `ProxyJump` becomes a jump-host link when
+  the named host exists in the file or in the app.
+
+**OpenSSH container tests** (`org.connectbot.shelldon.container`, M3)
+- The library already runs old OpenSSH (3.7 to 7.4) and current releases in its own CI, so these tests do
+  not repeat that. They drive the app's stored presets (`HostCryptoConfig.resolve()`) and the same client
+  calls as the SSH transport against a throw-away Debian 13 `openssh-server` in Docker (Docker CLI, no
+  Testcontainers dependency; loopback only; host keys checked against the real server, no accept-all
+  verifier): stock server negotiates ML-KEM; ML-KEM-only; sntrup-only; classical-only (default connects,
+  FUTURE refuses); SHA-1-only legacy server (DEFAULT refuses, LEGACY connects); the server log shows our
+  identification line.
+- The policy tests run on the JDK's own crypto providers: all test classes share one JVM and Robolectric
+  leaves Conscrypt first in the provider list, which broke ChaCha20-Poly1305 on the JVM (see "ChaCha20 and
+  Conscrypt" under "Known limits and risks"). Two more tests connect with Conscrypt first, as
+  `ProviderLoader` does at app start; the AES-GCM one passes, the ChaCha20 one is `@Ignore`d: it fails
+  on the JVM only.
+- Off unless `SHELLDON_CONTAINER_TESTS=1`; with it set, a missing Docker fails instead of skipping. The
+  pull-request workflow sets it. `CryptoDefaultsTest` (no Docker) fails when a library update puts a weak
+  algorithm into DEFAULT or stops preferring post-quantum key exchange.
+- The SSH identification line was the library's `SSH-2.0-CBSSH_1.0` (names the fork origin). It is now
+  `SSH-2.0-ShelldonSSH`, without a version, set in both client configs (`ShelldonSshIdentity`).
+
+**Mosh**: the APK does include it (`libmoshexec.so` for four ABIs plus the `xterm-256color` terminfo),
+downloaded at build time from `connectbot/mosh4android` release `android-2026.11.12`. The build never
+checked those downloads, and `mosh-client` is native code that runs under this app's user id. The four
+SHA-256 hashes are now pinned in `gradle/mosh4android.sha256`; the build fails on a mismatch or when the
+file is for a different release than `gradle/mosh4android.version`. The hashes are trust on first use: they
+match what CI had built into the APK (same file sizes), not a signature from upstream. The build-logic
+tests for this (`./gradlew -p build-logic test`) are not run by our CI.
+
+**Known limits and risks**
+- **ChaCha20 and Conscrypt: fine on the phone, broken only on a JVM (settled 2026-11-16).** The oss
+  flavour's `ProviderLoader` (identical to upstream ConnectBot) inserts Conscrypt at provider position 1,
+  and `chacha20-poly1305@openssh.com` is sshlib's first-choice cipher. On a plain JVM with Conscrypt first
+  and the JDK providers behind it, sshlib 0.6.9 finishes the key exchange against real OpenSSH 10.0 and
+  then fails both ways ("ChaCha20-Poly1305 authentication failed" in the client, "Bad packet length" in
+  sshd); AES-GCM works. Likely cause, from reading the sources: sshlib decides once whether to pass a
+  `ChaCha20ParameterSpec` by test-initialising a cipher in decrypt mode; Conscrypt refuses that, so the
+  JDK's provider answers and the test passes; the real ciphers are then first initialised in encrypt
+  mode, which Conscrypt accepts while ignoring the spec and using a random nonce. **On the owner's phone
+  (Android 17, CI debug APK) two different servers connected and "Connection info" reports
+  `chacha20-poly1305@openssh.com` for both**, so Android does not hit it (no JDK providers behind
+  Conscrypt there, which fits the cause above). The probe test
+  `chaCha20Poly1305WorksWithTheProviderOrderTheAppInstalls` stays `@Ignore`d because a JVM cannot pass it;
+  it would matter again if a provider that offers ChaCha20 were ever added behind Conscrypt on Android, or
+  if sshlib changes how it picks the parameter style.
+- `ShelldonBackup.restore` nests a blocking `runInTransaction` inside `withTransaction`; the Robolectric
+  test `ShelldonBackupTest` exercises it and passed in CI (2026-11-16).
+- BouncyCastle on minSdk 24 to 27 could clash with the platform's own `org.bouncycastle`; the target phone
+  runs Android 17. Check before raising the audience.
+- Identity passwords are not stored (the identity editor still has no password field).
+- Tried on the phone: SSH to two servers (ChaCha20-Poly1305). Not tried: biometric prompt, auto-lock
+  timing, the SAF file pickers, backup export and restore, ssh_config import.
 
 ## Security rules and features to drop
 

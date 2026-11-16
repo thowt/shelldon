@@ -60,6 +60,7 @@ import org.connectbot.service.requestFido2Connect
 import org.connectbot.service.requestFido2Pin
 import org.connectbot.service.requestHostKeyFingerprintPrompt
 import org.connectbot.service.requestStringPrompt
+import org.connectbot.shelldon.ssh.ShelldonSshIdentity
 import org.connectbot.sshlib.AgentProvider
 import org.connectbot.sshlib.AgentResult
 import org.connectbot.sshlib.AgentSignatureFlags
@@ -979,6 +980,7 @@ open class SSH : AbsTransport {
             // Interactive host-key approval and slow servers must not have a fixed deadline.
             handshakeTimeoutMs = 0L
             cryptoPolicy(policy)
+            ShelldonSshIdentity.applyTo(this)
             algorithmWarningHandler = { recordPolicyWarnings(jumpHost, listOf(it)) }
             if (jumpTransportFactory != null) {
                 this.transportFactory = jumpTransportFactory
@@ -1208,6 +1210,7 @@ open class SSH : AbsTransport {
             // Interactive host-key approval and slow servers must not have a fixed deadline.
             handshakeTimeoutMs = 0L
             cryptoPolicy(policy)
+            ShelldonSshIdentity.applyTo(this)
             algorithmWarningHandler = { recordPolicyWarnings(currentHost, listOf(it)) }
             if (transportFactory != null) {
                 this.transportFactory = transportFactory

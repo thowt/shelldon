@@ -68,6 +68,8 @@ reachable through explicit per-host or per-group choices. Post-quantum key excha
 ./gradlew :app:testOssDebugUnitTest  # unit tests
 ./gradlew lint
 ./gradlew spotlessCheck              # spotlessApply formats
+SHELLDON_CONTAINER_TESTS=1 ./gradlew :app:testOssDebugUnitTest --tests 'org.connectbot.shelldon.container.*'
+                                     # OpenSSH container tests, need Docker; skipped without the variable
 ```
 
 JDK 17. Android SDK for the `compileSdk` in `gradle/libs.versions.toml`. Instrumentation tests
@@ -92,8 +94,10 @@ shell, original artwork only. Do not use ConnectBot's name, logo or artwork in t
 listing, and do not draw any existing mascot. Keep attribution to ConnectBot in NOTICE and the
 About screen.
 
-## Current milestone: M5
+## Current milestone: round 2 (vault, backup, container tests)
 
-M0 to M2 are done (baseline build, branding, first UI). Work on M5 from `docs/PLAN.md` ("M5 design"):
-groups, tags and identities. The UI work in `org.connectbot.shelldon.ui` follows the direction recorded
-there. Keep new code in `org.connectbot.shelldon.*` and touch upstream files minimally.
+Delivery is three big rounds, then fine-tuning (`docs/PLAN.md`, "Delivery in three rounds"). Round 1
+(keychain, groups, tags, identities) is merged and CI-green. Round 2 is branch `m7-vault-export`: vault,
+encrypted backup and `ssh_config` import, OpenSSH container tests, Mosh hash pinning; its design and
+risks are in "Round 2" there. Round 3 is SFTP browser, snippets, tunnels tab, WebDAV sync. Keep new code
+in `org.connectbot.shelldon.*` and touch upstream files minimally.
