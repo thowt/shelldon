@@ -23,6 +23,10 @@ plugins {
 val moshReleaseTag = extensions.getByType<MoshArtifactsExtension>().releaseTag.get()
 val prepareOssMoshArtifacts = tasks.named<PrepareMoshArtifacts>("prepareOssMoshArtifacts")
 
+// Shelldon SSH: the version people see (Settings, About) is our own, set in gradle.properties. The
+// version code below still follows the upstream anchor tag so it only ever grows.
+val shelldonVersion = providers.gradleProperty("shelldon.version").orElse("0.1.0").get()
+
 appVersioning {
     tagFilter.set("v1.12.*")
     overrideVersionCode { gitTag, _, _ ->
@@ -30,9 +34,9 @@ appVersioning {
     }
     overrideVersionName { gitTag, _, _ ->
         if (gitTag.commitsSinceLatestTag != 0) {
-            "git-${gitTag.rawTagName}-${gitTag.commitsSinceLatestTag}"
+            "$shelldonVersion+${gitTag.commitsSinceLatestTag}"
         } else {
-            gitTag.rawTagName
+            shelldonVersion
         }
     }
 }
