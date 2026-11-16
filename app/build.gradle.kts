@@ -3,6 +3,7 @@ import org.connectbot.buildlogic.MoshArtifactsExtension
 import org.connectbot.buildlogic.PrepareMoshArtifacts
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.UUID
@@ -443,6 +444,12 @@ tasks.withType<Test>().configureEach {
     // Robolectric's cached Android resources use a heap separate from the Gradle daemon.
     maxHeapSize = "2g"
     maxParallelForks = 1
+    // CI failures are read from the console log, so print a failing test's message and causes in full.
+    testLogging {
+        exceptionFormat = TestExceptionFormat.FULL
+        showCauses = true
+        showStackTraces = true
+    }
     // The OpenSSH container tests (org.connectbot.shelldon.container) read these. Declaring them keeps a
     // cached "skipped" result from standing in for a real run.
     inputs.property("shelldonContainerTests", providers.environmentVariable("SHELLDON_CONTAINER_TESTS").orElse(""))

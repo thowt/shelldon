@@ -89,11 +89,35 @@ class OpenSshContainerTest {
         }
     }
 
+    /**
+     * Fails with what is needed to understand a refused connection from the CI log alone: the result
+     * the client returned, its cause, and the server's own log.
+     */
+    private fun requireConnected(label: String, outcome: Outcome, server: DockerSshd) {
+        val result = outcome.result
+        if (result == ConnectResult.Success) return
+        val cause = when (result) {
+            is ConnectResult.TransportError -> result.cause
+            is ConnectResult.ProtocolError -> result.cause
+            else -> null
+        }
+        throw AssertionError("$label: connect() returned $result\n--- sshd log ---\n${server.logs()}", cause)
+    }
+
+    /**
+     * A refusal has to be the client's key-exchange policy speaking. "Anything but success" would also
+     * pass for a server that never came up, which proves nothing about the policy.
+     */
+    private fun requireKexRefused(label: String, outcome: Outcome) {
+        assertThat(outcome.result).describedAs(label).isInstanceOf(ConnectResult.AlgorithmMismatch::class.java)
+        assertThat((outcome.result as ConnectResult.AlgorithmMismatch).message).describedAs(label).contains("KEX")
+    }
+
     @Test
     fun aNewHostNegotiatesPostQuantumKeyExchangeWithAStockServer() {
         DockerSshd.start().use { server ->
             val outcome = connect(server, HostCryptoConfig())
-            assertThat(outcome.result).describedAs("%s", server.logs()).isEqualTo(ConnectResult.Success)
+            requireConnected("default policy", outcome, server)
             assertThat(outcome.info?.kexAlgorithm).matches(POST_QUANTUM.pattern)
             assertThat(outcome.execOutput).isEqualTo("shelldon-ok")
         }
@@ -103,7 +127,7 @@ class OpenSshContainerTest {
     fun aServerThatOnlyHasMlKemIsReachableWithTheDefaults() {
         DockerSshd.start("KexAlgorithms=mlkem768x25519-sha256").use { server ->
             val outcome = connect(server, HostCryptoConfig())
-            assertThat(outcome.result).describedAs("%s", server.logs()).isEqualTo(ConnectResult.Success)
+            requireConnected("default policy", outcome, server)
             assertThat(outcome.info?.kexAlgorithm).isEqualTo("mlkem768x25519-sha256")
             assertThat(outcome.execOutput).isEqualTo("shelldon-ok")
         }
@@ -113,7 +137,7 @@ class OpenSshContainerTest {
     fun aServerThatOnlyHasSntrupIsReachableWithTheDefaults() {
         DockerSshd.start("KexAlgorithms=sntrup761x25519-sha512,sntrup761x25519-sha512@openssh.com").use { server ->
             val outcome = connect(server, HostCryptoConfig())
-            assertThat(outcome.result).describedAs("%s", server.logs()).isEqualTo(ConnectResult.Success)
+            requireConnected("default policy", outcome, server)
             assertThat(outcome.info?.kexAlgorithm).startsWith("sntrup761x25519-sha512")
             assertThat(outcome.execOutput).isEqualTo("shelldon-ok")
         }
@@ -123,11 +147,11 @@ class OpenSshContainerTest {
     fun aClassicalOnlyServerIsReachableByDefaultAndRefusedByTheFuturePreset() {
         DockerSshd.start("KexAlgorithms=curve25519-sha256").use { server ->
             val byDefault = connect(server, HostCryptoConfig())
-            assertThat(byDefault.result).describedAs("%s", server.logs()).isEqualTo(ConnectResult.Success)
+            requireConnected("default policy", byDefault, server)
             assertThat(byDefault.info?.kexAlgorithm).isEqualTo("curve25519-sha256")
 
             val future = connect(server, HostCryptoConfig(preset = "FUTURE"))
-            assertThat(future.result).describedAs("FUTURE against a classical-only server").isNotEqualTo(ConnectResult.Success)
+            requireKexRefused("FUTURE against a classical-only server", future)
             assertThat(future.info).isNull()
         }
     }
@@ -136,11 +160,11 @@ class OpenSshContainerTest {
     fun aLegacyOnlyServerNeedsTheLegacyPresetOnThatHost() {
         DockerSshd.start("KexAlgorithms=diffie-hellman-group14-sha1").use { server ->
             val byDefault = connect(server, HostCryptoConfig())
-            assertThat(byDefault.result).describedAs("DEFAULT against a SHA-1-only server").isNotEqualTo(ConnectResult.Success)
+            requireKexRefused("DEFAULT against a SHA-1-only server", byDefault)
             assertThat(byDefault.info).isNull()
 
             val legacy = connect(server, HostCryptoConfig(preset = "LEGACY"))
-            assertThat(legacy.result).describedAs("%s", server.logs()).isEqualTo(ConnectResult.Success)
+            requireConnected("LEGACY preset", legacy, server)
             assertThat(legacy.info?.kexAlgorithm).isEqualTo("diffie-hellman-group14-sha1")
             assertThat(legacy.execOutput).isEqualTo("shelldon-ok")
         }
@@ -150,7 +174,7 @@ class OpenSshContainerTest {
     fun theServerSeesTheShelldonIdentificationLine() {
         DockerSshd.start("LogLevel=DEBUG1").use { server ->
             val outcome = connect(server, HostCryptoConfig())
-            assertThat(outcome.result).describedAs("%s", server.logs()).isEqualTo(ConnectResult.Success)
+            requireConnected("default policy", outcome, server)
             // sshd logs the line at debug level; the log is written asynchronously, so give it a moment.
             val deadline = System.nanoTime() + 10_000_000_000L
             var logs = server.logs()
