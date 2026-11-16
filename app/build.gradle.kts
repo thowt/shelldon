@@ -443,7 +443,8 @@ tasks.withType<Test>().configureEach {
 // Includes keyboard configuration and host/profile tables in the export schema
 val generateExportSchema by tasks.registering {
     val exportTables = setOf("profiles", "hosts", "port_forwards", "automation_actions", "keyboard_layouts", "keyboard_macros", "keyboard_items")
-    val excludedFields = setOf("last_connect", "host_key_algo")
+    // group_id and identity_id stay out until groups, tags and identities have their own export (M8).
+    val excludedFields = setOf("last_connect", "host_key_algo", "group_id", "identity_id")
 
     // Read schema version from Room's @Database annotation.
     val databaseFile = file("src/main/java/org/connectbot/data/ConnectBotDatabase.kt")

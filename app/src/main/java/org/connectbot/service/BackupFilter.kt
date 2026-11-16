@@ -128,7 +128,7 @@ class BackupFilter(
         output.beginTransaction()
         try {
             output.execSQL("PRAGMA defer_foreign_keys=ON")
-            val entities = listOf("keyboard_layouts", "keyboard_macros", "keyboard_items", "keyboard_settings", "pubkeys", "color_schemes", "profiles", "hosts", "color_palette", "port_forwards", "known_hosts", "automation_actions")
+            val entities = listOf("keyboard_layouts", "keyboard_macros", "keyboard_items", "keyboard_settings", "pubkeys", "color_schemes", "profiles", "hosts", "color_palette", "port_forwards", "known_hosts", "automation_actions", "host_groups", "tags", "host_tags", "identities")
             val metadata = input.query("SELECT name,sql FROM sqlite_master WHERE type='table' AND (name LIKE 'sync_%' OR name IN ('settings','legacy_id_map'))").use { cursor ->
                 buildList {
                     while (cursor.moveToNext()) {

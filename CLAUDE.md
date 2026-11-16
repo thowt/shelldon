@@ -54,7 +54,9 @@ reachable through explicit per-host or per-group choices. Post-quantum key excha
 - Upstream sync: remote `upstream` is `connectbot/connectbot`. Merge, do not rebase. Keep our code
   in separate packages or modules where possible. Ask before merging upstream into `main`.
 - Do not run or "fix" things in `.github/upstream/`. It is parked reference material from ConnectBot.
-- CI debug APKs are signed with a throw-away key, so they cannot be installed over each other.
+- CI builds one variant per run. Pull requests: debug APK plus unit tests only. Push to `main`:
+  optimised release APK only. Manual run (any branch): release by default, or debug.
+  CI debug APKs are signed with a throw-away key, so they cannot be installed over each other.
   The CI release APK (`io.github.thowt.shelldon`, optimised) is signed with the internal key once
   the secrets exist, and then updates in place. Debug builds on this VM use a stable
   `~/.android/debug.keystore`.
@@ -90,9 +92,8 @@ shell, original artwork only. Do not use ConnectBot's name, logo or artwork in t
 listing, and do not draw any existing mascot. Keep attribution to ConnectBot in NOTICE and the
 About screen.
 
-## Current milestone: M0
+## Current milestone: M5
 
-Do M0 from `docs/PLAN.md` only. Check this VM (RAM, disk, Java, Docker, internet access to Google and
-Maven), install what is missing to build (JDK 17 and the Android command-line SDK for the
-`compileSdk` in `gradle/libs.versions.toml`), build the `oss` debug APK, run the unit tests, and
-report. Don't change app code yet. Ask the owner before using `sudo`.
+M0 to M2 are done (baseline build, branding, first UI). Work on M5 from `docs/PLAN.md` ("M5 design"):
+groups, tags and identities. The UI work in `org.connectbot.shelldon.ui` follows the direction recorded
+there. Keep new code in `org.connectbot.shelldon.*` and touch upstream files minimally.

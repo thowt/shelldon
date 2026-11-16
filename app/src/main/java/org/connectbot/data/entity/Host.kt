@@ -163,6 +163,14 @@ data class Host(
 
     @ColumnInfo(name = "telnet_newline_policy", defaultValue = "'LF_TO_CRLF'")
     val telnetNewlinePolicy: TelnetNewlinePolicy = TelnetNewlinePolicy.LF_TO_CRLF,
+
+    /** Group this host sits in (see `host_groups`), or null for the top level. */
+    @ColumnInfo(name = "group_id")
+    val groupId: UUID? = null,
+
+    /** Identity for this host. Null inherits from the group chain; [EntityIds.NONE] opts out. */
+    @ColumnInfo(name = "identity_id")
+    val identityId: UUID? = null,
 ) {
     /**
      * Get the URI representation of this host (Java interop helper).

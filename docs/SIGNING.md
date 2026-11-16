@@ -37,13 +37,16 @@ This key is for the owner's own builds ("internal"). It is not the future public
 
 ## How to check it works
 
-Each CI run prints the signing certificate fingerprint (SHA-256) in the job summary of the
-"Inspect the release APK" step. It must be the same on every run, and the summary must say
+Release APKs are built on every push to `main`, and on demand: Actions -> Build -> Run workflow,
+pick any branch and leave "Which APK to build" on `release`. Pull request runs build only the debug
+APK. Each release run prints the signing certificate fingerprint (SHA-256) in the job summary of
+the "Inspect the release APK" step. It must be the same on every run, and the summary must say
 `Stable signing key in use: true`.
 
 ## Rules
 
 - Never commit the keystore or the password.
 - Only the "Prepare the internal signing key" and "Build optimised release APK" steps see the
-  secrets. Pull requests from forks get no secrets and fall back to the throw-away key.
+  secrets, and they run only for the release variant (push to `main` or manual run). Pull request
+  runs, including ones from forks, never read the secrets.
 - Rotating the key means one fresh install on the phone.
