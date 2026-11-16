@@ -159,6 +159,12 @@ fun ShelldonHostListContent(
     val activeUnsaved = if (makingShortcut) emptyList() else unsavedSessions
     val shownLastSessions = if (makingShortcut || query.isNotBlank()) emptyList() else lastSessions
     val quickTarget = parseQuickConnect(query)
+    // Connecting is the end of the search: clear the field, otherwise the text stays behind and
+    // keeps the Last sessions section hidden when the user comes back to this screen.
+    val connectQuick: (QuickConnectTarget) -> Unit = { target ->
+        query = ""
+        onQuickConnect(target)
+    }
     val suggestQuickConnect = !makingShortcut && quickTarget != null && looksLikeAddress(query)
 
     Scaffold(
@@ -265,7 +271,7 @@ fun ShelldonHostListContent(
                         focusRequester = focusRequester,
                         onQuickConnect = {
                             if (!makingShortcut) {
-                                if (quickTarget != null) onQuickConnect(quickTarget) else focusRequester.requestFocus()
+                                if (quickTarget != null) connectQuick(quickTarget) else focusRequester.requestFocus()
                             }
                         },
                     )
@@ -297,7 +303,7 @@ fun ShelldonHostListContent(
                     item(key = "quick_connect") {
                         QuickConnectRow(
                             target = quickTarget,
-                            onClick = { onQuickConnect(quickTarget) },
+                            onClick = { connectQuick(quickTarget) },
                         )
                     }
                 }

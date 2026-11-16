@@ -218,6 +218,22 @@ class ShelldonHostListContentTest {
         assertEquals(temp, saved)
     }
 
+    @Test
+    fun quickConnect_clearsTheSearchFieldSoLastSessionsShowAgain() {
+        val unsaved = LastSession.Unsaved(QuickConnectTarget("root", "10.0.0.2", 22), System.currentTimeMillis())
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(testHost(id = UUID(0, 12), nickname = "prod"))),
+            lastSessions = listOf(unsaved),
+        )
+
+        composeTestRule.onNodeWithTag("shelldon_search").performTextInput("root@10.0.0.9")
+        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("shelldon_quick_connect_row").performClick()
+
+        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").assertIsDisplayed()
+    }
+
     private fun setContent(
         uiState: HostListUiState = HostListUiState(),
         makingShortcut: Boolean = false,
