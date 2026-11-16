@@ -755,7 +755,7 @@ private fun HostListItem(
 }
 
 @Composable
-private fun HostDeleteDialog(
+internal fun HostDeleteDialog(
     host: Host,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -782,7 +782,7 @@ private fun HostDeleteDialog(
 }
 
 @Composable
-private fun HostDisconnectDialog(
+internal fun HostDisconnectDialog(
     host: Host,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -809,7 +809,7 @@ private fun HostDisconnectDialog(
 }
 
 @Composable
-private fun ForgetHostKeysDialog(
+internal fun ForgetHostKeysDialog(
     host: Host,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -836,7 +836,7 @@ private fun ForgetHostKeysDialog(
 }
 
 @Composable
-private fun parseColor(colorString: String?): Color {
+internal fun parseColor(colorString: String?): Color {
     if (colorString.isNullOrBlank()) {
         return colorResource(R.color.host_blue)
     } else {
@@ -984,7 +984,7 @@ private fun HostListScreenPopulatedPreview() {
 }
 
 @Composable
-private fun StartupKeyPasswordDialog(
+internal fun StartupKeyPasswordDialog(
     pubkey: Pubkey,
     wrongPassword: Boolean,
     onDismiss: () -> Unit,

@@ -31,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import org.connectbot.data.EntityIds
 import org.connectbot.data.entity.Host
+import org.connectbot.shelldon.ui.hostlist.ShelldonHostListScreen
 import org.connectbot.ui.screens.colors.ColorsScreen
 import org.connectbot.ui.screens.colors.PaletteEditorScreen
 import org.connectbot.ui.screens.console.ConsoleScreen
@@ -41,7 +42,6 @@ import org.connectbot.ui.screens.generatepubkey.GeneratePubkeyScreen
 import org.connectbot.ui.screens.help.HelpScreen
 import org.connectbot.ui.screens.hints.HintsScreen
 import org.connectbot.ui.screens.hosteditor.HostEditorScreen
-import org.connectbot.ui.screens.hostlist.HostListScreen
 import org.connectbot.ui.screens.keyboard.KeyboardLayoutRoute
 import org.connectbot.ui.screens.keyboard.KeyboardSettingsScreen
 import org.connectbot.ui.screens.keyboard.LocalKeyboardUsageNavigator
@@ -83,7 +83,8 @@ fun ConnectBotNavHost(
             modifier = modifier,
         ) {
             composable(NavDestinations.HOST_LIST) {
-                HostListScreen(
+                // Settings and keys are bottom-bar tabs (see ShelldonShell), so the screen no longer links to them.
+                ShelldonHostListScreen(
                     makingShortcut = makingShortcut,
                     onNavigateToConsole = onNavigateToConsole,
                     onSelectShortcut = onSelectShortcut,
@@ -93,12 +94,6 @@ fun ConnectBotNavHost(
                         } else {
                             navController.navigateSafely(NavDestinations.HOST_EDITOR)
                         }
-                    },
-                    onNavigateToSettings = {
-                        navController.navigateSafely(NavDestinations.SETTINGS)
-                    },
-                    onNavigateToPubkeys = {
-                        navController.navigateSafely(NavDestinations.PUBKEY_LIST)
                     },
                     onNavigateToPortForwards = { host ->
                         navController.navigateSafely("${NavDestinations.PORT_FORWARD_LIST}/${host.id}")
