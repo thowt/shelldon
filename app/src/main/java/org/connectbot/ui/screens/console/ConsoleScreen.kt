@@ -725,6 +725,7 @@ fun ConsoleScreen(
     onNavigateToPortForwards: (UUID) -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToFiles: (UUID) -> Unit = {},
     viewModel: ConsoleViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -847,6 +848,7 @@ fun ConsoleScreen(
     }
     var showKeyboardSettings by rememberSaveable(currentBridgeId) { mutableStateOf(false) }
     var showConnectionInfoDialog by remember(currentBridgeId) { mutableStateOf(false) }
+    var showSnippetsDialog by remember(currentBridgeId) { mutableStateOf(false) }
     val automationState by currentBridge?.automationState?.collectAsState()
         ?: remember { mutableStateOf(org.connectbot.service.automation.AutomationState()) }
 
@@ -875,7 +877,7 @@ fun ConsoleScreen(
 
     // Check if any modal (menu or dialog) is currently active
     val anyModalActive = showKeyboardSettings || showMenu || showUrlScanDialog || showResizeDialog ||
-        showDisconnectDialog || showSessionPickerDialog || showTextInputDialog || showConnectionInfoDialog ||
+        showDisconnectDialog || showSessionPickerDialog || showTextInputDialog || showConnectionInfoDialog || showSnippetsDialog ||
         isHardwareKeyPromptActive || currentAuthBanner != null
 
     fun restartTitleBarTimer() {
@@ -1067,6 +1069,7 @@ fun ConsoleScreen(
     val disconnected = currentBridge?.isDisconnected == true
     val connecting = currentBridge?.isConnecting == true
     val canForwardPorts = currentBridge?.canFowardPorts() == true
+    val canOpenFiles = currentBridge?.canOpenSftp() == true
     val snackbarHostState = remember { SnackbarHostState() }
 
     val isConnectionActive = currentBridge != null && !disconnected
@@ -1368,6 +1371,16 @@ fun ConsoleScreen(
             details?.let { details ->
                 ConnectionInfoDialog(details = details, onDismiss = { showConnectionInfoDialog = false })
             }
+        }
+        if (showSnippetsDialog && currentBridge != null) {
+            org.connectbot.shelldon.ui.snippets.SnippetPickerDialog(
+                targetName = currentBridge.host.nickname.ifBlank { currentBridge.host.hostname },
+                onSend = { snippet ->
+                    showSnippetsDialog = false
+                    currentBridge.sendKeyboardMacro(snippet.document)
+                },
+                onDismiss = { showSnippetsDialog = false },
+            )
         }
 
         // Dialogs
@@ -1673,6 +1686,28 @@ fun ConsoleScreen(
                                     enabled = sessionOpen,
                                 )
                             }
+
+                            // Files (SFTP), over the connection that is already open
+                            if (canOpenFiles) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.shelldon_console_menu_files)) },
+                                    onClick = {
+                                        showMenu = false
+                                        currentBridge?.host?.id?.let(onNavigateToFiles)
+                                    },
+                                    enabled = sessionOpen,
+                                )
+                            }
+
+                            // Snippets: send saved text to this session
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.shelldon_console_menu_snippets)) },
+                                onClick = {
+                                    showMenu = false
+                                    showSnippetsDialog = true
+                                },
+                                enabled = sessionOpen,
+                            )
 
                             // Fullscreen toggle
                             DropdownMenuItem(

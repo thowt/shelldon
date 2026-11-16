@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -39,6 +41,8 @@ internal enum class ShellTab(
     val icon: ImageVector,
 ) {
     HOSTS(NavDestinations.HOST_LIST, R.string.shelldon_tab_hosts, Icons.Default.Dns),
+    TUNNELS(NavDestinations.TUNNELS, R.string.shelldon_tab_tunnels, Icons.Default.SwapHoriz),
+    SNIPPETS(NavDestinations.SNIPPETS, R.string.shelldon_tab_snippets, Icons.Default.Code),
     KEYCHAIN(NavDestinations.KEYCHAIN, R.string.shelldon_tab_keychain, Icons.Default.Key),
     SETTINGS(NavDestinations.SETTINGS, R.string.shelldon_tab_settings, Icons.Default.Settings),
     ;

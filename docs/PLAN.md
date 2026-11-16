@@ -413,6 +413,75 @@ tests for this (`./gradlew -p build-logic test`) are not run by our CI.
 - Tried on the phone: SSH to two servers (ChaCha20-Poly1305). Not tried: biometric prompt, auto-lock
   timing, the SAF file pickers, backup export and restore, ssh_config import.
 
+### Round 3: design (2026-11-16, branch `m8-sftp-snippets-tunnels`)
+
+Items 1 to 3 of round 3 in one pull request: SFTP browser, Tunnels tab, Snippets. WebDAV sync is a
+separate later pull request. No new dependency, no new Android permission, **no database change**.
+
+Existing apps looked at: Termius (snippets, port-forwarding list, SFTP pane), Termux and ConnectBot
+itself (port forwards), Material Files and Solid Explorer (file-list behaviour), OpenSSH `sftp` (short
+reads, pipelined requests). What we take and what we drop:
+
+- **Snippets are the existing keyboard macros.** ConnectBot already has `keyboard_macros` (name plus a
+  versioned document), a runner (`TerminalBridge.sendKeyboardMacro`), usage tracking, and the macros are
+  already inside the config export that the encrypted backup carries. A second snippet table would be
+  two stores for one thing. The Snippets tab lists the macros that consist of text only (key presses and
+  raw bytes stay in the keyboard settings, where the keyboard defaults live) and edits them as plain
+  multi-line text: a line break is sent as Enter (CR). Dropped from Termius: variables and "run on many
+  hosts at once" (one mis-tap on a fleet is not worth it).
+  - A snippet with more than one line asks for confirmation, showing the text, before it is sent. A
+    single line runs on tap. This is a deliberate UX versus safety call: scripts are where a mis-tap hurts.
+  - Deleting a snippet that a keyboard button or automation still uses is refused, naming the user.
+  - Snippets are stored in the clear, like every macro. The editor says so: no passwords in snippets.
+    Sealing them in the vault is possible later (`Vault.sealText`), at the cost of a schema change.
+- **SFTP browser** is a screen per open session (`sftp/{hostId}`), reached from the console menu, on the
+  same SSH connection (a second channel, not a second login). `AbsTransport.openSftp()` is the only
+  upstream change; `SSH` answers it from its `SshClient`. Telnet and Mosh answer "not supported".
+  - Pure core, no Android types, unit-tested with an in-memory fake `SftpClient`: path handling,
+    listing (sorted, folders first, hidden files off by default, entries with `/` or NUL in the name are
+    dropped, so a hostile server cannot make us build a path outside the folder), pipelined download and
+    upload (window of 8 requests of 32 KiB, short reads handled, truncated or growing files detected),
+    recursive delete.
+  - Download goes to a file the user picks (Storage Access Framework), upload reads files the user picks.
+    That is why no storage permission is needed. Uploads never overwrite silently: an existing name is asked about.
+  - Transfers run while the app is open and the session is up; there is no background service and no
+    resume. Said plainly in the UI. Dropped: editing remote files in place, folder download, chmod
+    editor (permissions are shown, not edited): candidates for fine-tuning.
+- **Tunnels tab** is one list of every port forward across hosts, grouped by host, with state (running,
+  stopped, host not connected) and a switch that starts or stops a forward on a connected host, using the
+  existing transport calls. Tapping a forward opens the existing editor; "New" asks for the host first.
+  Forwards still live and die with their SSH session (`ssh -N` style tunnel-only sessions would need a
+  transport change and are not part of this round). Nothing changes about binding: a forward binds to
+  loopback unless the owner opted in for that forward in the editor, and the list shows the bind address
+  in plain text when it is not loopback.
+- The bottom bar goes from three to five tabs: Hosts, Tunnels, Snippets, Keychain, Settings.
+
+What was built (all in `org.connectbot.shelldon.*`, upstream files touched only for wiring):
+
+- `sftp/`: `SftpPaths`, `SftpBrowser`, `SftpTransfers`, `SftpFailure` (a closed list of problems the UI
+  can word), `SftpModel`. `ui/sftp/`: view model, list rows, screen. Reached from the console menu
+  ("Files") when the transport can open SFTP; one transfer at a time, cancelled when the screen is left.
+  Uploads use `EXCLUDE` so an existing file is never replaced without the user saying yes; a half-written
+  new file is removed when an upload fails. Recursive delete asks first and never follows a symlink.
+- `snippets/` and `ui/snippets/`: Snippets tab (list, search, editor) and a snippet picker in the console
+  menu. Multi-line snippets show the text and ask before sending.
+- `tunnels/` and `ui/tunnels/`: Tunnels tab. Forwards not bound to loopback carry an "exposed" badge.
+- Wiring: `AbsTransport.canOpenSftp()/openSftp()` (SSH implements, Mosh says no), `PortForwardDao.observeAll()`,
+  `HostRepository.observeAllPortForwards()`, five-tab bottom bar, three new routes.
+
+How far this is checked (say which claim you are reading):
+
+- **Pure cores, unit tests passed on the VM** with a hand-made harness (Kotlin compiler, JUnit and assertj
+  shims, no Gradle): 53 tests for paths, listing, browser, transfers (against an in-memory fake
+  `SftpClient`) and snippet text; 9 for the tunnel board (run earlier, code unchanged since).
+- **Not run anywhere yet:** `SftpContainerTest` (real OpenSSH `sftp-server`, checks file content with
+  `sha256sum` on the server). It runs in CI with `SHELLDON_CONTAINER_TESTS=1`; there is no Docker daemon
+  on the VM.
+- **Not compiled yet:** all Compose, Hilt and navigation code and the upstream wiring. Gradle does not run
+  on the VM; the first real compile is the CI run. Style (`ktlint`) and a name-resolution check were run by hand.
+- **Not run:** `spotlessCheck`, `lint`, the Room schema check (no schema change, so none expected).
+- **Not tried on the phone.** Throughput and odd read limits on Cisco, MikroTik or BSD servers are untested.
+
 ## Security rules and features to drop
 
 - No accept-all host-key mode. A changed host key blocks the connection.
@@ -471,7 +540,7 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - **M5: data model (slice 1 done in PR, see "M5 design").** UUID records, nested groups, tags, identities, resolution rules including
   crypto-policy inheritance. Room migrations with tests.
 - **M6: host-list UX.** Search, group tree, tag filters, quick connect, legacy and PQ badges.
-- **M7: snippets and SFTP browser.**
+- **M7: snippets and SFTP browser.** Built in round 3 (PR `m8-sftp-snippets-tunnels`), with the Tunnels tab.
 - **M8: export/import** (encrypted file, plus `~/.ssh/config` import).
 - **M9: sync.** Backend interface, then WebDAV, then optional server.
 
@@ -479,6 +548,8 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 
 - User may find an old Cisco 2960/3750 for real-device legacy testing.
 - ShellDroid is worth a second look if its licence is permissive.
+- Fine-tuning candidates after round 3: Files entry on the Hosts screen (today only from an open console),
+  background and resumable transfers, folder download, chmod editor, editing remote files in place.
 - Name and trademark check before any public release.
 - Icon provenance: AI-generated artwork. Check the tool's terms and the copyright position before release.
 - Decide where new code lives: new Gradle modules (for example `:vault`, `:sync`, pure Kotlin where
