@@ -201,11 +201,7 @@ fun ShelldonHostListScreen(
                 }
                 try {
                     // Not saved: the connection is opened as a temporary host.
-                    val uri = Host
-                        .createSshHost(target.nickname, target.hostname, target.port, target.username)
-                        .copy(isTemporary = true)
-                        .getUri()
-                    val bridge = manager.openConnection(uri)
+                    val bridge = manager.openTemporaryConnection(target.toTemporaryHost())
                     onNavigateToConsole(bridge.host)
                 } catch (e: CancellationException) {
                     throw e
