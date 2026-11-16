@@ -155,8 +155,7 @@ class MoshArtifactsPluginTest {
         }
     }
 
-    private fun checksums(release: String, hashes: Map<String, String>) =
-        "release $release\n" + hashes.entries.joinToString("") { (abi, hash) -> "$hash  mosh-android-$abi.zip\n" }
+    private fun checksums(release: String, hashes: Map<String, String>) = "release $release\n" + hashes.entries.joinToString("") { (abi, hash) -> "$hash  mosh-android-$abi.zip\n" }
 
     private fun sha256(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
