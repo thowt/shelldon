@@ -6,7 +6,6 @@ androidGradlePlugin = "9.4.1"
 
 kotlin = "2.4.21"
 spotless = "8.11.0"
-easylauncher = "6.4.1"
 pythonUv = "0.4.35"
 appVersioning = "1.6.0"
 room = "2.8.5"
@@ -158,7 +157,6 @@ android-application = { id = "com.android.application", version.ref = "androidGr
 android-dynamic-feature = { id = "com.android.dynamic-feature", version.ref = "androidGradlePlugin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-easylauncher = { id = "com.starter.easylauncher", version.ref = "easylauncher" }
 python-uv = { id = "com.pswidersk.python-uv-plugin", version.ref = "pythonUv" }
 app-versioning = { id = "io.github.reactivecircus.app-versioning", version.ref = "appVersioning"}
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -127,6 +127,8 @@ jobs:
           unzip -l "$apk" | grep -iE "mipmap|ic_launcher|moshexec|terminfo" || echo "(none found)"
           echo "== adaptive icon =="
           "$aapt2" dump xmltree --file res/mipmap-anydpi-v26/icon.xml "$apk" || true
+          echo "== foreground drawable variants =="
+          "$aapt2" dump resources "$apk" | grep -A8 "drawable/ic_launcher_foreground" || true
 
       - name: Upload debug APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

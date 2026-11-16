@@ -14,7 +14,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.app.versioning)
-    alias(libs.plugins.easylauncher)
     alias(libs.plugins.spotless)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kover)

@@ -51,6 +51,19 @@ that can later be offered to the public.
   icons. Source and build script are in `branding/`. Open point: confirm the licence position of
   AI-generated artwork before a public release.
 
+- **Findings from the CI APK listing (2026-11-16):** the `oss` debug APK bundles Mosh
+  (`libmoshexec.so` for arm64-v8a, armeabi-v7a, x86, x86_64, plus the terminfo asset); whether a
+  Mosh session actually works against a real server is still untested. The debug APK has application
+  id `io.github.thowt.shelldon.debug` and version name like `git-v1.12.0-alpha-3364`.
+- **Removed the `easylauncher` Gradle plugin.** It stamped a "debug" ribbon on the launcher icon and
+  wrapped the old ConnectBot artwork, which hid the turtle on Android 8+. Debug builds are still told
+  apart by the `.debug` application id.
+- **Keys:** the extra-keys row is drawn 1.2x the stored key size (`KEY_SIZE_SCALE`). A real "key size"
+  setting can replace the constant later.
+- **Quick connect and host keys:** quick-connect sessions use a temporary host with no database
+  record, so upstream does not persist their host key. Saving the session as a host fixes that.
+  Quick connects are remembered (user, host, port, time only) for the "Last sessions" list.
+
 ## What was checked
 
 Shallow clones of the four candidates were read: licence, module layout, dependencies,
