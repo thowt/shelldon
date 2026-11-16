@@ -54,9 +54,20 @@ spotless {
 
     kotlin {
         target("app/src/**/*.kt", "build-logic/src/**/*.kt", "ctap2/src/**/*.kt", "ctap2-android/src/**/*.kt")
+        // Project-owned code lives in the shelldon package and carries the Shelldon header (see below).
+        targetExclude("app/src/**/org/connectbot/shelldon/**")
         ktlint("1.8.0")
             .customRuleSets(listOf("io.nlopez.compose.rules:ktlint:0.6.8"))
         licenseHeaderFile("spotless/license-header.txt")
+    }
+
+    // Shelldon-owned Kotlin files: own license header. Spotless allows only one kotlin block, so
+    // ktlint does not run on this package; keep the style by hand until this is revisited.
+    format("shelldonKotlin") {
+        target("app/src/**/org/connectbot/shelldon/**/*.kt")
+        licenseHeaderFile("spotless/shelldon-license-header.txt", "package ")
+        trimTrailingWhitespace()
+        endWithNewline()
     }
 
     kotlinGradle {

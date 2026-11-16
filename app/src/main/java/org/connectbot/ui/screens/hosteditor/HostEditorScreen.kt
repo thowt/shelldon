@@ -45,6 +45,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -235,7 +238,6 @@ fun HostEditorScreenContent(
     LaunchedEffect(uiState.error) {
         uiState.error?.let { snackbarHostState.showSnackbar(it, withDismissAction = true) }
     }
-    var showProtocolMenu by remember { mutableStateOf(false) }
     var showAdvancedOptions by rememberSaveable(hostId) { mutableStateOf(false) }
     val protocols = listOf("ssh", "mosh", "telnet", "local")
     val canSave = (uiState.protocol == "local" || uiState.hostname.isNotBlank()) &&
@@ -276,44 +278,30 @@ fun HostEditorScreenContent(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-            // Protocol selector
-            ExposedDropdownMenuBox(
-                expanded = showProtocolMenu,
-                onExpandedChange = { showProtocolMenu = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-            ) {
-                OutlinedTextField(
-                    value = uiState.protocol,
-                    onValueChange = {},
-                    label = { Text(stringResource(R.string.protocol_spinner_label)) },
-                    readOnly = true,
-                    singleLine = true,
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProtocolMenu)
-                    },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                    modifier = Modifier
-                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                        .fillMaxWidth(),
-                )
-
-                ExposedDropdownMenu(
-                    expanded = showProtocolMenu,
-                    onDismissRequest = { showProtocolMenu = false },
-                ) {
-                    protocols.forEach { protocol ->
-                        DropdownMenuItem(
-                            text = { Text(protocol) },
-                            onClick = {
-                                onProtocolChange(protocol)
-                                showProtocolMenu = false
-                            },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                        )
-                    }
+            // Protocol selector: every option is visible at once (a dropdown hid Mosh)
+            Text(
+                text = stringResource(R.string.protocol_spinner_label),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+            )
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                protocols.forEachIndexed { index, protocol ->
+                    SegmentedButton(
+                        selected = uiState.protocol == protocol,
+                        onClick = { onProtocolChange(protocol) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = protocols.size),
+                        label = { Text(protocolLabel(protocol)) },
+                    )
                 }
+            }
+            if (uiState.protocol == "mosh") {
+                Text(
+                    text = stringResource(R.string.shelldon_mosh_requirements),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
 
             // Only show username, hostname, and port for non-local protocols
@@ -1539,4 +1527,13 @@ private fun <T> TelnetOptionSelector(
             }
         }
     }
+}
+
+/** Display name for a stored protocol identifier. */
+private fun protocolLabel(protocol: String): String = when (protocol) {
+    "ssh" -> "SSH"
+    "mosh" -> "Mosh"
+    "telnet" -> "Telnet"
+    "local" -> "Local"
+    else -> protocol
 }

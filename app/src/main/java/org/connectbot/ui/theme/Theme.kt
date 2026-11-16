@@ -27,6 +27,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
@@ -34,6 +35,11 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import org.connectbot.shelldon.ui.theme.LocalShelldonExtraColors
+import org.connectbot.shelldon.ui.theme.ShelldonDarkColorScheme
+import org.connectbot.shelldon.ui.theme.ShelldonDarkExtraColors
+import org.connectbot.shelldon.ui.theme.ShelldonLightColorScheme
+import org.connectbot.shelldon.ui.theme.ShelldonLightExtraColors
 import org.connectbot.util.ThemeMode
 
 private val lightScheme = lightColorScheme(
@@ -93,8 +99,8 @@ private val darkScheme = darkColorScheme(
 @Composable
 fun ConnectBotTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Dynamic color is available on Android 12+. Shelldon defaults to its own palette.
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = when (themeMode) {
@@ -108,9 +114,9 @@ fun ConnectBotTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> darkScheme
+        darkTheme -> ShelldonDarkColorScheme
 
-        else -> lightScheme
+        else -> ShelldonLightColorScheme
     }
 
     val view = LocalView.current
@@ -124,11 +130,15 @@ fun ConnectBotTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalShelldonExtraColors provides if (darkTheme) ShelldonDarkExtraColors else ShelldonLightExtraColors,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = AppTypography,
+            content = content,
+        )
+    }
 }
 
 /**

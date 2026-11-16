@@ -2,7 +2,7 @@
 
 Canonical copy of the plan. It started as the audit in the "Android apps" project
 (`ssh-client/01-audit-and-recommendation.md`); from now on this file in the repo is
-the source of truth. Last updated 2026-11-15.
+the source of truth. Last updated 2026-11-16.
 
 Goal: a FOSS Termius-style SSH client for Android. Hosts, nested groups, cross-group
 tags, reusable identities, stored keys, then export/import, then E2E-encrypted sync
@@ -32,6 +32,23 @@ that can later be offered to the public.
 - **Post-quantum key exchange is on by default** where the server supports it.
 - Only the `oss` flavour is built and shipped (F-Droid friendly, no Play Services). The
   `google` flavour stays untouched to keep upstream merges cheap.
+- **UI direction (decided 2026-11-16 after first install on the phone).** The stock ConnectBot
+  screens were judged empty and too hidden behind a top-right menu, and Mosh was not discoverable.
+  Approved direction: dark-first Material 3 theme (background `#0E1411`, accent `#5FD38D`, amber
+  for legacy, blue for Mosh), bottom navigation (Hosts, Keychain, Snippets, Tunnels, Settings), a
+  Hosts screen with search plus quick connect (`user@host[:port]`), filter chips, active-session
+  cards and host cards that carry visible badges (Mosh, Legacy, Telnet plaintext, jump host).
+  Mosh is a visible protocol selector (SSH / Mosh / Telnet / Local) in the host editor, with a
+  note that the server needs `mosh-server` and UDP 60000-61000.
+  New UI code lives in `org.connectbot.shelldon.ui` so upstream merges stay cheap. The old
+  ConnectBot host list screen is left in place and unused.
+  Phase 1 (PR #1): theme, bottom bar, Hosts screen, protocol selector. Later phases: Keychain
+  (Identities / Keys / Known hosts), group screen with inherited defaults (needs M5), Snippets and
+  Tunnels tabs (M7), post-quantum badge (needs the negotiated KEX reported by the transport).
+- **Icon:** the first drawings were rejected as crude. Two redrawn directions exist as concept
+  art (A: side-view turtle whose shell is a terminal window with `#_`; B: top-down turtle with a
+  plated shell carrying a `#`). Pick one, then build the adaptive icon (foreground, background,
+  monochrome layer).
 
 ## What was checked
 
