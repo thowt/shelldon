@@ -43,6 +43,12 @@ import org.connectbot.data.entity.TelnetNegotiationMode
 import org.connectbot.data.entity.TelnetNewlinePolicy
 import org.connectbot.data.entity.TelnetNonBinaryPolicy
 import org.connectbot.di.CoroutineDispatchers
+import org.connectbot.shelldon.data.groups.GroupSnapshot
+import org.connectbot.shelldon.data.groups.HostGroup
+import org.connectbot.shelldon.data.groups.HostTag
+import org.connectbot.shelldon.data.groups.Identity
+import org.connectbot.shelldon.data.groups.ShelldonGroupRepository
+import org.connectbot.shelldon.data.groups.Tag
 import org.connectbot.sshlib.AlgorithmCategory
 import org.connectbot.sshlib.SshCryptoPolicy
 import org.connectbot.util.HostConstants
@@ -78,6 +84,7 @@ class HostEditorViewModelTest {
     private lateinit var profileRepository: ProfileRepository
     private lateinit var prefs: SharedPreferences
     private lateinit var securePasswordStorage: SecurePasswordStorage
+    private lateinit var groupRepository: ShelldonGroupRepository
 
     @Before
     fun setUp() {
@@ -90,6 +97,8 @@ class HostEditorViewModelTest {
         profileRepository = mock(ProfileRepository::class.java)
         prefs = mock(SharedPreferences::class.java)
         securePasswordStorage = mock(SecurePasswordStorage::class.java)
+        groupRepository = mock(ShelldonGroupRepository::class.java)
+        stubGroupSnapshot(GroupSnapshot(emptyList(), emptyList(), emptyList(), emptyList()))
 
         // Mock default behavior for observe calls
         `when`(pubkeyRepository.observeAll()).thenReturn(flowOf(emptyList()))
@@ -104,6 +113,13 @@ class HostEditorViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private fun stubGroupSnapshot(snapshot: GroupSnapshot) {
+        `when`(groupRepository.observeSnapshot()).thenReturn(flowOf(snapshot))
+        kotlinx.coroutines.runBlocking {
+            `when`(groupRepository.snapshot()).thenReturn(snapshot)
+        }
+    }
+
     private fun createViewModel(hostId: UUID = EntityIds.NONE): HostEditorViewModel {
         savedStateHandle["hostId"] = hostId.toString()
         return HostEditorViewModel(
@@ -116,6 +132,7 @@ class HostEditorViewModelTest {
             securePasswordStorage = securePasswordStorage,
             dispatchers = dispatchers,
             keyboardRepository = org.mockito.Mockito.mock(org.connectbot.data.keyboard.KeyboardRepository::class.java),
+            groupRepository = groupRepository,
         )
     }
 
@@ -810,5 +827,73 @@ class HostEditorViewModelTest {
         val policy = viewModel.resolveCrypto(HostCryptoConfig(preset = "CUSTOM", minimumRsaBits = 4096))
         assertEquals(4096, policy.minimumRsaBits)
         assertEquals(state.algorithmDefaults, SshCryptoPolicy.resolve().algorithms)
+    }
+
+    @Test
+    fun loadingAHostKeepsItsFolderIdentityAndTags() = runTest {
+        val hostId = UUID(0, 801)
+        val folder = HostGroup(name = "Production")
+        val identity = Identity(name = "Work", username = "deploy")
+        val tag = Tag(name = "web")
+        stubGroupSnapshot(GroupSnapshot(listOf(folder), listOf(tag), listOf(HostTag.of(hostId, tag.id)), listOf(identity)))
+        `when`(repository.findHostById(hostId)).thenReturn(
+            Host(id = hostId, hostname = "example.com", groupId = folder.id, identityId = identity.id),
+        )
+
+        val viewModel = createViewModel(hostId)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(folder.id, state.groupId)
+        assertEquals(identity.id, state.identityId)
+        assertEquals(listOf(tag.id), state.tagIds)
+    }
+
+    @Test
+    fun savingAnUntouchedHostDoesNotDropItsFolderOrIdentity() = runTest {
+        val hostId = UUID(0, 802)
+        val folder = HostGroup(name = "Production")
+        val identity = Identity(name = "Work", username = "deploy")
+        val tag = Tag(name = "web")
+        stubGroupSnapshot(GroupSnapshot(listOf(folder), listOf(tag), listOf(HostTag.of(hostId, tag.id)), listOf(identity)))
+        `when`(repository.findHostById(hostId)).thenReturn(
+            Host(id = hostId, hostname = "example.com", groupId = folder.id, identityId = identity.id),
+        )
+        `when`(repository.saveHost(any(Host::class.java) ?: Host())).thenAnswer { it.arguments[0] as Host }
+        val viewModel = createViewModel(hostId)
+        advanceUntilIdle()
+
+        viewModel.updateNickname("renamed")
+        assertTrue(viewModel.saveHost())
+
+        val captor = ArgumentCaptor.forClass(Host::class.java)
+        verify(repository).saveHost(captor.capture() ?: Host())
+        assertEquals(folder.id, captor.value.groupId)
+        assertEquals(identity.id, captor.value.identityId)
+        verify(groupRepository).setHostTags(hostId, setOf(tag.id))
+    }
+
+    @Test
+    fun changedFolderIdentityAndTagsAreSaved() = runTest {
+        val folder = HostGroup(name = "Lab")
+        val identity = Identity(name = "Home", username = "pi")
+        val tag = Tag(name = "arm")
+        stubGroupSnapshot(GroupSnapshot(listOf(folder), listOf(tag), emptyList(), listOf(identity)))
+        `when`(repository.saveHost(any(Host::class.java) ?: Host())).thenAnswer { it.arguments[0] as Host }
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.updateHostname("pi.local")
+        viewModel.updateGroupId(folder.id)
+        viewModel.updateIdentityId(identity.id)
+        viewModel.updateTagIds(listOf(tag.id, tag.id))
+        assertEquals(listOf(tag.id), viewModel.uiState.value.tagIds)
+        assertTrue(viewModel.saveHost())
+
+        val captor = ArgumentCaptor.forClass(Host::class.java)
+        verify(repository).saveHost(captor.capture() ?: Host())
+        assertEquals(folder.id, captor.value.groupId)
+        assertEquals(identity.id, captor.value.identityId)
+        verify(groupRepository).setHostTags(captor.value.id, setOf(tag.id))
     }
 }
