@@ -39,7 +39,7 @@ internal enum class ShellTab(
     val icon: ImageVector,
 ) {
     HOSTS(NavDestinations.HOST_LIST, R.string.shelldon_tab_hosts, Icons.Default.Dns),
-    KEYCHAIN(NavDestinations.PUBKEY_LIST, R.string.shelldon_tab_keychain, Icons.Default.Key),
+    KEYCHAIN(NavDestinations.KEYCHAIN, R.string.shelldon_tab_keychain, Icons.Default.Key),
     SETTINGS(NavDestinations.SETTINGS, R.string.shelldon_tab_settings, Icons.Default.Settings),
     ;
 
