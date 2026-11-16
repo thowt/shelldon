@@ -371,9 +371,10 @@ compile). Spotless and lint were not run either. Update this section after the C
   FUTURE refuses); SHA-1-only legacy server (DEFAULT refuses, LEGACY connects); the server log shows our
   identification line.
 - The policy tests run on the JDK's own crypto providers: all test classes share one JVM and Robolectric
-  leaves Conscrypt first in the provider list, which broke ChaCha20-Poly1305 (see the open question under
-  "Known limits and risks"). Two more tests connect with Conscrypt first, as `ProviderLoader` does at app
-  start; the AES-GCM one passes, the ChaCha20 one is `@Ignore`d with the reason.
+  leaves Conscrypt first in the provider list, which broke ChaCha20-Poly1305 on the JVM (see "ChaCha20 and
+  Conscrypt" under "Known limits and risks"). Two more tests connect with Conscrypt first, as
+  `ProviderLoader` does at app start; the AES-GCM one passes, the ChaCha20 one is `@Ignore`d: it fails
+  on the JVM only.
 - Off unless `SHELLDON_CONTAINER_TESTS=1`; with it set, a missing Docker fails instead of skipping. The
   pull-request workflow sets it. `CryptoDefaultsTest` (no Docker) fails when a library update puts a weak
   algorithm into DEFAULT or stops preferring post-quantum key exchange.
@@ -389,28 +390,28 @@ match what CI had built into the APK (same file sizes), not a signature from ups
 tests for this (`./gradlew -p build-logic test`) are not run by our CI.
 
 **Known limits and risks**
-- **Open question, check on the phone first: ChaCha20-Poly1305 with Conscrypt first.** The oss flavour's
-  `ProviderLoader` (identical to upstream ConnectBot) inserts Conscrypt at provider position 1, and
-  `chacha20-poly1305@openssh.com` is the library's first-choice cipher. On a plain JVM with Conscrypt first
-  and the JDK providers behind it, sshlib 0.6.9 completes the key exchange against a real OpenSSH 10.0
-  and then fails both ways ("ChaCha20-Poly1305 authentication failed" in the client, "Bad packet length"
-  in sshd); AES-GCM works. Likely cause, from reading the sources: sshlib decides once whether to pass a
+- **ChaCha20 and Conscrypt: fine on the phone, broken only on a JVM (settled 2026-11-16).** The oss
+  flavour's `ProviderLoader` (identical to upstream ConnectBot) inserts Conscrypt at provider position 1,
+  and `chacha20-poly1305@openssh.com` is sshlib's first-choice cipher. On a plain JVM with Conscrypt first
+  and the JDK providers behind it, sshlib 0.6.9 finishes the key exchange against real OpenSSH 10.0 and
+  then fails both ways ("ChaCha20-Poly1305 authentication failed" in the client, "Bad packet length" in
+  sshd); AES-GCM works. Likely cause, from reading the sources: sshlib decides once whether to pass a
   `ChaCha20ParameterSpec` by test-initialising a cipher in decrypt mode; Conscrypt refuses that, so the
   JDK's provider answers and the test passes; the real ciphers are then first initialised in encrypt
-  mode, which Conscrypt accepts while ignoring the spec and using a random nonce. Whether Android has
-  the same fall-through is **not known**: there the JDK's provider is absent, upstream runs this setup
-  daily, and sshlib's current code is identical to what we ship. How to check: install the CI debug APK
-  and connect to any stock OpenSSH server. If the terminal drops right after the key exchange with a
-  ChaCha20 error, it is real; the cheap fixes are then to serve ChaCha20 from a non-Conscrypt provider or
-  to offer AES-GCM first (a policy change that needs the owner). The test
-  `chaCha20Poly1305WorksWithTheProviderOrderTheAppInstalls` is the probe; it is `@Ignore`d because a
-  JVM cannot answer the Android question.
+  mode, which Conscrypt accepts while ignoring the spec and using a random nonce. **On the owner's phone
+  (Android 17, CI debug APK) two different servers connected and "Connection info" reports
+  `chacha20-poly1305@openssh.com` for both**, so Android does not hit it (no JDK providers behind
+  Conscrypt there, which fits the cause above). The probe test
+  `chaCha20Poly1305WorksWithTheProviderOrderTheAppInstalls` stays `@Ignore`d because a JVM cannot pass it;
+  it would matter again if a provider that offers ChaCha20 were ever added behind Conscrypt on Android, or
+  if sshlib changes how it picks the parameter style.
 - `ShelldonBackup.restore` nests a blocking `runInTransaction` inside `withTransaction`; the Robolectric
   test `ShelldonBackupTest` exercises it and passed in CI (2026-11-16).
 - BouncyCastle on minSdk 24 to 27 could clash with the platform's own `org.bouncycastle`; the target phone
   runs Android 17. Check before raising the audience.
 - Identity passwords are not stored (the identity editor still has no password field).
-- Not tried on the phone: biometric prompt, auto-lock timing, the SAF file pickers.
+- Tried on the phone: SSH to two servers (ChaCha20-Poly1305). Not tried: biometric prompt, auto-lock
+  timing, the SAF file pickers, backup export and restore, ssh_config import.
 
 ## Security rules and features to drop
 

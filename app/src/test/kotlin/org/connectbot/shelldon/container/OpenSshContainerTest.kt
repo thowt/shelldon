@@ -159,11 +159,12 @@ class OpenSshContainerTest {
         }
     }
 
-    // Fails on the JVM: with Conscrypt first and the JDK providers behind it, sshlib 0.6.9 completes the key
-    // exchange and then cannot decrypt ChaCha20-Poly1305 packets (both sides report corruption). Android has
-    // no JDK providers behind Conscrypt, so this may not apply to the phone, and a JVM cannot tell. Remove
-    // @Ignore once that is settled on a device. See docs/PLAN.md, "Known limits and risks".
-    @Ignore("Open question for Android: sshlib's ChaCha20 with Conscrypt first, see docs/PLAN.md")
+    // Fails on the JVM only: with Conscrypt first and the JDK providers behind it, sshlib 0.6.9 completes the
+    // key exchange and then cannot decrypt ChaCha20-Poly1305 packets (both sides report corruption). Android
+    // has no JDK providers behind Conscrypt, and on the owner's phone two servers negotiated
+    // chacha20-poly1305 fine (2026-11-16). Kept as a probe for the day a provider is added behind Conscrypt
+    // or sshlib changes. See docs/PLAN.md, "ChaCha20 and Conscrypt".
+    @Ignore("Fails on the JVM only; works on Android, see docs/PLAN.md")
     @Test
     fun chaCha20Poly1305WorksWithTheProviderOrderTheAppInstalls() {
         DockerSshd.start("Ciphers=chacha20-poly1305@openssh.com").use { server ->
