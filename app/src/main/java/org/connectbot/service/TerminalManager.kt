@@ -53,6 +53,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.connectbot.R
 import org.connectbot.data.ColorSchemeRepository
@@ -63,6 +64,7 @@ import org.connectbot.data.entity.Host
 import org.connectbot.data.entity.Pubkey
 import org.connectbot.di.CoroutineDispatchers
 import org.connectbot.fido2.Fido2Manager
+import org.connectbot.shelldon.data.groups.ShelldonGroupRepository
 import org.connectbot.sshlib.SshSigning
 import org.connectbot.transport.TransportFactory
 import org.connectbot.util.CryptoProviderState
@@ -162,6 +164,9 @@ class TerminalManager :
 
     @Inject
     internal lateinit var securePasswordStorage: org.connectbot.util.SecurePasswordStorage
+
+    @Inject
+    internal lateinit var groupRepository: ShelldonGroupRepository
 
     private val binder: IBinder = TerminalBinder()
 
@@ -474,7 +479,7 @@ class TerminalManager :
         val finalHost = if (hostRepository.findHostById(host.id) == null) {
             host.copy(isTemporary = true)
         } else {
-            host
+            withEffectiveLogin(host)
         }
 
         return openConnection(finalHost)
@@ -489,7 +494,27 @@ class TerminalManager :
      */
     suspend fun openConnectionForHostId(hostId: UUID): TerminalBridge? {
         val host = hostRepository.findHostById(hostId) ?: return null
-        return openConnection(host)
+        return openConnection(withEffectiveLogin(host))
+    }
+
+    /**
+     * [host] with the user name and key its identity supplies (its own, or inherited from its group),
+     * for opening a connection. The result is never saved, so the host keeps following its group.
+     * A host without a group or identity comes back as it is.
+     */
+    internal suspend fun withEffectiveLogin(host: Host): Host {
+        if (host.isTemporary || (host.groupId == null && host.identityId == null)) return host
+        return groupRepository.resolveHost(host)
+    }
+
+    /**
+     * Same for code that cannot suspend, such as the jump host lookup in the transport. Returns null
+     * when nothing changes, so callers keep the host they have.
+     */
+    internal fun withEffectiveLoginBlocking(host: Host): Host? {
+        if (host.groupId == null && host.identityId == null) return null
+        if (!::groupRepository.isInitialized) return null
+        return runBlocking { groupRepository.resolveHost(host) }
     }
 
     /**

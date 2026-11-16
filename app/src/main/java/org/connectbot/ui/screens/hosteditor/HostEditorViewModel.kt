@@ -27,9 +27,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,6 +52,10 @@ import org.connectbot.data.keyboard.KeyboardDraft
 import org.connectbot.data.keyboard.KeyboardMacro
 import org.connectbot.data.keyboard.KeyboardRepository
 import org.connectbot.di.CoroutineDispatchers
+import org.connectbot.shelldon.data.groups.GroupSnapshot
+import org.connectbot.shelldon.data.groups.Outcome
+import org.connectbot.shelldon.data.groups.Rejection
+import org.connectbot.shelldon.data.groups.ShelldonGroupRepository
 import org.connectbot.sshlib.AlgorithmCategory
 import org.connectbot.sshlib.SshAlgorithm
 import org.connectbot.sshlib.SshCryptoPolicy
@@ -69,6 +75,10 @@ data class HostEditorUiState(
     val defaultMinimumRsaBits: Int? = null,
     val defaultMinimumDhBits: Int? = null,
     val hostId: UUID = EntityIds.NONE,
+    // Shelldon: where the host lives and which identity it uses. Null identity means "inherit".
+    val groupId: UUID? = null,
+    val identityId: UUID? = null,
+    val tagIds: List<UUID> = emptyList(),
     val nickname: String = "",
     val protocol: String = "ssh",
     val username: String = "",
@@ -122,6 +132,7 @@ class HostEditorViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dispatchers: CoroutineDispatchers,
     private val keyboardRepository: KeyboardRepository,
+    private val groupRepository: ShelldonGroupRepository,
 ) : ViewModel() {
 
     private val hostId: UUID = EntityIds.parse(savedStateHandle.get<String>("hostId"))
@@ -129,6 +140,35 @@ class HostEditorViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(restoredForm ?: HostEditorUiState(hostId = hostId, isLoading = hostId != EntityIds.NONE))
     val uiState: StateFlow<HostEditorUiState> = _uiState.asStateFlow()
     val keyboardDraft = savedStateHandle.getStateFlow<KeyboardDraft?>("pendingKeyboard", null)
+
+    /** Folders, tags and identities to choose from. Kept apart from [uiState] because it is not part of the form draft. */
+    val groupSnapshot: StateFlow<GroupSnapshot> = groupRepository.observeSnapshot()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupSnapshot(emptyList(), emptyList(), emptyList(), emptyList()))
+
+    fun updateGroupId(value: UUID?) {
+        _uiState.update { it.copy(groupId = value, hasUnsavedChanges = true) }
+    }
+
+    fun updateIdentityId(value: UUID?) {
+        _uiState.update { it.copy(identityId = value, hasUnsavedChanges = true) }
+    }
+
+    fun updateTagIds(value: List<UUID>) {
+        _uiState.update { it.copy(tagIds = value.distinct(), hasUnsavedChanges = true) }
+    }
+
+    /** Creates a tag right away (tags are shared by all hosts) and ticks it for this host. [onResult] gets null on success. */
+    fun createTagAndSelect(name: String, onResult: (Rejection?) -> Unit) {
+        viewModelScope.launch {
+            when (val outcome = groupRepository.createTag(name)) {
+                is Outcome.Ok -> {
+                    _uiState.update { it.copy(tagIds = (it.tagIds + outcome.value.id).distinct(), hasUnsavedChanges = true) }
+                    onResult(null)
+                }
+                is Outcome.Rejected -> onResult(outcome.reason)
+            }
+        }
+    }
 
     fun updateKeyboardDraft(value: KeyboardDraft?) {
         savedStateHandle["pendingKeyboard"] = value
@@ -221,8 +261,12 @@ class HostEditorViewModel @Inject constructor(
                 val host = repository.findHostById(hostId)
                 if (host != null) {
                     val hasPassword = securePasswordStorage.hasPassword(hostId)
+                    val tagIds = groupRepository.snapshot().tagIdsByHost[hostId].orEmpty().toList()
                     _uiState.update {
                         it.copy(
+                            groupId = host.groupId,
+                            identityId = host.identityId,
+                            tagIds = tagIds,
                             crypto = host.crypto,
                             nickname = host.nickname,
                             protocol = host.protocol,
@@ -528,6 +572,8 @@ class HostEditorViewModel @Inject constructor(
                 moshServer = state.moshServer.ifBlank { null },
                 moshNetworkTimeout = state.moshNetworkTimeout.toIntOrNull(),
                 locale = state.locale.ifBlank { "en_US.UTF-8" },
+                groupId = state.groupId,
+                identityId = state.identityId,
             )
 
             val savedHost = withContext(dispatchers.io) {
@@ -541,6 +587,9 @@ class HostEditorViewModel @Inject constructor(
                     }
                 }
             }
+
+            // Tags live in their own table, so they are written after the host row exists.
+            withContext(dispatchers.io) { groupRepository.setHostTags(savedHost.id, state.tagIds.toSet()) }
 
             // Handle password storage for SSH and Mosh
             if (state.protocol == "ssh" || state.protocol == "mosh") {

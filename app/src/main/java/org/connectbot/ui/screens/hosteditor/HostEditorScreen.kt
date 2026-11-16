@@ -88,6 +88,7 @@ import org.connectbot.data.entity.TelnetNegotiationMode
 import org.connectbot.data.entity.TelnetNewlinePolicy
 import org.connectbot.data.entity.TelnetNonBinaryPolicy
 import org.connectbot.data.keyboard.KeyboardDraft
+import org.connectbot.shelldon.ui.hosteditor.HostOrganizationSection
 import org.connectbot.sshlib.SshCryptoPolicy
 import org.connectbot.ui.PreviewScreen
 import org.connectbot.ui.common.getIconColors
@@ -119,6 +120,7 @@ fun HostEditorScreen(
     val keyboardDraft by viewModel.keyboardDraft.collectAsState()
     val automationDraft by viewModel.automationDraft.collectAsState()
     val automationMacros by viewModel.automationMacros.collectAsState()
+    val groupSnapshot by viewModel.groupSnapshot.collectAsState()
     var showDraftAutomation by rememberSaveable { mutableStateOf(false) }
     if (showDraftAutomation) {
         KeyboardWorkflowDialog(onDismiss = { showDraftAutomation = false }) {
@@ -174,6 +176,21 @@ fun HostEditorScreen(
                 onDraft = viewModel::updateKeyboardDraft,
             )
         },
+        organizationContent = {
+            HostOrganizationSection(
+                snapshot = groupSnapshot,
+                groupId = uiState.groupId,
+                identityId = uiState.identityId,
+                tagIds = uiState.tagIds,
+                username = uiState.username,
+                pubkeyId = uiState.pubkeyId,
+                keyNames = uiState.availablePubkeys.associate { it.id to it.nickname },
+                onGroupChange = viewModel::updateGroupId,
+                onIdentityChange = viewModel::updateIdentityId,
+                onTagsChange = viewModel::updateTagIds,
+                onCreateTag = viewModel::createTagAndSelect,
+            )
+        },
         onJumpHostChange = viewModel::updateJumpHostId,
         onIpVersionChange = viewModel::updateIpVersion,
         onTelnetEchoModeChange = viewModel::updateTelnetEchoMode,
@@ -220,6 +237,7 @@ fun HostEditorScreenContent(
     onSaveHost: suspend () -> Boolean,
     modifier: Modifier = Modifier,
     keyboardContent: @Composable () -> Unit = {},
+    organizationContent: @Composable () -> Unit = {},
     onCryptoChange: (HostCryptoConfig) -> Unit = {},
     onResolveCrypto: suspend (HostCryptoConfig) -> SshCryptoPolicy? = { null },
     onCancelMoshInstall: () -> Unit = {},
@@ -340,6 +358,9 @@ fun HostEditorScreenContent(
                     singleLine = true,
                 )
             }
+
+            // Shelldon: folder, tags and identity
+            organizationContent()
 
             // Color selector
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))

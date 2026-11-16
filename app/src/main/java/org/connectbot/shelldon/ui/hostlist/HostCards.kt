@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LinkOff
@@ -284,6 +285,8 @@ internal fun HostCard(
     modifier: Modifier = Modifier,
     makingShortcut: Boolean = false,
     disconnectReason: DisconnectReason? = null,
+    caption: String? = null,
+    onMoveToGroup: (() -> Unit)? = null,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -362,6 +365,16 @@ internal fun HostCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (caption != null) {
+                    Text(
+                        text = caption,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
                 HostBadges(host = host, modifier = Modifier.padding(top = 6.dp))
             }
 
@@ -390,6 +403,7 @@ internal fun HostCard(
                             onForgetHostKeys = { showForgetHostKeysDialog = true },
                             onDisconnect = { showDisconnectDialog = true },
                             onDelete = { showDeleteDialog = true },
+                            onMoveToGroup = onMoveToGroup,
                         )
                     }
                 }
@@ -493,6 +507,7 @@ private fun HostMenuItems(
     onForgetHostKeys: () -> Unit,
     onDisconnect: () -> Unit,
     onDelete: () -> Unit,
+    onMoveToGroup: (() -> Unit)?,
 ) {
     DropdownMenuItem(
         text = { Text(stringResource(R.string.list_host_edit)) },
@@ -510,6 +525,16 @@ private fun HostMenuItems(
                 onPortForwards()
             },
             leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) },
+        )
+    }
+    if (onMoveToGroup != null) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.shelldon_move_to_folder)) },
+            onClick = {
+                onDismiss()
+                onMoveToGroup()
+            },
+            leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) },
         )
     }
     DropdownMenuItem(

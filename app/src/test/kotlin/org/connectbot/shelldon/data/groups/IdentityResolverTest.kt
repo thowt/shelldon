@@ -129,4 +129,37 @@ class IdentityResolverTest {
         assertThat(login.keyId).isEqualTo(HostConstants.PUBKEYID_ANY)
         assertThat(login.identity.source).isEqualTo(IdentitySource.NONE)
     }
+
+    @Test
+    fun resolvedHostFillsInUserNameAndKeyAndLeavesTheRestAlone() {
+        val g = groups(group(1, identity = admin.id))
+        val original = host(groupId = id(1))
+        val resolved = IdentityResolver.resolvedHost(original, g, identities)
+        assertThat(resolved.username).isEqualTo("admin")
+        assertThat(resolved.pubkeyId).isEqualTo(id(201))
+        assertThat(resolved.groupId).isEqualTo(id(1))
+        assertThat(resolved.copy(username = original.username, pubkeyId = original.pubkeyId)).isEqualTo(original)
+    }
+
+    @Test
+    fun resolvedHostKeepsWhatTheHostStatesItself() {
+        val g = groups(group(1, identity = admin.id))
+        val resolved = IdentityResolver.resolvedHost(host(groupId = id(1), username = "me", pubkeyId = id(202)), g, identities)
+        assertThat(resolved.username).isEqualTo("me")
+        assertThat(resolved.pubkeyId).isEqualTo(id(202))
+    }
+
+    @Test
+    fun resolvedHostIsTheSameObjectWhenNothingChanges() {
+        val plain = host(username = "me")
+        assertThat(IdentityResolver.resolvedHost(plain, emptyMap(), identities)).isSameAs(plain)
+        val optedOut = host(groupId = id(1), identityId = EntityIds.NONE)
+        assertThat(IdentityResolver.resolvedHost(optedOut, groups(group(1, identity = admin.id)), identities)).isSameAs(optedOut)
+    }
+
+    @Test
+    fun resolvedHostWithADeletedIdentityIsUnchanged() {
+        val gone = host(identityId = id(999), username = "me")
+        assertThat(IdentityResolver.resolvedHost(gone, emptyMap(), identities)).isSameAs(gone)
+    }
 }

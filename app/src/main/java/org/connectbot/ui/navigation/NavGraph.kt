@@ -32,6 +32,8 @@ import androidx.navigation.navArgument
 import org.connectbot.data.EntityIds
 import org.connectbot.data.entity.Host
 import org.connectbot.shelldon.ui.hostlist.ShelldonHostListScreen
+import org.connectbot.shelldon.ui.keychain.KnownHostsOverviewScreen
+import org.connectbot.shelldon.ui.keychain.ShelldonKeychainScreen
 import org.connectbot.ui.screens.colors.ColorsScreen
 import org.connectbot.ui.screens.colors.PaletteEditorScreen
 import org.connectbot.ui.screens.console.ConsoleScreen
@@ -154,6 +156,18 @@ fun ConnectBotNavHost(
                 org.connectbot.ui.screens.automation.AutomationEditorScreen(
                     onNavigateBack = { navController.safePopBackStack() },
                 )
+            }
+
+            composable(NavDestinations.KEYCHAIN) {
+                ShelldonKeychainScreen(
+                    onNavigateToKeys = { navController.navigateSafely(NavDestinations.PUBKEY_LIST) },
+                    onNavigateToEditKey = { keyId -> navController.navigateSafely("${NavDestinations.PUBKEY_EDITOR}/$keyId") },
+                    onNavigateToKnownHosts = { navController.navigateSafely(NavDestinations.KEYCHAIN_KNOWN_HOSTS) },
+                )
+            }
+
+            composable(NavDestinations.KEYCHAIN_KNOWN_HOSTS) {
+                KnownHostsOverviewScreen(onNavigateBack = { navController.safePopBackStack() })
             }
 
             composable(NavDestinations.PUBKEY_LIST) {

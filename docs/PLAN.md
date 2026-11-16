@@ -54,7 +54,7 @@ that can later be offered to the public.
 - **Findings from the CI APK listing (2026-11-16):** the `oss` debug APK bundles Mosh
   (`libmoshexec.so` for arm64-v8a, armeabi-v7a, x86, x86_64, plus the terminfo asset); whether a
   Mosh session actually works against a real server is still untested. The debug APK has application
-  id `io.github.thowt.shelldon.debug` and version name like `git-v1.12.0-alpha-3364`.
+  id `io.github.thowt.shelldon.debug` and version name like `git-v1.12.0-alpha-3364` (from round 1 on: `0.1.0+<commits since the anchor tag>`, no `-oss` suffix).
 - **Removed the `easylauncher` Gradle plugin.** It stamped a "debug" ribbon on the launcher icon and
   wrapped the old ConnectBot artwork, which hid the turtle on Android 8+. Debug builds are still told
   apart by the `.debug` application id.
@@ -249,6 +249,52 @@ What slice 1 adds (code in `org.connectbot.shelldon.data.groups`, schema version
 Not in slice 1, next: screens (group tree, tag filter chips, identity editor), applying the resolved login
 when a connection opens, crypto-policy inheritance (needs an explicit "inherit" value on the host), jump host
 and port defaults on groups, drag reorder.
+
+## Delivery in three rounds (decided 2026-11-16 evening)
+
+The owner wants the remaining milestones in at most three big builds, tested on the phone between them,
+then fine-tuning. Each round is one pull request. Decisions taken with it:
+
+- **Round 1 (branch `m6-keychain-groups`):** Keychain with Identities, Keys and Known hosts; group tree,
+  tags, host-list filters; group, tag and identity pickers in the host editor; the resolved login applied
+  when a connection opens; version line at the bottom of Settings; F-Droid notes (`docs/FDROID.md`).
+- **Round 2:** vault (required from first launch, master password with Argon2id, biometric unlock,
+  auto-lock; identity passwords move in), export/import, OpenSSH container tests (M3).
+- **Round 3:** SFTP browser, snippets, tunnels tab, WebDAV sync. **Sync is the first thing to slip** to a
+  later round if this one is too big.
+- **Vault is required, not optional**: one code path to test, and secrets are never stored in the clear.
+- **Argon2id comes from BouncyCastle** (MIT-style licence, pure Java, actively maintained) instead of a
+  native library: no NDK step, builds from source for F-Droid. Added in round 2; check first whether
+  sshlib already brings it in.
+- **Publishing:** IzzyOnDroid first, official F-Droid later (see `docs/FDROID.md`).
+
+### Round 1: what was built and how (2026-11-16)
+
+Status: written, **not yet verified by CI or on the phone** when this was recorded. Update after the run.
+
+- **Keychain tab** is a hub, not a copy of the upstream screens: Identities (create, edit, delete, usage
+  count, warning when the named key was deleted), the stored keys (a tap opens the existing key editor,
+  "Manage" opens the existing key screen with generate/import/FIDO2), and a Known hosts overview across all
+  hosts (`known_hosts_overview`, forget one key). Identities hold a user name and an optional key and
+  **no password**: stored secrets wait for the vault in round 2.
+- **Resolution order** (host, then group chain nearest first, then nothing; `EntityIds.NONE` opts out;
+  a deleted identity counts as unset) is applied **only when a connection opens**, on a copy of the host
+  (`TerminalManager.withEffectiveLogin`, and for jump hosts in `SSH.kt`). Nothing is written back, so a
+  host keeps following its folder. A login the host states itself (user name, a specific key, "never use
+  keys") always wins over the identity.
+- **Hosts screen**: one folder level at a time with a breadcrumb; folders first, then hosts. A text search
+  or a tag filter looks across all folders (flat list, the folder path shown under each host) so a match
+  is never hidden. Tags combine with AND. Create, edit, delete folders and "Move to folder" from the host
+  menu. Deleting a folder moves its hosts and sub-folders up one level.
+- **Host editor** got an "Organise" section (folder, tags, identity) with a plain-language preview of the
+  login that will be used. This also fixed a data-loss bug in the upstream editor: it rebuilt the host
+  from the form and would have dropped `groupId` and `identityId` on every save.
+- **Version line**: `shelldon.version` in `gradle.properties` gives the name (`0.1.0`, plus `+N` for builds
+  after the anchor tag). The version code still comes from the upstream tag anchor until the owner pushes
+  an own `v0.1.0` tag. Shown at the bottom of Settings (needed for bug reports and releases).
+- **Not in round 1**: crypto-policy inheritance from folders (needs schema 22 and an explicit "inherit"
+  value on the host), group colour picker, drag-to-reorder, creating a host directly inside the open
+  folder. Fine-tuning candidates.
 
 ## Security rules and features to drop
 

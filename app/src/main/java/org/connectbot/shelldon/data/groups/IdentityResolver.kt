@@ -64,18 +64,43 @@ object IdentityResolver {
      * A login the host states itself always wins: a non-blank user name, a specific key, or "never
      * use keys". The identity only fills in what the host leaves open.
      */
-    fun effectiveLogin(host: Host, groups: Map<UUID, HostGroup>, identities: Map<UUID, Identity>): EffectiveLogin {
-        val resolved = resolveIdentity(host.identityId, host.groupId, groups, identities)
+    fun effectiveLogin(host: Host, groups: Map<UUID, HostGroup>, identities: Map<UUID, Identity>): EffectiveLogin = effectiveLogin(host.username, host.pubkeyId, host.identityId, host.groupId, groups, identities)
+
+    /** Same as above for values that are not a saved host yet, such as the fields of the host editor. */
+    fun effectiveLogin(
+        username: String,
+        pubkeyId: UUID,
+        identityId: UUID?,
+        groupId: UUID?,
+        groups: Map<UUID, HostGroup>,
+        identities: Map<UUID, Identity>,
+    ): EffectiveLogin {
+        val resolved = resolveIdentity(identityId, groupId, groups, identities)
         val identity = resolved.identity
         val keyId = when {
-            host.pubkeyId == HostConstants.PUBKEYID_NEVER -> HostConstants.PUBKEYID_NEVER
-            EntityIds.isKey(host.pubkeyId) -> host.pubkeyId
-            else -> identity?.keyId ?: host.pubkeyId
+            pubkeyId == HostConstants.PUBKEYID_NEVER -> HostConstants.PUBKEYID_NEVER
+            EntityIds.isKey(pubkeyId) -> pubkeyId
+            else -> identity?.keyId ?: pubkeyId
         }
         return EffectiveLogin(
-            username = host.username.ifBlank { identity?.username.orEmpty() },
+            username = username.ifBlank { identity?.username.orEmpty() },
             keyId = keyId,
             identity = resolved,
         )
+    }
+
+    /**
+     * The host as a connection should see it: the user name and key filled in from the identity that
+     * applies. The result is only used to open the connection. It is never written back, so the saved
+     * host keeps pointing at its group or identity and follows later changes to them.
+     */
+    fun resolvedHost(host: Host, groups: Map<UUID, HostGroup>, identities: Map<UUID, Identity>): Host {
+        if (host.groupId == null && host.identityId == null) return host
+        val login = effectiveLogin(host, groups, identities)
+        return if (login.username == host.username && login.keyId == host.pubkeyId) {
+            host
+        } else {
+            host.copy(username = login.username, pubkeyId = login.keyId)
+        }
     }
 }

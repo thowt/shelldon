@@ -39,6 +39,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.inOrder
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.mockConstruction
@@ -116,6 +117,33 @@ class SSHJumpHostTest {
             verify(bridge).onConnected()
             ssh.close()
             opened.forEach { verify(it).disconnect() }
+        }
+    }
+
+    @Test
+    fun jumpHostSignsInWithTheLoginItsIdentitySupplies() = runTest {
+        val jump = Host(id = UUID(0, 2), nickname = "jump", hostname = "jump.example", username = "", groupId = UUID(0, 9))
+        val target = Host(id = UUID(0, 1), nickname = "target", hostname = "target.example", username = "alice", jumpHostId = jump.id, wantSession = false)
+        stubHosts(jump)
+        `when`(manager.withEffectiveLoginBlocking(jump)).thenReturn(jump.copy(username = "root"))
+        `when`(repository.getHostKeyAlgorithmsForHostBlocking(jump.id)).thenReturn(listOf("ssh-ed25519"))
+        `when`(repository.getHostKeyAlgorithmsForHostBlocking(target.id)).thenReturn(listOf("ssh-ed25519"))
+        mockConstruction(SshClient::class.java) { client, _ ->
+            runBlocking {
+                `when`(client.connect()).thenReturn(ConnectResult.Success)
+                `when`(client.authenticate(anyString() ?: "", any(AuthHandler::class.java) ?: fallbackHandler))
+                    .thenReturn(AuthResult.Success)
+                `when`(client.openDirectTcpipTransport(anyString() ?: "", org.mockito.ArgumentMatchers.anyInt(), anyString() ?: "", org.mockito.ArgumentMatchers.anyInt()))
+                    .thenReturn(mock(TransportFactory::class.java))
+                `when`(client.disconnectedFlow).thenReturn(MutableSharedFlow())
+            }
+        }.use { clients ->
+            val ssh = SSH(target, bridge, manager)
+            ssh.connect(this, dispatchers(), "UTF-8")
+            val opened = clients.constructed()
+            assertEquals(2, opened.size)
+            verify(opened[0]).authenticate(eq("root") ?: "root", any(AuthHandler::class.java) ?: fallbackHandler)
+            ssh.close()
         }
     }
 

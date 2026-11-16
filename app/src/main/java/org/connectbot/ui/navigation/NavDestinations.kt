@@ -24,6 +24,8 @@ object NavDestinations {
     const val AUTOMATION_EDITOR = "automation_editor"
     const val PUBKEY_LIST = "pubkey_list"
     const val KNOWN_HOST_LIST = "known_host_list"
+    const val KEYCHAIN = "keychain"
+    const val KEYCHAIN_KNOWN_HOSTS = "known_hosts_overview"
     const val GENERATE_PUBKEY = "generate_pubkey"
     const val PUBKEY_EDITOR = "pubkey_editor"
     const val PORT_FORWARD_LIST = "port_forward_list"

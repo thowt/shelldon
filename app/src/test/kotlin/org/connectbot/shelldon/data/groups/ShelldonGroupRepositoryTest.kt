@@ -9,11 +9,13 @@ package org.connectbot.shelldon.data.groups
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.connectbot.data.ConnectBotDatabase
 import org.connectbot.data.EntityIds
 import org.connectbot.data.entity.Host
+import org.connectbot.data.entity.KnownHost
 import org.connectbot.data.sync.SyncDatabase
 import org.junit.After
 import org.junit.Before
@@ -250,6 +252,36 @@ class ShelldonGroupRepositoryTest {
         assertThat(login.username).isEqualTo("root")
         assertThat(login.identity.source).isEqualTo(IdentitySource.GROUP)
         assertThat(login.identity.group?.id).isEqualTo(top.id)
+    }
+
+    @Test
+    fun resolveHostUsesTheGroupIdentityAndNeverWritesItBack() = runTest {
+        val identity = (repository.createIdentity("admin", "root", null) as Outcome.Ok).value
+        val lab = (repository.createGroup("Lab", null, identityId = identity.id) as Outcome.Ok).value
+        val h = host("h1")
+        repository.setHostGroup(h.id, lab.id)
+
+        val resolved = repository.resolveHost(database.hostDao().getById(h.id)!!)
+
+        assertThat(resolved.username).isEqualTo("root")
+        assertThat(database.hostDao().getById(h.id)!!.username).isEmpty()
+    }
+
+    @Test
+    fun resolveHostSkipsPlainHostsWithoutReadingAnything() = runTest {
+        val plain = host("h2")
+        assertThat(repository.resolveHost(plain)).isSameAs(plain)
+    }
+
+    // Known hosts
+
+    @Test
+    fun allKnownHostsAreListedByHostName() = runTest {
+        val h = host("h1")
+        database.knownHostDao().insert(KnownHost(hostId = h.id, hostname = "b.lan", port = 22, hostKeyAlgo = "ssh-ed25519", hostKey = byteArrayOf(1)))
+        database.knownHostDao().insert(KnownHost(hostId = h.id, hostname = "A.lan", port = 22, hostKeyAlgo = "ssh-ed25519", hostKey = byteArrayOf(2)))
+
+        assertThat(repository.observeAllKnownHosts().first().map { it.hostname }).containsExactly("A.lan", "b.lan")
     }
 
     // Sync
