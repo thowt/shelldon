@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Shelldon SSH
+  ~ Copyright 2026 the Shelldon SSH contributors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <!-- The debug build installs next to the release build, so the two need different names. -->
+    <string name="app_name" translatable="false">Shelldon SSH (debug)</string>
+</resources>
