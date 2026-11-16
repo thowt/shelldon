@@ -229,6 +229,10 @@ jobs:
           print("schema statements checked against generated code:", sum(1 + len(e.get("indices", [])) for e in schema["entities"]), "missing:", len(missing))
           for q in missing[:8]:
               print("  MISSING:", q)
+              # show what Room generated for the same table or index, so the diff is visible in the log
+              start = impl.find(q[: q.index("`", q.index("`") + 1) + 1])
+              if start >= 0:
+                  print("  GENERATED:", impl[start : impl.index('"', start)])
           sys.exit(1 if missing else 0)
           PY
           fi
