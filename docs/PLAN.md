@@ -203,6 +203,38 @@ Plan:
 - Each record is encrypted separately, so a server only ever sees ciphertext and can merge by revision.
 - The sync backend is an interface: `list`, `get`, `put` with compare-and-swap, `delete`.
 
+### M5 design, slice 1 (data layer, 2026-11-16)
+
+Found while reading the code: **upstream already ships the database side of sync** (`data/sync/SyncDatabase.kt`):
+every object has a `repository_id` (a "repository" is a set of objects that syncs together; `Local` is built
+in), triggers write each change to `sync_outbox`, and `sync_versions`, `sync_batches`, `sync_conflicts` and
+`sync_certificates` exist. There is no network client in the tree. M9 builds on this instead of a second
+mechanism; new tables join it by adding their name to `SyncDatabase.tables`.
+
+What slice 1 adds (code in `org.connectbot.shelldon.data.groups`, schema version 21, AutoMigration 20 to 21):
+- `host_groups`: nested through `parent_id`, with name, colour, manual `sort_order` and an optional
+  `identity_id`. Depth limited to 16, sibling names unique ignoring case, loops refused. Deleting a group
+  moves its sub-groups and hosts up one level (numbering clashing names), so **nothing is ever deleted
+  or hidden by deleting a folder**.
+- `tags` and `host_tags`: free labels across groups; names unique ignoring case; foreign keys cascade, so
+  deleting a tag or a host removes only the links.
+- `identities`: name, user name and an optional key id. **No password column**: secrets wait for the vault (M4).
+- `hosts.group_id` and `hosts.identity_id`, both nullable. These two columns are excluded from the JSON
+  export until groups, tags and identities have their own export (M8); importing a host never invents a group.
+- Resolution (pure Kotlin, `IdentityResolver`): host, then the group chain nearest first, then nothing.
+  `EntityIds.NONE` on a host or group opts out of inheriting. A reference to a deleted identity counts as
+  unset. A user name or key the host states itself always wins over the identity; the identity only fills
+  what the host leaves open ("never use keys" is respected). The result is computed per connection and never
+  written back to the host.
+- The repository (`ShelldonGroupRepository`) checks every rule inside one transaction and answers with a
+  `Rejection` instead of throwing, so the UI can show a message.
+- New tables are copied by `BackupFilter` and are in the sync trigger list. CI now fails a pull request when
+  `app/schemas/` is not current (Room rewrites it on every build).
+
+Not in slice 1, next: screens (group tree, tag filter chips, identity editor), applying the resolved login
+when a connection opens, crypto-policy inheritance (needs an explicit "inherit" value on the host), jump host
+and port defaults on groups, drag reorder.
+
 ## Security rules and features to drop
 
 - No accept-all host-key mode. A changed host key blocks the connection.
@@ -258,7 +290,7 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - **M3: integration tests.** Containerised OpenSSH: legacy-only, ML-KEM, sntrup-only, modern. Real old
   Cisco if one turns up.
 - **M4: vault.** Master password (Argon2id), biometric shortcut, auto-lock, migrate existing secrets.
-- **M5: data model.** UUID records, nested groups, tags, identities, resolution rules including
+- **M5: data model (slice 1 done in PR, see "M5 design").** UUID records, nested groups, tags, identities, resolution rules including
   crypto-policy inheritance. Room migrations with tests.
 - **M6: host-list UX.** Search, group tree, tag filters, quick connect, legacy and PQ badges.
 - **M7: snippets and SFTP browser.**

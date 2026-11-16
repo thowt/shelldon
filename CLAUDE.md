@@ -92,9 +92,8 @@ shell, original artwork only. Do not use ConnectBot's name, logo or artwork in t
 listing, and do not draw any existing mascot. Keep attribution to ConnectBot in NOTICE and the
 About screen.
 
-## Current milestone: M0
+## Current milestone: M5
 
-Do M0 from `docs/PLAN.md` only. Check this VM (RAM, disk, Java, Docker, internet access to Google and
-Maven), install what is missing to build (JDK 17 and the Android command-line SDK for the
-`compileSdk` in `gradle/libs.versions.toml`), build the `oss` debug APK, run the unit tests, and
-report. Don't change app code yet. Ask the owner before using `sudo`.
+M0 to M2 are done (baseline build, branding, first UI). Work on M5 from `docs/PLAN.md` ("M5 design"):
+groups, tags and identities. The UI work in `org.connectbot.shelldon.ui` follows the direction recorded
+there. Keep new code in `org.connectbot.shelldon.*` and touch upstream files minimally.

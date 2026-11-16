@@ -190,6 +190,18 @@ jobs:
             -Pkotlin.compiler.execution.strategy=in-process \
             :app:testOssDebugUnitTest
 
+      - name: Room schema is committed and current
+        # Room rewrites app/schemas/ on every build. If that changes a tracked file, the committed
+        # schema JSON is stale (or missing for a new database version), which breaks migration tests
+        # and the next version bump. The diff below is what to commit.
+        if: always() && steps.plan.outputs.variant == 'debug'
+        run: |
+          git add -N app/schemas
+          if ! git diff --exit-code -- app/schemas; then
+            echo "::error::app/schemas is not up to date with the Room entities: commit the diff above."
+            exit 1
+          fi
+
       - name: Prepare the internal signing key (optional)
         if: steps.plan.outputs.variant == 'release'
         # With the key, every release APK carries the same signature, so a new build installs over

@@ -46,6 +46,11 @@ import org.connectbot.data.keyboard.KeyboardLayout
 import org.connectbot.data.keyboard.KeyboardMacro
 import org.connectbot.data.keyboard.KeyboardSettings
 import org.connectbot.data.migration.UuidMigration
+import org.connectbot.shelldon.data.groups.HostGroup
+import org.connectbot.shelldon.data.groups.HostTag
+import org.connectbot.shelldon.data.groups.Identity
+import org.connectbot.shelldon.data.groups.ShelldonGroupDao
+import org.connectbot.shelldon.data.groups.Tag
 import java.util.UUID
 
 /**
@@ -83,6 +88,8 @@ import java.util.UUID
  * - Version 18: Added base font weight to profiles, defaulting to normal (AutoMigration)
  * - Version 19: Added FIDO2 credential fields to pubkeys (AutoMigration)
  * - Version 20: Added PIV slot to pubkeys, accepting both shipped version-19 layouts (manual migration)
+ * - Version 21: Shelldon groups, tags and identities: host_groups, tags, host_tags, identities,
+ *   plus hosts.group_id and hosts.identity_id (AutoMigration)
  * - Future versions: Use Room AutoMigration when possible for simple schema changes
  *
  * Security Considerations:
@@ -103,8 +110,12 @@ import java.util.UUID
         KeyboardItem::class,
         KeyboardMacro::class,
         KeyboardSettings::class,
+        HostGroup::class,
+        Tag::class,
+        HostTag::class,
+        Identity::class,
     ],
-    version = 20,
+    version = 21,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -122,6 +133,7 @@ import java.util.UUID
         AutoMigration(from = 16, to = 17, spec = ConnectBotDatabase.KeyboardMigration::class),
         AutoMigration(from = 17, to = 18, spec = ConnectBotDatabase.FontWeightMigration::class),
         AutoMigration(from = 18, to = 19),
+        AutoMigration(from = 20, to = 21, spec = ConnectBotDatabase.GroupsMigration::class),
     ],
 )
 @TypeConverters(Converters::class)
@@ -130,6 +142,13 @@ abstract class ConnectBotDatabase : RoomDatabase() {
         override fun onPostMigrate(db: SupportSQLiteDatabase) {
             // Recreated on open so font weight edits participate in profile sync.
             db.execSQL("DROP TRIGGER IF EXISTS sync_profiles_update")
+        }
+    }
+
+    class GroupsMigration : AutoMigrationSpec {
+        override fun onPostMigrate(db: SupportSQLiteDatabase) {
+            // Recreated on open so group and identity assignments participate in host sync.
+            db.execSQL("DROP TRIGGER IF EXISTS sync_hosts_update")
         }
     }
 
@@ -146,6 +165,7 @@ abstract class ConnectBotDatabase : RoomDatabase() {
     abstract fun knownHostDao(): KnownHostDao
     abstract fun colorSchemeDao(): ColorSchemeDao
     abstract fun profileDao(): ProfileDao
+    abstract fun shelldonGroupDao(): ShelldonGroupDao
 
     companion object {
         // Version 19 shipped both with and without piv_slot. Inspect the table rather than

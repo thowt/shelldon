@@ -23,7 +23,7 @@ import org.connectbot.util.HostConstants
 
 /** Durable protocol state. These tables contain no passwords or access tokens. */
 object SyncDatabase {
-    val tables = listOf("hosts", "profiles", "color_schemes", "color_palette", "port_forwards", "known_hosts", "settings")
+    val tables = listOf("hosts", "profiles", "color_schemes", "color_palette", "port_forwards", "known_hosts", "settings", "host_groups", "tags", "host_tags", "identities")
 
     fun install(db: SupportSQLiteDatabase) {
         db.execSQL("CREATE TABLE IF NOT EXISTS sync_control (id INTEGER PRIMARY KEY CHECK(id=1), applying INTEGER NOT NULL)")
