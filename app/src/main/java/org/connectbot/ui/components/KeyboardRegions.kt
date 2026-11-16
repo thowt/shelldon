@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import org.connectbot.data.keyboard.KeyboardItem
 import org.connectbot.data.keyboard.KeyboardLayout
 import org.connectbot.data.keyboard.fittedKeyboardItems
+import org.connectbot.shelldon.ui.keyboard.keyHeightDp
+import org.connectbot.shelldon.ui.keyboard.keyWidthDp
 
 /** Reserve a fixed trailing-edge dock while the remaining keyboard can scroll independently. */
 @Composable
@@ -49,8 +51,8 @@ internal fun KeyboardRegions(
         val viewportWidth = maxWidth
         val viewportHeight = maxHeight
         val columns = (pinned.maxOfOrNull { it.column + it.columnSpan } ?: 0).coerceIn(0, 1000)
-        val width = layout.buttonWidth.takeIf { it.isFinite() && it > 0 } ?: 45f
-        val height = layout.buttonHeight.takeIf { it.isFinite() && it > 0 } ?: 30f
+        val width = layout.keyWidthDp()
+        val height = layout.keyHeightDp()
         val requestedWidth = (columns * width).coerceIn(0f, 16000f).dp
         val dockWidth = minOf(requestedWidth, if (scrolling.isEmpty()) maxWidth else (maxWidth - 3.dp).coerceAtLeast(0.dp) / 2)
         CompositionLocalProvider(LocalLayoutDirection provides direction) {

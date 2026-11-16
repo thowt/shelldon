@@ -100,6 +100,8 @@ import org.connectbot.service.KeyboardActions
 import org.connectbot.service.ModifierLevel
 import org.connectbot.service.ModifierState
 import org.connectbot.service.TerminalBridge
+import org.connectbot.shelldon.ui.keyboard.keyHeightDp
+import org.connectbot.shelldon.ui.keyboard.keyWidthDp
 import org.connectbot.terminal.TerminalKeyCatalog
 import org.connectbot.ui.screens.keyboard.KeyboardViewModel
 import org.connectbot.util.PreferenceConstants
@@ -307,8 +309,8 @@ private fun KeyboardGridRegion(
     val visible = items.filter { it.layer == layer && (editing || it.visible) }
     val columns = (items.maxOfOrNull { it.column + it.columnSpan } ?: 0).coerceIn(0, 1000)
     val rows = (items.maxOfOrNull { it.row + it.rowSpan } ?: 0).coerceIn(0, 1000)
-    val width = layout.buttonWidth.takeIf { it.isFinite() && it > 0 }?.coerceAtMost(1000f) ?: 45f
-    val height = layout.buttonHeight.takeIf { it.isFinite() && it > 0 }?.coerceAtMost(1000f) ?: 30f
+    val width = layout.keyWidthDp()
+    val height = layout.keyHeightDp()
     Box(modifier = modifier.then(if (layout.fitToWidth) Modifier else Modifier.horizontalScroll(horizontal, enabled = interactive).verticalScroll(vertical, enabled = interactive))) {
         Layout(content = {
             visible.forEach { item ->
