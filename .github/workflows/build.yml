@@ -202,7 +202,7 @@ jobs:
           git diff --exit-code -- app/schemas || status=1
           newest="$(ls -v app/schemas/org.connectbot.data.ConnectBotDatabase/*.json | tail -n 1)"
           committed="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['database']['identityHash'])" "$newest")"
-          impl="$(find app/build -name 'ConnectBotDatabase_Impl*' \( -name '*.java' -o -name '*.kt' \) | head -n 1)"
+          impl="$(find app/build/generated -name 'ConnectBotDatabase_Impl*' \( -name '*.java' -o -name '*.kt' \) | head -n 1)"
           echo "newest schema: $newest"
           echo "generated:     ${impl:-<not found>}"
           real="$(grep -hoE '"[0-9a-f]{32}", "[0-9a-f]{32}"' "$impl" 2>/dev/null | head -n 1 | grep -oE '[0-9a-f]{32}' | head -n 1 || true)"
@@ -211,6 +211,26 @@ jobs:
           if [ -n "$real" ] && [ "$real" != "$committed" ]; then
             echo "::error::$newest has identityHash $committed but Room generated $real. Put $real in the file."
             status=1
+          fi
+          # (3) every CREATE TABLE / CREATE INDEX statement in the schema JSON must appear verbatim in
+          # the code Room generated, so the JSON describes the tables the app really creates.
+          if [ -n "$impl" ]; then
+            python3 - "$newest" "$impl" <<'PY' || status=1
+          import json, sys
+          schema = json.load(open(sys.argv[1]))["database"]
+          impl = open(sys.argv[2]).read()
+          missing = []
+          for e in schema["entities"]:
+              table = e["tableName"]
+              for q in [e["createSql"]] + [i["createSql"] for i in e.get("indices", [])]:
+                  q = q.replace("${TABLE_NAME}", table)
+                  if q not in impl:
+                      missing.append(q)
+          print("schema statements checked against generated code:", sum(1 + len(e.get("indices", [])) for e in schema["entities"]), "missing:", len(missing))
+          for q in missing[:8]:
+              print("  MISSING:", q)
+          sys.exit(1 if missing else 0)
+          PY
           fi
           exit $status
 
