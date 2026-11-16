@@ -250,6 +250,24 @@ Not in slice 1, next: screens (group tree, tag filter chips, identity editor), a
 when a connection opens, crypto-policy inheritance (needs an explicit "inherit" value on the host), jump host
 and port defaults on groups, drag reorder.
 
+## Delivery in three rounds (decided 2026-11-16 evening)
+
+The owner wants the remaining milestones in at most three big builds, tested on the phone between them,
+then fine-tuning. Each round is one pull request. Decisions taken with it:
+
+- **Round 1 (branch `m6-keychain-groups`):** Keychain with Identities, Keys and Known hosts; group tree,
+  tags, host-list filters; group, tag and identity pickers in the host editor; the resolved login applied
+  when a connection opens; version line at the bottom of Settings; F-Droid notes (`docs/FDROID.md`).
+- **Round 2:** vault (required from first launch, master password with Argon2id, biometric unlock,
+  auto-lock; identity passwords move in), export/import, OpenSSH container tests (M3).
+- **Round 3:** SFTP browser, snippets, tunnels tab, WebDAV sync. **Sync is the first thing to slip** to a
+  later round if this one is too big.
+- **Vault is required, not optional**: one code path to test, and secrets are never stored in the clear.
+- **Argon2id comes from BouncyCastle** (MIT-style licence, pure Java, actively maintained) instead of a
+  native library: no NDK step, builds from source for F-Droid. Added in round 2; check first whether
+  sshlib already brings it in.
+- **Publishing:** IzzyOnDroid first, official F-Droid later (see `docs/FDROID.md`).
+
 ## Security rules and features to drop
 
 - No accept-all host-key mode. A changed host key blocks the connection.
