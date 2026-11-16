@@ -56,6 +56,7 @@
     <!-- Host editor -->
     <string name="shelldon_mosh_requirements">Mosh needs mosh-server on the remote host and UDP ports 60000 to 61000 open.</string>
 	<!-- Copyright line shown on the Help screen under the app description. -->
+	<string name="shelldon_version_line">Shelldon SSH %1$s</string>
 	<string name="shelldon_copyright">Copyright &#xA9; 2026 the Shelldon SSH contributors</string>
 	<!-- Attribution shown on the Help screen: this app is a modified version of the open-source ConnectBot app. -->
 	<string name="shelldon_based_on">Based on ConnectBot, &#xA9; 2007–2026 Kenny Root, Jeffrey Sharkey and the ConnectBot contributors. Licensed under the Apache License 2.0.</string>
@@ -64,4 +65,93 @@
 	<string name="shelldon_upstream_url" translatable="false">https://github.com/connectbot/connectbot</string>
 	<!-- Intro line on the Hints screen. -->
 	<string name="shelldon_hints_intro">Here are some tips to help you get the most out of Shelldon SSH:</string>
+
+    <!-- Shared -->
+    <string name="shelldon_cancel">Cancel</string>
+    <string name="shelldon_delete">Delete</string>
+
+    <!-- Why a folder, tag or identity change was refused -->
+    <string name="shelldon_err_blank_name">Give it a name.</string>
+    <string name="shelldon_err_name_too_long">That name is too long.</string>
+    <string name="shelldon_err_name_taken">That name is already used here.</string>
+    <string name="shelldon_err_blank_username">An identity needs a user name.</string>
+    <string name="shelldon_err_not_found">That item no longer exists. Go back and try again.</string>
+    <string name="shelldon_err_would_loop">A folder cannot be placed inside itself.</string>
+    <string name="shelldon_err_too_deep">Folders can only be nested 16 levels deep.</string>
+    <string name="shelldon_err_other_repository">Items from different sync sources cannot be mixed.</string>
+
+    <!-- Folders on the Hosts screen -->
+    <string name="shelldon_groups_section">Folders</string>
+    <string name="shelldon_group_add_chip">+ Folder</string>
+    <string name="shelldon_group_root">All hosts</string>
+    <string name="shelldon_group_empty">This folder is empty. Use a host\u2019s menu and choose Move to folder.</string>
+    <string name="shelldon_no_tag_matches">No host carries all of the selected tags.</string>
+    <string name="shelldon_group_new">New folder</string>
+    <string name="shelldon_group_edit">Edit folder</string>
+    <string name="shelldon_group_name">Folder name</string>
+    <string name="shelldon_group_options">Folder options</string>
+    <string name="shelldon_group_login">Login: %1$s</string>
+    <string name="shelldon_group_identity">Identity for hosts in this folder</string>
+    <string name="shelldon_group_identity_inherit">Inherit from the folder above</string>
+    <string name="shelldon_group_identity_none">No identity</string>
+    <string name="shelldon_group_identity_hint">Hosts and folders inside use this identity unless they set their own.</string>
+    <string name="shelldon_group_delete_title">Delete folder?</string>
+    <string name="shelldon_group_delete_body">\u201c%1$s\u201d is removed. The hosts and folders inside move up one level and are not deleted.</string>
+    <string name="shelldon_move_to_folder">Move to folder\u2026</string>
+    <string name="shelldon_move_title">Move %1$s to</string>
+    <plurals name="shelldon_group_hosts">
+        <item quantity="one">%d host</item>
+        <item quantity="other">%d hosts</item>
+    </plurals>
+    <plurals name="shelldon_group_folders">
+        <item quantity="one">%d folder</item>
+        <item quantity="other">%d folders</item>
+    </plurals>
+
+    <!-- Host editor: folder, tags, identity -->
+    <string name="shelldon_organise_title">Organise</string>
+    <string name="shelldon_folder_label">Folder</string>
+    <string name="shelldon_folder_none">No folder</string>
+    <string name="shelldon_tags_label">Tags</string>
+    <string name="shelldon_tag_new">New tag</string>
+    <string name="shelldon_tag_name">Tag name</string>
+    <string name="shelldon_tag_hint">Tags work across folders. Pick several on the Hosts screen to narrow the list.</string>
+    <string name="shelldon_identity_label">Identity</string>
+    <string name="shelldon_identity_none">No identity</string>
+    <string name="shelldon_identity_inherit_none">Inherit (none set)</string>
+    <string name="shelldon_identity_inherit_from">Inherit: %1$s (from %2$s)</string>
+    <string name="shelldon_login_preview_none">No identity applies. This host\u2019s own login is used.</string>
+    <string name="shelldon_login_preview_opted_out">Identities are switched off for this host.</string>
+    <string name="shelldon_login_preview_from_host">Identity \u201c%1$s\u201d fills in what this host leaves blank.</string>
+    <string name="shelldon_login_preview_from_group">Folder \u201c%2$s\u201d supplies identity \u201c%1$s\u201d for what this host leaves blank.</string>
+    <string name="shelldon_login_preview_user">Signs in as %1$s</string>
+    <string name="shelldon_login_preview_user_ask">asks for the user name</string>
+    <string name="shelldon_login_preview_key_any">any stored key</string>
+    <string name="shelldon_login_preview_key_never">no keys (password only)</string>
+    <string name="shelldon_login_preview_key_named">key %1$s</string>
+
+    <!-- Keychain -->
+    <string name="shelldon_keychain_title">Keychain</string>
+    <string name="shelldon_identities_title">Identities</string>
+    <string name="shelldon_identities_hint">An identity is a user name plus an optional key. Attach it to a host or a whole folder, and change it once for all of them.</string>
+    <string name="shelldon_identity_new">New identity</string>
+    <string name="shelldon_identity_edit">Edit identity</string>
+    <string name="shelldon_identity_name">Name</string>
+    <string name="shelldon_identity_username">User name</string>
+    <string name="shelldon_identity_key">Key</string>
+    <string name="shelldon_identity_key_none">No key (use the host\u2019s setting)</string>
+    <string name="shelldon_identity_key_missing">Key was deleted</string>
+    <string name="shelldon_identity_key_hint">Passwords are not stored in identities. Keys are.</string>
+    <string name="shelldon_identity_unused">Not used yet</string>
+    <string name="shelldon_identity_usage">Hosts: %1$d \u00b7 Folders: %2$d</string>
+    <string name="shelldon_identity_delete_title">Delete identity?</string>
+    <string name="shelldon_identity_delete_body">Hosts and folders that use \u201c%1$s\u201d go back to their own login. None of them is deleted.</string>
+    <string name="shelldon_keys_title">Keys</string>
+    <string name="shelldon_keys_manage">Manage</string>
+    <string name="shelldon_keys_empty">No keys yet. Generate or import one to sign in without a password.</string>
+    <string name="shelldon_known_hosts_title">Known hosts</string>
+    <string name="shelldon_known_hosts_summary">Saved host keys: %1$d</string>
+    <string name="shelldon_known_hosts_empty">No host keys saved yet. They appear after you trust a server on first connect.</string>
+    <string name="shelldon_known_hosts_forget">Forget host key</string>
+    <string name="shelldon_known_hosts_forget_body">Forget the saved key of %1$s? The next connection asks you to trust the server again.</string>
 </resources>
