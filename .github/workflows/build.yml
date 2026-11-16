@@ -103,10 +103,35 @@ jobs:
             -Pkotlin.compiler.execution.strategy=in-process \
             :app:assembleOssDebug
 
+      - name: Identify and inspect the APK
+        # Answers "which build is this?" and "what is inside it?" from the log: the artifact name
+        # carries the commit id, and the icon and Mosh files are listed from the built APK itself.
+        id: apk
+        # Diagnostics only: if they fail, the APK is still uploaded.
+        continue-on-error: true
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -eu
+          short="$(git rev-parse --short=8 "$HEAD_SHA")"
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+          apk="$(ls app/build/outputs/apk/oss/debug/*.apk | head -n 1)"
+          aapt2="$(ls -d "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -n 1)"
+          {
+            echo "### Debug APK for commit \`$short\`"
+            echo "Ref: \`${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "== badging =="
+          "$aapt2" dump badging "$apk" | grep -E "^(package|application-label:|application-icon|application:|launchable-activity)" || true
+          echo "== launcher icon and Mosh files in the APK =="
+          unzip -l "$apk" | grep -iE "mipmap|ic_launcher|moshexec|terminfo" || echo "(none found)"
+          echo "== adaptive icon =="
+          "$aapt2" dump xmltree --file res/mipmap-anydpi-v26/icon.xml "$apk" || true
+
       - name: Upload debug APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: shelldon-oss-debug-apk
+          name: shelldon-oss-debug-apk-${{ steps.apk.outputs.short }}
           path: app/build/outputs/apk/oss/debug/*.apk
           if-no-files-found: error
           retention-days: 14
