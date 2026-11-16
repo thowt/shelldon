@@ -195,4 +195,38 @@
     <string name="shelldon_vault_bio_prompt_unlock_subtitle">Unlocks your keys and saved passwords</string>
     <string name="shelldon_vault_bio_prompt_negative">Use password</string>
 
+    <!-- Security screen: sections and backup -->
+    <string name="shelldon_security_section_vault">Vault</string>
+    <string name="shelldon_security_section_backup">Encrypted backup</string>
+    <string name="shelldon_security_section_import">Import</string>
+    <string name="shelldon_security_section_danger">Danger zone</string>
+    <string name="shelldon_backup_export">Export encrypted backup</string>
+    <string name="shelldon_backup_export_summary">Hosts, folders, tags and identities in one file, locked with its own password</string>
+    <string name="shelldon_backup_export_title">Encrypt the backup</string>
+    <string name="shelldon_backup_password">Backup password</string>
+    <string name="shelldon_backup_password_confirm">Repeat backup password</string>
+    <string name="shelldon_backup_password_hint">This password locks the file and is separate from the master password. Without it the backup cannot be opened.</string>
+    <string name="shelldon_backup_include_keys">Include private keys</string>
+    <string name="shelldon_backup_include_passwords">Include saved host passwords</string>
+    <string name="shelldon_backup_continue">Choose where to save</string>
+    <string name="shelldon_backup_import">Restore from encrypted backup</string>
+    <string name="shelldon_backup_import_summary">Adds what is missing. Nothing you already have is changed.</string>
+    <string name="shelldon_backup_import_title">Open the backup</string>
+    <string name="shelldon_backup_import_confirm">Restore</string>
+    <string name="shelldon_backup_exported">Backup saved.</string>
+    <string name="shelldon_backup_failed_wrong">Wrong backup password, or the file was changed.</string>
+    <string name="shelldon_backup_failed_not_backup">This is not a Shelldon backup.</string>
+    <string name="shelldon_backup_failed_new">This backup was made by a newer version of Shelldon.</string>
+    <string name="shelldon_backup_failed_other">The backup could not be completed. Nothing was changed.</string>
+    <string name="shelldon_backup_result_title">Restore finished</string>
+    <string name="shelldon_backup_result_body">Hosts added: %1$d (already there: %2$d)\nKeys added: %3$d (already there: %4$d)\nFolders added: %5$d\nTags added: %6$d\nIdentities added: %7$d\nPasswords restored: %8$d</string>
+    <string name="shelldon_sshconfig_import">Import OpenSSH config</string>
+    <string name="shelldon_sshconfig_import_summary">Adds hosts from an ssh_config file. No passwords or keys are read.</string>
+    <string name="shelldon_sshconfig_result_title">Import finished</string>
+    <string name="shelldon_sshconfig_result_body">Hosts added: %1$d (already there: %2$d)\nJump hosts linked: %3$d</string>
+    <string name="shelldon_sshconfig_result_unresolved">Jump host not set (several hops or unknown host): %1$s</string>
+    <string name="shelldon_sshconfig_result_unsupported">Options not imported: %1$s</string>
+    <string name="shelldon_sshconfig_result_skipped_blocks">Match blocks and Include lines were skipped.</string>
+    <string name="shelldon_sshconfig_failed">That file could not be read.</string>
+    <string name="shelldon_security_ok">OK</string>
 </resources>

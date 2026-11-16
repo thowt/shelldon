@@ -28,6 +28,20 @@ import org.json.JSONObject
 import java.util.UUID
 
 /**
+ * What an import did, for callers that need to attach more data to the rows it created (Shelldon's
+ * backup does this for groups, tags and identities).
+ *
+ * @property idMappings per table, the id in the file mapped to the id of the row it ended up as,
+ *   whether that row was inserted or already existed
+ * @property insertedIds per table, the ids of rows that were newly inserted (existing rows are
+ *   never changed, so anything not in here must be left alone)
+ */
+class ImportDetails {
+    val idMappings: MutableMap<String, Map<String, String>> = mutableMapOf()
+    val insertedIds: MutableMap<String, Set<String>> = mutableMapOf()
+}
+
+/**
  * Schema-driven database exporter/importer.
  *
  * Uses the Room schema JSON to generically export and import database tables
@@ -96,9 +110,10 @@ class SchemaBasedExporter(
      *
      * @param jsonString JSON string containing table data
      * @param tableNames List of table names to import (in order - parent tables first)
+     * @param details If given, filled with the id mappings and the inserted ids of every table
      * @return Map of table name to Pair of (inserted count, skipped count)
      */
-    fun importFromJson(jsonString: String, tableNames: List<String>): Map<String, Pair<Int, Int>> {
+    fun importFromJson(jsonString: String, tableNames: List<String>, details: ImportDetails? = null): Map<String, Pair<Int, Int>> {
         val json = ConfigurationJson.objectFrom(jsonString)
 
         val db = database.openHelper.writableDatabase
@@ -116,6 +131,7 @@ class SchemaBasedExporter(
 
             var insertedCount = 0
             var skippedCount = 0
+            val insertedIds = mutableSetOf<String>()
 
             // Find unique constraint for conflict detection
             val keyboardTable = tableName.startsWith("keyboard_")
@@ -164,6 +180,7 @@ class SchemaBasedExporter(
                     // Insert new row
                     val id = insertRow(db, tableName, remappedRow, entitySchema)
                     insertedCount++
+                    insertedIds.add(id)
                     id
                 }
 
@@ -174,6 +191,8 @@ class SchemaBasedExporter(
             updateSelfReferences(db, tableName, entitySchema, idMapping, rows)
 
             results[tableName] = Pair(insertedCount, skippedCount)
+            details?.idMappings?.put(tableName, idMapping)
+            details?.insertedIds?.put(tableName, insertedIds)
         }
 
         // Notify Room's InvalidationTracker that tables have changed
