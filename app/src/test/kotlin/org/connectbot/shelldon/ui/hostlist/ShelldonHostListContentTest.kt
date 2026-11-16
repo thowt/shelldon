@@ -7,6 +7,7 @@
 package org.connectbot.shelldon.ui.hostlist
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -187,7 +188,7 @@ class ShelldonHostListContentTest {
     }
 
     @Test
-    fun lastSessions_areHiddenWhileSearching() {
+    fun lastSessions_areNarrowedBySearching() {
         val unsaved = LastSession.Unsaved(QuickConnectTarget("root", "10.0.0.2", 22), System.currentTimeMillis())
 
         setContent(
@@ -219,7 +220,7 @@ class ShelldonHostListContentTest {
     }
 
     @Test
-    fun quickConnect_clearsTheSearchFieldSoLastSessionsShowAgain() {
+    fun quickConnect_keepsTheTextAndTheMatchingLastSessionStaysVisible() {
         val unsaved = LastSession.Unsaved(QuickConnectTarget("root", "10.0.0.2", 22), System.currentTimeMillis())
 
         setContent(
@@ -227,11 +228,28 @@ class ShelldonHostListContentTest {
             lastSessions = listOf(unsaved),
         )
 
-        composeTestRule.onNodeWithTag("shelldon_search").performTextInput("root@10.0.0.9")
-        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("shelldon_search").performTextInput("root@10.0.0.2")
         composeTestRule.onNodeWithTag("shelldon_quick_connect_row").performClick()
 
+        composeTestRule.onNodeWithTag("shelldon_search").assertTextContains("root@10.0.0.2")
         composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").assertIsDisplayed()
+    }
+
+    @Test
+    fun clearButton_emptiesTheSearchField() {
+        val web = testHost(id = UUID(0, 13), nickname = "web-01")
+        val db = testHost(id = UUID(0, 14), nickname = "db-01")
+
+        setContent(uiState = HostListUiState(hosts = listOf(web, db)))
+        composeTestRule.onNodeWithTag("shelldon_search_clear").assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("shelldon_search").performTextInput("web")
+        composeTestRule.onNodeWithTag(HostListTestTags.itemRow(db.id)).assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("shelldon_search_clear").performClick()
+
+        composeTestRule.onNodeWithTag(HostListTestTags.itemRow(db.id)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag("shelldon_search_clear").assertDoesNotExist()
     }
 
     private fun setContent(

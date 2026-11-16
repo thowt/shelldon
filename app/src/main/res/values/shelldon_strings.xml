@@ -22,6 +22,7 @@
     <string name="shelldon_sessions_title">Active sessions</string>
     <string name="shelldon_last_sessions_title">Last sessions</string>
     <string name="shelldon_save">Save</string>
+    <string name="shelldon_clear_search">Clear search</string>
     <string name="shelldon_save_session_cd">Save %1$s to hosts</string>
     <string name="shelldon_saved_toast">Saved %1$s to Hosts</string>
     <string name="shelldon_save_failed">Could not save the host: %1$s</string>

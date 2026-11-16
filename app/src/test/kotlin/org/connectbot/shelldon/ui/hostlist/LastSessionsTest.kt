@@ -99,4 +99,18 @@ class LastSessionsTest {
         assertThat(uniqueNickname("root@host", setOf("root@host"))).isEqualTo("root@host (2)")
         assertThat(uniqueNickname("root@host", setOf("root@host", "root@host (2)"))).isEqualTo("root@host (3)")
     }
+
+    @Test
+    fun matchesQuery_followsTheHostListSearch() {
+        val unsaved = LastSession.Unsaved(QuickConnectTarget("root", "Web.Example.com", 2222), 1)
+        val saved = LastSession.Saved(host(1, user = "alice", name = "db.lan", lastConnect = 5))
+
+        assertThat(unsaved.matchesQuery("")).isTrue()
+        assertThat(unsaved.matchesQuery("  ")).isTrue()
+        assertThat(unsaved.matchesQuery("web.example")).isTrue()
+        assertThat(unsaved.matchesQuery("root@web.example.com:2222")).isTrue()
+        assertThat(unsaved.matchesQuery("db")).isFalse()
+        assertThat(saved.matchesQuery("alice")).isTrue()
+        assertThat(saved.matchesQuery("web")).isFalse()
+    }
 }

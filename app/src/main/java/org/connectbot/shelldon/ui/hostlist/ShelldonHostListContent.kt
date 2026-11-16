@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
@@ -157,14 +158,8 @@ fun ShelldonHostListContent(
         }
     }
     val activeUnsaved = if (makingShortcut) emptyList() else unsavedSessions
-    val shownLastSessions = if (makingShortcut || query.isNotBlank()) emptyList() else lastSessions
+    val shownLastSessions = if (makingShortcut) emptyList() else lastSessions.filter { it.matchesQuery(query) }
     val quickTarget = parseQuickConnect(query)
-    // Connecting is the end of the search: clear the field, otherwise the text stays behind and
-    // keeps the Last sessions section hidden when the user comes back to this screen.
-    val connectQuick: (QuickConnectTarget) -> Unit = { target ->
-        query = ""
-        onQuickConnect(target)
-    }
     val suggestQuickConnect = !makingShortcut && quickTarget != null && looksLikeAddress(query)
 
     Scaffold(
@@ -267,11 +262,10 @@ fun ShelldonHostListContent(
                     SearchField(
                         query = query,
                         onQueryChange = { query = it },
-                        showQuickConnect = !makingShortcut,
                         focusRequester = focusRequester,
                         onQuickConnect = {
                             if (!makingShortcut) {
-                                if (quickTarget != null) connectQuick(quickTarget) else focusRequester.requestFocus()
+                                if (quickTarget != null) onQuickConnect(quickTarget) else focusRequester.requestFocus()
                             }
                         },
                     )
@@ -303,7 +297,7 @@ fun ShelldonHostListContent(
                     item(key = "quick_connect") {
                         QuickConnectRow(
                             target = quickTarget,
-                            onClick = { connectQuick(quickTarget) },
+                            onClick = { onQuickConnect(quickTarget) },
                         )
                     }
                 }
@@ -428,7 +422,6 @@ fun ShelldonHostListContent(
 private fun SearchField(
     query: String,
     onQueryChange: (String) -> Unit,
-    showQuickConnect: Boolean,
     focusRequester: FocusRequester,
     onQuickConnect: () -> Unit,
     modifier: Modifier = Modifier,
@@ -443,13 +436,15 @@ private fun SearchField(
             .testTag("shelldon_search"),
         placeholder = { Text(stringResource(R.string.shelldon_search_hint)) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        trailingIcon = if (showQuickConnect) {
+        trailingIcon = if (query.isNotEmpty()) {
             {
-                IconButton(onClick = onQuickConnect) {
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.testTag("shelldon_search_clear"),
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = stringResource(R.string.shelldon_quick_connect),
-                        tint = MaterialTheme.colorScheme.primary,
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.shelldon_clear_search),
                     )
                 }
             }

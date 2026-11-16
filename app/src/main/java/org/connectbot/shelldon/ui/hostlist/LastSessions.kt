@@ -52,3 +52,19 @@ fun buildLastSessions(
         .map { LastSession.Unsaved(it.target, it.lastConnectedMs) }
     return (saved + unsaved).sortedByDescending { it.lastConnectedMs }.take(limit)
 }
+
+/**
+ * Same search as the host list: matches nickname, host name or user name, ignoring case, so a
+ * filled search field narrows this section too instead of hiding it.
+ */
+internal fun LastSession.matchesQuery(query: String): Boolean {
+    val text = query.trim()
+    if (text.isEmpty()) return true
+    return when (this) {
+        is LastSession.Saved -> host.matchesQuery(text)
+        is LastSession.Unsaved -> target.nickname.contains(text, ignoreCase = true) ||
+            target.hostname.contains(text, ignoreCase = true) ||
+            target.username.contains(text, ignoreCase = true) ||
+            quickTargetAddress(target).contains(text, ignoreCase = true)
+    }
+}
