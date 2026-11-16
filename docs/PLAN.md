@@ -232,6 +232,11 @@ State on 2026-11-15:
   `SHELLDON_KEYSTORE_*` secrets (see `docs/SIGNING.md`) it carries a fixed internal signature and
   installs over the previous build. Debug and release APKs have different application ids, so they
   coexist with separate data.
+- **One variant per CI run (decided 2026-11-16).** A run that built both took ~37 minutes (debug build
+  12, unit tests 8, release build 17). Now pull requests build the debug APK and run the unit tests;
+  pushes to `main` build only the signed release APK (the tests already ran on the pull request, so
+  the merge result itself is not re-tested); a manual run builds a release (or debug) of any branch.
+  Pull request runs never read the signing secrets.
 - Release signing keys never go in the repo. They stay on the VM or in CI secrets.
 - Free-tier budget: GitHub Actions gives 2,000 minutes a month for private repos. Android Gradle
   builds are heavy, so watch usage. A self-hosted runner on the VM costs no minutes.

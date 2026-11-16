@@ -54,7 +54,9 @@ reachable through explicit per-host or per-group choices. Post-quantum key excha
 - Upstream sync: remote `upstream` is `connectbot/connectbot`. Merge, do not rebase. Keep our code
   in separate packages or modules where possible. Ask before merging upstream into `main`.
 - Do not run or "fix" things in `.github/upstream/`. It is parked reference material from ConnectBot.
-- CI debug APKs are signed with a throw-away key, so they cannot be installed over each other.
+- CI builds one variant per run. Pull requests: debug APK plus unit tests only. Push to `main`:
+  optimised release APK only. Manual run (any branch): release by default, or debug.
+  CI debug APKs are signed with a throw-away key, so they cannot be installed over each other.
   The CI release APK (`io.github.thowt.shelldon`, optimised) is signed with the internal key once
   the secrets exist, and then updates in place. Debug builds on this VM use a stable
   `~/.android/debug.keystore`.
