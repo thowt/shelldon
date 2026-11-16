@@ -64,6 +64,21 @@ that can later be offered to the public.
   record, so upstream does not persist their host key. Saving the session as a host fixes that.
   Quick connects are remembered (user, host, port, time only) for the "Last sessions" list.
 
+- **Branding sweep (2026-11-16).** Every user-visible "ConnectBot" is now "Shelldon SSH": all 54 string
+  files, the Help screen title, the Hints intro, the export and tombstone file names, the en-US store
+  listing. Bug and source links point to `github.com/thowt/shelldon` (private until the repo goes public).
+  The Help screen carries the copyright and a "Based on ConnectBot, (c) Kenny Root, Jeffrey Sharkey and the
+  ConnectBot contributors, Apache-2.0" line, and the Contact screen links to the upstream project.
+  **Removed:** the "Support Development" section (GitHub Sponsors and Buy Me a Coffee links of the upstream
+  maintainer), the unused upstream logo files in `icons/`, `connectbot.iml`, and the ConnectBot screenshots
+  and icon under the en-US store listing.
+  **Deliberately kept:** the `org.connectbot` namespace and class names (`ConnectBotTheme`, ...) for cheap
+  upstream merges; the Android Keystore aliases `connectbot_bio_*` and `connectbot_password_key` (renaming
+  would orphan stored keys); licence headers; NOTICE and README attribution; the Mosh install link to
+  upstream's `mosh4android` releases. **Open:** the SSH identification string sent to servers comes from the
+  library (sshlib) and was not verified; check it with the OpenSSH container test (M3) and decide whether to
+  set our own. Store listing text is a placeholder until a real submission.
+
 ## What was checked
 
 Shallow clones of the four candidates were read: licence, module layout, dependencies,

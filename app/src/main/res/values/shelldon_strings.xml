@@ -55,4 +55,13 @@
 
     <!-- Host editor -->
     <string name="shelldon_mosh_requirements">Mosh needs mosh-server on the remote host and UDP ports 60000 to 61000 open.</string>
+	<!-- Copyright line shown on the Help screen under the app description. -->
+	<string name="shelldon_copyright">Copyright &#xA9; 2026 the Shelldon SSH contributors</string>
+	<!-- Attribution shown on the Help screen: this app is a modified version of the open-source ConnectBot app. -->
+	<string name="shelldon_based_on">Based on ConnectBot, &#xA9; 2007–2026 Kenny Root, Jeffrey Sharkey and the ConnectBot contributors. Licensed under the Apache License 2.0.</string>
+	<!-- Label of a link to the upstream ConnectBot project on the Contact &amp; Support screen. -->
+	<string name="shelldon_upstream_label">Upstream project (ConnectBot)</string>
+	<string name="shelldon_upstream_url" translatable="false">https://github.com/connectbot/connectbot</string>
+	<!-- Intro line on the Hints screen. -->
+	<string name="shelldon_hints_intro">Here are some tips to help you get the most out of Shelldon SSH:</string>
 </resources>

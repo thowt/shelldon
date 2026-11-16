@@ -106,7 +106,7 @@ fun HelpScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "ConnectBot",
+                        text = stringResource(R.string.app_name),
                         style = MaterialTheme.typography.headlineMedium,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
@@ -187,7 +187,13 @@ fun HelpScreen(
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
                 Text(
-                    text = stringResource(R.string.app_copyright),
+                    text = stringResource(R.string.shelldon_copyright),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+                Text(
+                    text = stringResource(R.string.shelldon_based_on),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 16.dp),
@@ -340,7 +346,7 @@ private fun LogViewerDialog(
                         modifier = Modifier.padding(top = 16.dp),
                     )
                     TextButton(
-                        onClick = { saveTombstone.launch("connectbot-tombstone.pb") },
+                        onClick = { saveTombstone.launch("shelldon-tombstone.pb") },
                         enabled = !savingTombstone,
                     ) {
                         Text(stringResource(R.string.save_tombstone))
