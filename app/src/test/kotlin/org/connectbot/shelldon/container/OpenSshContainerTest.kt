@@ -18,10 +18,15 @@ import org.connectbot.sshlib.HostKeyVerifier
 import org.connectbot.sshlib.PublicKey
 import org.connectbot.sshlib.SshClient
 import org.connectbot.sshlib.SshClientConfig
+import org.conscrypt.OpenSSLProvider
+import org.junit.After
 import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import java.io.ByteArrayOutputStream
+import java.security.Provider
+import java.security.Security
 
 /**
  * The app's crypto settings against a real OpenSSH server, one throw-away container per test.
@@ -51,6 +56,36 @@ class OpenSshContainerTest {
         }
 
         private val POST_QUANTUM = Regex("(mlkem|sntrup).*")
+    }
+
+    // All test classes share one JVM, and Robolectric puts Conscrypt first in the JCA provider list for good.
+    // These tests are about the app's policy, so they run on the JDK's own providers, the way sshlib's
+    // own container tests do. The provider order the app really installs has its own tests below.
+    private var removedProviders: List<Pair<Int, Provider>> = emptyList()
+
+    @Before
+    fun useTheJdkProviders() {
+        removedProviders = Security.getProviders().withIndex()
+            .filter { it.value.name.contains("conscrypt", ignoreCase = true) }
+            .map { it.index to it.value }
+        removedProviders.forEach { (_, provider) -> Security.removeProvider(provider.name) }
+    }
+
+    @After
+    fun restoreTheProviders() {
+        removedProviders.forEach { (index, provider) -> Security.insertProviderAt(provider, index + 1) }
+        removedProviders = emptyList()
+    }
+
+    /** Does what `ProviderLoader.load` does when the oss flavour starts: Conscrypt goes in first. */
+    private fun <T> withTheAppsProviderOrder(block: () -> T): T {
+        val conscrypt = OpenSSLProvider()
+        Security.insertProviderAt(conscrypt, 1)
+        try {
+            return block()
+        } finally {
+            Security.removeProvider(conscrypt.name)
+        }
     }
 
     private class Outcome(val result: ConnectResult, val info: ConnectionInfo?, val execOutput: String?)
@@ -101,7 +136,7 @@ class OpenSshContainerTest {
             is ConnectResult.ProtocolError -> result.cause
             else -> null
         }
-        throw AssertionError("$label: connect() returned $result\n--- sshd log ---\n${server.logs()}", cause)
+        throw AssertionError("$label: connect() returned $result\nproviders: ${Security.getProviders().map { it.name }}\n--- sshd log ---\n${server.logs()}", cause)
     }
 
     /**
@@ -119,6 +154,24 @@ class OpenSshContainerTest {
             val outcome = connect(server, HostCryptoConfig())
             requireConnected("default policy", outcome, server)
             assertThat(outcome.info?.kexAlgorithm).matches(POST_QUANTUM.pattern)
+            assertThat(outcome.execOutput).isEqualTo("shelldon-ok")
+        }
+    }
+
+    @Test
+    fun chaCha20Poly1305WorksWithTheProviderOrderTheAppInstalls() {
+        DockerSshd.start("Ciphers=chacha20-poly1305@openssh.com").use { server ->
+            val outcome = withTheAppsProviderOrder { connect(server, HostCryptoConfig()) }
+            requireConnected("Conscrypt first, chacha20-poly1305", outcome, server)
+            assertThat(outcome.execOutput).isEqualTo("shelldon-ok")
+        }
+    }
+
+    @Test
+    fun aesGcmWorksWithTheProviderOrderTheAppInstalls() {
+        DockerSshd.start("Ciphers=aes256-gcm@openssh.com").use { server ->
+            val outcome = withTheAppsProviderOrder { connect(server, HostCryptoConfig()) }
+            requireConnected("Conscrypt first, aes256-gcm", outcome, server)
             assertThat(outcome.execOutput).isEqualTo("shelldon-ok")
         }
     }
