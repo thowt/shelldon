@@ -148,9 +148,6 @@ class ShelldonHostListContentTest {
         assertEquals(host, navigatedHost)
     }
 
-    private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertDoesNotExist() =
-        assertDoesNotExist()
-
     private fun setContent(
         uiState: HostListUiState = HostListUiState(),
         makingShortcut: Boolean = false,
