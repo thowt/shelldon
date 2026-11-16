@@ -14,7 +14,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.app.versioning)
-    alias(libs.plugins.easylauncher)
     alias(libs.plugins.spotless)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kover)
@@ -157,6 +156,10 @@ android {
 
             if (project.hasProperty("keystorePassword")) {
                 signingConfig = signingConfigs.getByName("release")
+            } else if (project.hasProperty("shelldonSignWithDebugKey")) {
+                // CI fallback while no internal signing key is configured: a release-style build
+                // that can be installed, signed with the throw-away debug key.
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
 

@@ -28,7 +28,9 @@ reachable through explicit per-host or per-group choices. Post-quantum key excha
 
 - Never commit secrets: signing keystores, passwords, tokens, private keys, `local.properties`.
   `.gitignore` blocks the common patterns; do not rely on it alone, check `git diff --staged`.
-- Release signing keys live on the VM or in CI secrets only. CI uses a read-only token, no secrets.
+- Release signing keys live on the VM or in CI secrets only. CI uses a read-only token. The only
+  secrets are the three for the internal signing key (`SHELLDON_KEYSTORE_*`, see `docs/SIGNING.md`);
+  never print them, never pass them to third-party actions.
 - No accept-all host-key mode. A changed host key blocks the connection, legacy hosts included.
 - No telemetry, analytics or crash reporting. `allowBackup` stays false.
 - Do not weaken default crypto. Weak algorithms are per-host or per-group, visible, never global.
@@ -53,7 +55,9 @@ reachable through explicit per-host or per-group choices. Post-quantum key excha
   in separate packages or modules where possible. Ask before merging upstream into `main`.
 - Do not run or "fix" things in `.github/upstream/`. It is parked reference material from ConnectBot.
 - CI debug APKs are signed with a throw-away key, so they cannot be installed over each other.
-  For upgrade-in-place on the phone, build on this VM (stable `~/.android/debug.keystore`).
+  The CI release APK (`io.github.thowt.shelldon`, optimised) is signed with the internal key once
+  the secrets exist, and then updates in place. Debug builds on this VM use a stable
+  `~/.android/debug.keystore`.
 
 ## Build and test
 

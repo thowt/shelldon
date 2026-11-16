@@ -60,6 +60,7 @@ import org.connectbot.data.keyboard.KeyboardPreset
 import org.connectbot.data.keyboard.KeyboardPresets
 import org.connectbot.data.keyboard.MacroAction
 import org.connectbot.data.keyboard.MacroFormat
+import org.connectbot.shelldon.ui.keyboard.KEY_SIZE_SCALE
 import org.connectbot.ui.components.KeyboardGrid
 import org.connectbot.ui.theme.ConnectBotTheme
 import org.junit.Assert.assertEquals
@@ -110,9 +111,10 @@ class TerminalKeyboardContentTest {
             KeyboardItem(layoutId = layout.value.id, row = 3, kind = "app", target = "toggle_ime", columnSpan = 2),
         )
         rule.setContent { ConnectBotTheme { KeyboardGrid(layout.value, items, listOf(macro), onPress = {}, modifier = Modifier.heightIn(max = 400.dp)) } }
-        items.forEach { rule.onNodeWithTag("keyboard_button_${it.id}").assertWidthIsEqualTo((45 * it.columnSpan).dp).assertHeightIsEqualTo(30.dp) }
+        // Keys are drawn KEY_SIZE_SCALE times the stored size (see shelldon/ui/keyboard/KeySize.kt).
+        items.forEach { rule.onNodeWithTag("keyboard_button_${it.id}").assertWidthIsEqualTo((45f * KEY_SIZE_SCALE * it.columnSpan).dp).assertHeightIsEqualTo((30f * KEY_SIZE_SCALE).dp) }
         rule.runOnIdle { layout.value = layout.value.copy(buttonWidth = 64f, buttonHeight = 48f) }
-        items.forEach { rule.onNodeWithTag("keyboard_button_${it.id}").assertWidthIsEqualTo((64 * it.columnSpan).dp).assertHeightIsEqualTo(48.dp) }
+        items.forEach { rule.onNodeWithTag("keyboard_button_${it.id}").assertWidthIsEqualTo((64f * KEY_SIZE_SCALE * it.columnSpan).dp).assertHeightIsEqualTo((48f * KEY_SIZE_SCALE).dp) }
     }
 
     @Test fun hiddenButtonsDoNotAppearAndUtilityButtonsDispatchTheirOwnAction() {

@@ -51,6 +51,19 @@ that can later be offered to the public.
   icons. Source and build script are in `branding/`. Open point: confirm the licence position of
   AI-generated artwork before a public release.
 
+- **Findings from the CI APK listing (2026-11-16):** the `oss` debug APK bundles Mosh
+  (`libmoshexec.so` for arm64-v8a, armeabi-v7a, x86, x86_64, plus the terminfo asset); whether a
+  Mosh session actually works against a real server is still untested. The debug APK has application
+  id `io.github.thowt.shelldon.debug` and version name like `git-v1.12.0-alpha-3364`.
+- **Removed the `easylauncher` Gradle plugin.** It stamped a "debug" ribbon on the launcher icon and
+  wrapped the old ConnectBot artwork, which hid the turtle on Android 8+. Debug builds are still told
+  apart by the `.debug` application id.
+- **Keys:** the extra-keys row is drawn 1.2x the stored key size (`KEY_SIZE_SCALE`). A real "key size"
+  setting can replace the constant later.
+- **Quick connect and host keys:** quick-connect sessions use a temporary host with no database
+  record, so upstream does not persist their host key. Saving the session as a host fixes that.
+  Quick connects are remembered (user, host, port, time only) for the "Last sessions" list.
+
 ## What was checked
 
 Shallow clones of the four candidates were read: licence, module layout, dependencies,
@@ -214,6 +227,11 @@ State on 2026-11-15:
 - **CI debug APKs are signed with a throw-away key**, so each one has a different signature and
   cannot be installed over the previous one. For upgrade-in-place on the phone, build on the VM
   (stable `~/.android/debug.keystore`), or later add a stable debug keystore as a CI secret.
+- **Update in place (decided 2026-11-16):** CI also builds an optimised release APK
+  (`io.github.thowt.shelldon`, R8, async memory tagging, no coverage). With the three
+  `SHELLDON_KEYSTORE_*` secrets (see `docs/SIGNING.md`) it carries a fixed internal signature and
+  installs over the previous build. Debug and release APKs have different application ids, so they
+  coexist with separate data.
 - Release signing keys never go in the repo. They stay on the VM or in CI secrets.
 - Free-tier budget: GitHub Actions gives 2,000 minutes a month for private repos. Android Gradle
   builds are heavy, so watch usage. A self-hosted runner on the VM costs no minutes.

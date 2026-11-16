@@ -7,6 +7,7 @@
 package org.connectbot.shelldon.ui.hostlist
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -148,6 +149,109 @@ class ShelldonHostListContentTest {
         assertEquals(host, navigatedHost)
     }
 
+    @Test
+    fun lastSessions_unsavedOneCanBeSavedAndReopened() {
+        var opened: LastSession? = null
+        var saved: LastSession.Unsaved? = null
+        val unsaved = LastSession.Unsaved(QuickConnectTarget("root", "10.0.0.2", 2222), System.currentTimeMillis() - 60_000)
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(testHost(id = UUID(0, 7), nickname = "prod"))),
+            lastSessions = listOf(unsaved),
+            onOpenLastSession = { opened = it },
+            onSaveLastSession = { saved = it },
+        )
+
+        composeTestRule
+            .onNodeWithText(composeTestRule.activity.getString(R.string.shelldon_last_sessions_title).uppercase())
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithTag("shelldon_last_save_${unsaved.key}").performClick()
+        assertEquals(unsaved, saved)
+        assertNull(opened)
+
+        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").performClick()
+        assertEquals(unsaved, opened)
+    }
+
+    @Test
+    fun lastSessions_savedHostHasNoSaveButton() {
+        val host = testHost(id = UUID(0, 8), nickname = "db")
+        val session = LastSession.Saved(host.copy(lastConnect = System.currentTimeMillis()))
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(host)),
+            lastSessions = listOf(session),
+        )
+
+        composeTestRule.onNodeWithTag("shelldon_last_${session.key}").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("shelldon_last_save_${session.key}").assertDoesNotExist()
+    }
+
+    @Test
+    fun lastSessions_areNarrowedBySearching() {
+        val unsaved = LastSession.Unsaved(QuickConnectTarget("root", "10.0.0.2", 22), System.currentTimeMillis())
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(testHost(id = UUID(0, 9), nickname = "prod"))),
+            lastSessions = listOf(unsaved),
+        )
+        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag("shelldon_search").performTextInput("prod")
+
+        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").assertDoesNotExist()
+    }
+
+    @Test
+    fun runningQuickConnect_isAnActiveSessionWithSaveButton() {
+        var saved: Host? = null
+        val temp = testHost(id = UUID(0, 10), nickname = "root@10.0.0.9").copy(isTemporary = true)
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(testHost(id = UUID(0, 11), nickname = "prod"))),
+            unsavedSessions = listOf(temp),
+            onSaveActiveSession = { saved = it },
+        )
+
+        composeTestRule.onNodeWithTag("shelldon_session_${temp.id}").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("shelldon_session_save_${temp.id}").performClick()
+
+        assertEquals(temp, saved)
+    }
+
+    @Test
+    fun quickConnect_keepsTheTextAndTheMatchingLastSessionStaysVisible() {
+        val unsaved = LastSession.Unsaved(QuickConnectTarget("root", "10.0.0.2", 22), System.currentTimeMillis())
+
+        setContent(
+            uiState = HostListUiState(hosts = listOf(testHost(id = UUID(0, 12), nickname = "prod"))),
+            lastSessions = listOf(unsaved),
+        )
+
+        composeTestRule.onNodeWithTag("shelldon_search").performTextInput("root@10.0.0.2")
+        composeTestRule.onNodeWithTag("shelldon_quick_connect_row").performClick()
+
+        composeTestRule.onNodeWithTag("shelldon_search").assertTextContains("root@10.0.0.2")
+        composeTestRule.onNodeWithTag("shelldon_last_${unsaved.key}").assertIsDisplayed()
+    }
+
+    @Test
+    fun clearButton_emptiesTheSearchField() {
+        val web = testHost(id = UUID(0, 13), nickname = "web-01")
+        val db = testHost(id = UUID(0, 14), nickname = "db-01")
+
+        setContent(uiState = HostListUiState(hosts = listOf(web, db)))
+        composeTestRule.onNodeWithTag("shelldon_search_clear").assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("shelldon_search").performTextInput("web")
+        composeTestRule.onNodeWithTag(HostListTestTags.itemRow(db.id)).assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("shelldon_search_clear").performClick()
+
+        composeTestRule.onNodeWithTag(HostListTestTags.itemRow(db.id)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag("shelldon_search_clear").assertDoesNotExist()
+    }
+
     private fun setContent(
         uiState: HostListUiState = HostListUiState(),
         makingShortcut: Boolean = false,
@@ -155,6 +259,11 @@ class ShelldonHostListContentTest {
         onSelectShortcut: (Host) -> Unit = {},
         onNavigateToEditHost: (Host?) -> Unit = {},
         onQuickConnect: (QuickConnectTarget) -> Unit = {},
+        unsavedSessions: List<Host> = emptyList(),
+        lastSessions: List<LastSession> = emptyList(),
+        onSaveActiveSession: (Host) -> Unit = {},
+        onOpenLastSession: (LastSession) -> Unit = {},
+        onSaveLastSession: (LastSession.Unsaved) -> Unit = {},
     ) {
         composeTestRule.setContent {
             ConnectBotTheme {
@@ -174,6 +283,11 @@ class ShelldonHostListContentTest {
                     onDisconnectHost = {},
                     onDisconnectAll = {},
                     onQuickConnect = onQuickConnect,
+                    unsavedSessions = unsavedSessions,
+                    lastSessions = lastSessions,
+                    onSaveActiveSession = onSaveActiveSession,
+                    onOpenLastSession = onOpenLastSession,
+                    onSaveLastSession = onSaveLastSession,
                 )
             }
         }

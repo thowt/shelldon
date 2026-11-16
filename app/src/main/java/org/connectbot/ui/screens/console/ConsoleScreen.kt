@@ -136,6 +136,7 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
@@ -593,7 +594,17 @@ private fun ConsoleTerminalPage(
                 )
             }
 
-            ConsoleAuthenticationOverlay(bridge, disconnected, connecting, termFocusRequester, onDisconnectRequest, onReconnect)
+            // The extra-keys row and the prompts are both pinned to the bottom of this box, so the
+            // prompts must sit above the row instead of covering it.
+            ConsoleAuthenticationOverlay(
+                bridge = bridge,
+                disconnected = disconnected,
+                connecting = connecting,
+                termFocusRequester = termFocusRequester,
+                onDisconnectRequest = onDisconnectRequest,
+                onReconnect = onReconnect,
+                bottomInset = if (showExtraKeyboard) keyboardHeight else 0.dp,
+            )
         }
     }
 }
@@ -606,6 +617,7 @@ private fun BoxScope.ConsoleAuthenticationOverlay(
     termFocusRequester: FocusRequester,
     onDisconnectRequest: () -> Unit,
     onReconnect: () -> Unit,
+    bottomInset: Dp,
 ) {
     val promptState by bridge.promptManager.promptState.collectAsState()
 
@@ -635,7 +647,7 @@ private fun BoxScope.ConsoleAuthenticationOverlay(
         Fido2NfcTapOverlay(
             tagLost = nfcTagLost,
             onCancel = { bridge.fido2Manager.cancelNfcSigning(request) },
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomInset),
         )
     }
 
@@ -650,14 +662,14 @@ private fun BoxScope.ConsoleAuthenticationOverlay(
         onDismiss = {
             termFocusRequester.requestFocus()
         },
-        modifier = Modifier.align(Alignment.BottomCenter),
+        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomInset),
     )
 
     AnimatedVisibility(
         visible = disconnected && !connecting && promptState == null,
         enter = slideInVertically(initialOffsetY = { it }),
         exit = slideOutVertically(targetOffsetY = { it }),
-        modifier = Modifier.align(Alignment.BottomCenter),
+        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomInset),
     ) {
         val terminalColors = MaterialTheme.colorScheme.terminal
         val authenticationFailure = bridge.authenticationFailure

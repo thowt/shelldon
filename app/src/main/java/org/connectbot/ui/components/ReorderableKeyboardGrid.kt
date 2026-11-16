@@ -60,6 +60,8 @@ import org.connectbot.data.keyboard.KeyboardItem
 import org.connectbot.data.keyboard.KeyboardLayout
 import org.connectbot.data.keyboard.KeyboardMacro
 import org.connectbot.data.keyboard.fittedKeyboardItems
+import org.connectbot.shelldon.ui.keyboard.keyHeightDp
+import org.connectbot.shelldon.ui.keyboard.keyWidthDp
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
 import java.util.UUID
@@ -114,7 +116,7 @@ internal fun ReorderableKeyboardGrid(
             val gridState = rememberLazyGridState()
             BoxWithConstraints(modifier) {
                 val viewportHeight = maxHeight
-                val buttonWidth = layout.buttonWidth.takeIf { it.isFinite() && it > 0 } ?: 45f
+                val buttonWidth = layout.keyWidthDp()
                 val viewportColumns = (maxWidth.value / buttonWidth).toInt().coerceIn(1, 1000)
                 val columns = if (layout.fitToWidth) dataColumns else maxOf(dataColumns, viewportColumns)
                 val sectionKinds = if (layout.fitToWidth) listOf(false) else listOf(false, true)
@@ -139,9 +141,9 @@ internal fun ReorderableKeyboardGrid(
                     }
                 }
                 val rows = sections.values.sumOf { cells -> (cells.maxOfOrNull { it.row + 1 } ?: 1) }
-                val height = (layout.buttonHeight.takeIf { it.isFinite() && it > 0 } ?: 30f).coerceAtMost(1000f).dp
+                val height = layout.keyHeightDp().dp
                 val cellHeight = height
-                val gridWidth = if (layout.fitToWidth) maxWidth else ((layout.buttonWidth.takeIf { it.isFinite() && it > 0 } ?: 45f) * columns).coerceAtMost(16000f).dp
+                val gridWidth = if (layout.fitToWidth) maxWidth else (layout.keyWidthDp() * columns).coerceAtMost(16000f).dp
                 val scroll = rememberScrollState()
                 Box(Modifier.then(if (layout.fitToWidth) Modifier else Modifier.horizontalScroll(scroll))) {
                     LazyVerticalGrid(
