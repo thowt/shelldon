@@ -34,6 +34,8 @@ import org.connectbot.data.entity.Profile
 import org.connectbot.data.entity.Pubkey
 import org.connectbot.data.sync.SyncDatabase
 import org.connectbot.di.CoroutineDispatchers
+import org.connectbot.shelldon.vault.KdfParams
+import org.connectbot.shelldon.vault.Vault
 import org.connectbot.transport.TransportFactory
 import org.connectbot.util.HostConstants
 import org.connectbot.util.SecurePasswordStorage
@@ -49,6 +51,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -214,7 +217,9 @@ class UuidRepositoryTest {
 
     @Test
     fun pubkeySaveUpdateLookupAndObservationPreserveUuid() = runBlocking {
-        val repository = PubkeyRepository(database.pubkeyDao())
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val vault = Vault(File(context.cacheDir, "vault-${UUID.randomUUID()}.hdr")).also { it.create("test password", KdfParams(8192, 1, 1)) }
+        val repository = PubkeyRepository(database.pubkeyDao(), vault)
         val key = Pubkey(nickname = "Key", type = "ssh-ed25519", privateKey = byteArrayOf(1), publicKey = byteArrayOf(2), encrypted = false, startup = false, confirmation = false, createdDate = 0)
         assertEquals(key, repository.save(key))
         assertEquals(key, repository.getById(key.id))

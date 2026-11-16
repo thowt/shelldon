@@ -17,9 +17,14 @@
 
 package org.connectbot.data.migration
 
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
+import org.connectbot.shelldon.vault.KdfParams
+import org.connectbot.shelldon.vault.Vault
 import org.connectbot.util.SecurePasswordStorage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,7 +32,11 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
+import java.security.KeyStore
 import java.util.UUID
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
 
 /** Exercises the platform SQLite engine and actual production onOpen callbacks. */
 @RunWith(AndroidJUnit4::class)
@@ -91,14 +100,41 @@ class UuidMigrationDeviceTest {
         }
     }
 
+    /**
+     * A password as earlier versions stored it: AES-GCM under the plain Keystore key, base64 of IV and
+     * ciphertext. The app no longer writes this form (it seals under the vault), so the test makes one.
+     */
+    private fun legacyCiphertext(plaintext: String): String {
+        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        if (!keyStore.containsAlias(LEGACY_ALIAS)) {
+            KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
+                init(
+                    KeyGenParameterSpec.Builder(LEGACY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                        .setKeySize(256)
+                        .build(),
+                )
+            }.generateKey()
+        }
+        val key = (keyStore.getEntry(LEGACY_ALIAS, null) as KeyStore.SecretKeyEntry).secretKey
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key) }
+        return Base64.encodeToString(cipher.iv + cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
+    }
+
     @Test
     fun encryptedPasswordRemainsDecryptableAfterProductionStartup() {
         fixture().use { fixture ->
             fixture.create()
-            val storage = SecurePasswordStorage(fixture.context)
+            val vaultFile = File(fixture.context.cacheDir, "uuid-migration-test.hdr").also { it.delete() }
+            val vault = Vault(vaultFile).also { it.create("correct horse battery staple", KdfParams(memoryKib = 8 * 1024, iterations = 1, parallelism = 1)) }
+            val storage = SecurePasswordStorage(fixture.context, vault)
             val temporaryId = UUID.randomUUID()
             val plaintext = "password-世界-\u0000-\r\n"
-            storage.savePassword(temporaryId, plaintext)
+            // The migration renames the keys of passwords saved before the vault existed; those are the
+            // ones it has to carry over, so this one is written in the old form.
+            val legacy = legacyCiphertext(plaintext)
+            assertTrue(fixture.passwords.edit().putString("password_$temporaryId", legacy).commit())
             assertEquals(plaintext, storage.getPassword(temporaryId))
             val ciphertext = fixture.passwords.getString("password_$temporaryId", null)
             assertNotNull(ciphertext)
@@ -117,7 +153,12 @@ class UuidMigrationDeviceTest {
             assertEquals(plaintext, storage.getPassword(UUID.fromString(host)))
             database.close()
             fixture.verifyReopen(production = true)
-            assertEquals(plaintext, SecurePasswordStorage(fixture.context).getPassword(UUID.fromString(host)))
+            assertEquals(plaintext, SecurePasswordStorage(fixture.context, vault).getPassword(UUID.fromString(host)))
+            vaultFile.delete()
         }
+    }
+
+    private companion object {
+        const val LEGACY_ALIAS = "connectbot_password_key"
     }
 }

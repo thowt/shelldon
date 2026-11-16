@@ -547,6 +547,8 @@ dependencies {
     coreLibraryDesugaring(libs.desugar)
     implementation(libs.json5)
     implementation(libs.sshlib)
+    // Argon2id for the Shelldon vault (see docs/PLAN.md, "Round 2").
+    implementation(libs.bouncycastle.bcprov)
     implementation(libs.yubikit.android)
     implementation(libs.yubikit.piv)
     implementation(libs.termlib)
