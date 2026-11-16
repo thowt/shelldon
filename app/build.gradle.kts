@@ -23,16 +23,17 @@ plugins {
 val moshReleaseTag = extensions.getByType<MoshArtifactsExtension>().releaseTag.get()
 val prepareOssMoshArtifacts = tasks.named<PrepareMoshArtifacts>("prepareOssMoshArtifacts")
 
-// Shelldon SSH: the version people see (Settings, About) is our own, set in gradle.properties. The
-// version code below still follows the upstream anchor tag so it only ever grows.
-val shelldonVersion = providers.gradleProperty("shelldon.version").orElse("0.1.0").get()
-
 appVersioning {
     tagFilter.set("v1.12.*")
     overrideVersionCode { gitTag, _, _ ->
         AndroidVersions.code(gitTag.rawTagName, gitTag.commitsSinceLatestTag)
     }
-    overrideVersionName { gitTag, _, _ ->
+    // Shelldon SSH: the version people see (Settings, About) is our own, set in gradle.properties.
+    // The version code above still follows the upstream anchor tag so it only ever grows.
+    // The lambda must not capture anything from this script (Gradle cannot serialize that), so the
+    // property is read through the `providers` argument.
+    overrideVersionName { gitTag, providers, _ ->
+        val shelldonVersion = providers.gradleProperty("shelldon.version").getOrElse("0.1.0")
         if (gitTag.commitsSinceLatestTag != 0) {
             "$shelldonVersion+${gitTag.commitsSinceLatestTag}"
         } else {
@@ -184,7 +185,8 @@ android {
         // source and licensed under Apache 2.
         create("oss") {
             dimension = "license"
-            versionNameSuffix = "-oss"
+            // Shelldon ships only this flavour, so the version people see carries no flavour suffix.
+            versionNameSuffix = ""
             // No Google Play Services available for downloadable fonts
             buildConfigField("Boolean", "HAS_DOWNLOADABLE_FONTS", "false")
             buildConfigField("String", "MOSH_RELEASE_TAG", "\"$moshReleaseTag\"")

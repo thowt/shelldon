@@ -54,7 +54,7 @@ that can later be offered to the public.
 - **Findings from the CI APK listing (2026-11-16):** the `oss` debug APK bundles Mosh
   (`libmoshexec.so` for arm64-v8a, armeabi-v7a, x86, x86_64, plus the terminfo asset); whether a
   Mosh session actually works against a real server is still untested. The debug APK has application
-  id `io.github.thowt.shelldon.debug` and version name like `git-v1.12.0-alpha-3364`.
+  id `io.github.thowt.shelldon.debug` and version name like `git-v1.12.0-alpha-3364` (from round 1 on: `0.1.0+<commits since the anchor tag>`, no `-oss` suffix).
 - **Removed the `easylauncher` Gradle plugin.** It stamped a "debug" ribbon on the launcher icon and
   wrapped the old ConnectBot artwork, which hid the turtle on Android 8+. Debug builds are still told
   apart by the `.debug` application id.
