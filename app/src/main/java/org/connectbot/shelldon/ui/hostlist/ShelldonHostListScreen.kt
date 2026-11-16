@@ -54,6 +54,7 @@ fun ShelldonHostListScreen(
     onSelectShortcut: (Host, String?, IconStyle) -> Unit = { _, _, _ -> },
     viewModel: HostListViewModel = hiltViewModel(),
     recentsViewModel: ShelldonRecentsViewModel = hiltViewModel(),
+    groupsViewModel: ShelldonGroupsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -64,6 +65,8 @@ fun ShelldonHostListScreen(
     }
 
     val uiState by viewModel.uiState.collectAsState()
+    val groupSnapshot by groupsViewModel.snapshot.collectAsState()
+    val groupActions = remember(groupsViewModel) { groupsViewModel.actions() }
     val scope = rememberCoroutineScope()
 
     val recents by recentsViewModel.recents.collectAsState()
@@ -261,6 +264,8 @@ fun ShelldonHostListScreen(
             }
         },
         onSaveLastSession = { session -> save { recentsViewModel.saveRecent(session) } },
+        groupSnapshot = groupSnapshot,
+        groupActions = groupActions,
         modifier = modifier,
     )
 }

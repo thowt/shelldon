@@ -74,9 +74,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.connectbot.R
 import org.connectbot.data.entity.Host
+import org.connectbot.shelldon.data.groups.GroupSnapshot
+import org.connectbot.shelldon.data.groups.HostGroup
+import org.connectbot.shelldon.data.groups.Rejection
 import org.connectbot.ui.components.DisconnectAllDialog
 import org.connectbot.ui.screens.hostlist.ConnectionState
 import org.connectbot.ui.screens.hostlist.HostListUiState
+import java.util.UUID
 
 /** Which hosts the chip row shows. Only filters that match at least one host are offered. */
 internal enum class HostFilter(@param:StringRes val label: Int) {
@@ -137,6 +141,8 @@ fun ShelldonHostListContent(
     onSaveActiveSession: (Host) -> Unit = {},
     onOpenLastSession: (LastSession) -> Unit = {},
     onSaveLastSession: (LastSession.Unsaved) -> Unit = {},
+    groupSnapshot: GroupSnapshot = GroupSnapshot(emptyList(), emptyList(), emptyList(), emptyList()),
+    groupActions: HostGroupActions = HostGroupActions(),
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var filterIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -144,11 +150,29 @@ fun ShelldonHostListContent(
     var showDisconnectAllDialog by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
+    // Folders and tags. The open folder and the chosen tags survive rotation as plain text.
+    var currentGroupText by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedTagsText by rememberSaveable { mutableStateOf("") }
+    var creatingGroup by remember { mutableStateOf(false) }
+    var editingGroup by remember { mutableStateOf<HostGroup?>(null) }
+    var deletingGroup by remember { mutableStateOf<HostGroup?>(null) }
+    var movingHost by remember { mutableStateOf<Host?>(null) }
+    var groupError by remember { mutableStateOf<Rejection?>(null) }
+    val currentGroupId = currentGroupText?.let { text -> runCatching { UUID.fromString(text) }.getOrNull() }
+    // A tag that was deleted while it was selected simply stops counting, so the list never gets stuck on it.
+    val selectedTagIds = selectedTagsText.split(',')
+        .mapNotNull { text -> runCatching { UUID.fromString(text) }.getOrNull() }
+        .filter { it in groupSnapshot.tagsById }
+        .toSet()
+
     val hosts = uiState.hosts
     val availableFilters = HostFilter.entries.filter { filter -> filter == HostFilter.ALL || hosts.any(filter::matches) }
     val selectedFilter = HostFilter.entries.getOrElse(filterIndex) { HostFilter.ALL }
     val activeFilter = if (selectedFilter in availableFilters) selectedFilter else HostFilter.ALL
-    val visibleHosts = hosts.filter { activeFilter.matches(it) && it.matchesQuery(query) }
+    val filteredHosts = hosts.filter { activeFilter.matches(it) && it.matchesQuery(query) }
+    val browse = HostBrowser.browse(filteredHosts, groupSnapshot, currentGroupId, selectedTagIds, searching = query.isNotBlank())
+    val visibleHosts = browse.hosts
+    val hasGroups = groupSnapshot.groups.isNotEmpty()
     val sessionHosts = if (makingShortcut) {
         emptyList()
     } else {
@@ -166,7 +190,7 @@ fun ShelldonHostListContent(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            if (!makingShortcut && hosts.isNotEmpty()) {
+            if (!makingShortcut && (hosts.isNotEmpty() || hasGroups)) {
                 val addHost = stringResource(R.string.hostpref_add_host)
                 ExtendedFloatingActionButton(
                     onClick = { onNavigateToEditHost(null) },
@@ -271,7 +295,7 @@ fun ShelldonHostListContent(
                     )
                 }
 
-                if (hosts.isNotEmpty()) {
+                if (hosts.isNotEmpty() || hasGroups) {
                     item(key = "chips") {
                         Row(
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -289,6 +313,36 @@ fun ShelldonHostListContent(
                                 label = stringResource(R.string.shelldon_sort_color),
                                 onClick = onToggleSortOrder,
                             )
+                            if (!makingShortcut) {
+                                ShelldonChip(
+                                    selected = false,
+                                    label = stringResource(R.string.shelldon_group_add_chip),
+                                    onClick = {
+                                        groupError = null
+                                        creatingGroup = true
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (groupSnapshot.tags.isNotEmpty()) {
+                    item(key = "tag_chips") {
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            groupSnapshot.tags.sortedBy { it.name.lowercase() }.forEach { tag ->
+                                ShelldonChip(
+                                    selected = tag.id in selectedTagIds,
+                                    label = "#${tag.name}",
+                                    onClick = {
+                                        val next = if (tag.id in selectedTagIds) selectedTagIds - tag.id else selectedTagIds + tag.id
+                                        selectedTagsText = next.joinToString(",")
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -354,7 +408,37 @@ fun ShelldonHostListContent(
                     }
                 }
 
-                if (hosts.isEmpty()) {
+                if (!browse.isFlat && browse.breadcrumb.isNotEmpty()) {
+                    item(key = "breadcrumb") {
+                        GroupBreadcrumb(
+                            path = browse.breadcrumb,
+                            onOpen = { currentGroupText = it?.toString() },
+                        )
+                    }
+                }
+
+                if (browse.groups.isNotEmpty()) {
+                    item(key = "groups_header") {
+                        SectionHeader(
+                            title = stringResource(R.string.shelldon_groups_section),
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
+                    items(items = browse.groups, key = { "group_${it.group.id}" }) { entry ->
+                        GroupCard(
+                            entry = entry,
+                            identityName = entry.group.identityId?.let { groupSnapshot.identitiesById[it]?.name },
+                            onOpen = { currentGroupText = entry.group.id.toString() },
+                            onEdit = {
+                                groupError = null
+                                editingGroup = entry.group
+                            },
+                            onDelete = { deletingGroup = entry.group },
+                        )
+                    }
+                }
+
+                if (hosts.isEmpty() && !hasGroups) {
                     item(key = "empty") {
                         EmptyHosts(
                             onAdd = { onNavigateToEditHost(null) },
@@ -375,10 +459,14 @@ fun ShelldonHostListContent(
                             },
                         )
                     }
-                    if (visibleHosts.isEmpty()) {
+                    if (visibleHosts.isEmpty() && browse.groups.isEmpty()) {
                         item(key = "no_matches") {
                             Text(
-                                text = stringResource(R.string.shelldon_no_matches, query.trim()),
+                                text = when {
+                                    !browse.isFlat -> stringResource(R.string.shelldon_group_empty)
+                                    query.isBlank() -> stringResource(R.string.shelldon_no_tag_matches)
+                                    else -> stringResource(R.string.shelldon_no_matches, query.trim())
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(vertical = 8.dp),
@@ -400,11 +488,71 @@ fun ShelldonHostListContent(
                             onForgetHostKeys = { onForgetHostKeys(host) },
                             onDisconnect = { onDisconnectHost(host) },
                             onDelete = { onDeleteHost(host) },
+                            caption = hostCaption(host, groupSnapshot, showPath = browse.isFlat),
+                            onMoveToGroup = if (hasGroups) {
+                                { movingHost = host }
+                            } else {
+                                null
+                            },
                         )
                     }
                 }
             }
         }
+    }
+
+    if (creatingGroup) {
+        GroupEditorDialog(
+            existing = null,
+            identities = groupSnapshot.identities,
+            error = groupError,
+            onDismiss = { creatingGroup = false },
+            onSave = { name, identityId ->
+                groupActions.onCreateGroup(name, browse.breadcrumb.lastOrNull()?.id, identityId) { rejection ->
+                    groupError = rejection
+                    if (rejection == null) creatingGroup = false
+                }
+            },
+        )
+    }
+
+    editingGroup?.let { group ->
+        GroupEditorDialog(
+            existing = group,
+            identities = groupSnapshot.identities,
+            error = groupError,
+            onDismiss = { editingGroup = null },
+            onSave = { name, identityId ->
+                groupActions.onEditGroup(group, name, identityId) { rejection ->
+                    groupError = rejection
+                    if (rejection == null) editingGroup = null
+                }
+            },
+        )
+    }
+
+    deletingGroup?.let { group ->
+        GroupDeleteDialog(
+            group = group,
+            onDismiss = { deletingGroup = null },
+            onConfirm = {
+                groupActions.onDeleteGroup(group.id)
+                if (currentGroupId == group.id) currentGroupText = group.parentId?.toString()
+                deletingGroup = null
+            },
+        )
+    }
+
+    movingHost?.let { host ->
+        MoveHostDialog(
+            host = host,
+            snapshot = groupSnapshot,
+            onDismiss = { movingHost = null },
+            onMove = { groupId ->
+                groupActions.onMoveHost(host, groupId)
+                movingHost = null
+            },
+        )
     }
 
     if (showDisconnectAllDialog) {
