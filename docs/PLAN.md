@@ -522,6 +522,64 @@ Differences from the canvas that are on purpose:
 Not verified: none of this is compiled or seen on a phone yet. ktlint is clean and a name-resolution check
 was run by hand; the CI run is the first compile.
 
+### Running commands on servers, and "install key on server" (2026-11-17, branch `m10-key-install`)
+
+Owner request after testing round 3 on the phone: keys and identities work, but there is no way to put a
+key into `authorized_keys` on a server (Termius: "export key to host"; OpenSSH: `ssh-copy-id`). Second
+requirement, same evening: "run a command (or snippet) on a server or a group of servers" is needed by
+later features too, for example simple monitoring or data collection that shows the output of commands or
+files. So the command runner is a general building block and key install is its first user.
+
+**Exec layer** (`org.connectbot.shelldon.exec`, no UI):
+
+- `SshExec.run(client, command, limits)` opens one session channel, sends an exec request, reads standard
+  output and standard error at the same time (so neither can block the other), and returns `ExecResult`:
+  both streams, exit code or signal name, truncation flags, duration. Output beyond `maxOutputBytes` per
+  stream (default 256 KiB) is read and thrown away; the command is abandoned after `timeoutMillis` (default
+  30 s). The channel is always closed, also on cancellation.
+- `FanOut.run(targets, concurrency, onUpdate, execute)` runs one operation over many servers, at most N at
+  a time, results in the original order, one server failing never stops the others. This is what "run on a
+  group" and a monitoring refresh will use.
+- `ExecOutcome` separates "ran" (`Finished`, even with a non-zero exit code), "could not run at all"
+  (`Unavailable`: no live connection, Telnet, Mosh, local shell) and "failed" (`Failed`: refused, timed out,
+  connection broke), so a screen can say which.
+- Hook: `AbsTransport.canExecCommand()` / `execCommand()` (default: no), overridden in `SSH`. Two small
+  additions to upstream files, nothing else touched.
+
+**Why it runs on an already-open session.** Same as Tunnels, Snippets and SFTP: the login, the host-key
+check (a changed key blocks), and every prompt already happened in the console session. The exec layer
+adds no second login path, so it cannot bypass any of that.
+
+**Key install** (`org.connectbot.shelldon.keyinstall`, `ui/keychain/KeyInstall*`):
+
+- The command is one line, `sh -c '...'`, with no single quote, backtick, `!` or backslash in it, so bash,
+  zsh, fish, csh and BusyBox login shells all read it the same. Everything that goes into it comes from
+  strict alphabets: key type `[a-z0-9@.-]`, the base64 blob, and a comment cut down to `[A-Za-z0-9._@+-]`
+  (a hostile key name cannot add a second line or run anything). The blob's own type must equal the
+  declared type.
+- It is idempotent (same key under another comment, or with options, counts as present), adds a newline
+  first if the file does not end in one, creates `~/.ssh` and the file with `umask 077`, and removes
+  group/other write permission. It never edits or removes an existing line.
+- Success means a marker alone on a line of the output. An echoed command, an error or a shell that does
+  not understand `sh -c` is reported as "the server did not confirm", never as success.
+- The dialog shows key name, SHA256 fingerprint and server name and asks before it writes anything.
+- Entry points: "Install on server…" in the menu of a key card and of an identity card (Keychain), which
+  lists SSH servers (connected: Install; not connected: Connect, which opens its console to log in first),
+  and "Install a key here…" in the console menu, which lists keys. Keys without a usable public part (old
+  imports of unknown type) say so and cannot be installed. FIDO2 keys are installed as `sk-…@openssh.com`.
+
+**Open decision for the owner: unattended runs.** Installing a key or running a command on a server that is
+not connected, and anything on a whole group (monitoring, collection), needs logins without prompts: a
+saved key or a vault password, host key already known, and a hard failure (no prompt) if the key is
+unknown or changed. That also makes vault passwords usable in the background, so it is a security
+decision as much as a feature. Until decided, everything above runs on live sessions only.
+
+Verified in CI: unit tests for the line, the script and its parser, the mapping from stored keys, and the
+fan-out; OpenSSH container tests (`ExecContainerTest`, `KeyInstallContainerTest`) for exit codes, stderr,
+signals, output limits, timeouts, concurrency, permissions, idempotence, a hostile nickname, and a file
+without a trailing newline; Compose tests for both dialogs and the new menu items. Not verified: the
+console menu entry has no UI test, and none of it has been tried on a phone.
+
 ## Security rules and features to drop
 
 - No accept-all host-key mode. A changed host key blocks the connection.
@@ -668,6 +726,9 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - **M7: snippets and SFTP browser.** Built in round 3 (PR `m8-sftp-snippets-tunnels`), with the Tunnels tab.
 - **M8: export/import** (encrypted file, plus `~/.ssh/config` import).
 - **M9: sync.** Backend interface, then WebDAV, then optional server.
+- **M10: run commands, install key on server.** Exec layer, key install (this branch). Next on it: snippet
+  "run on server or group and show the output", simple monitoring and data collection (see the open
+  decision on unattended runs above).
 
 ## Open items
 
