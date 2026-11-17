@@ -143,14 +143,36 @@
     <string name="shelldon_identity_key_missing">Key was deleted</string>
     <string name="shelldon_identity_key_hint">Passwords are not stored in identities. Keys are.</string>
     <string name="shelldon_identity_unused">Not used yet</string>
-    <string name="shelldon_identity_usage">Hosts: %1$d \u00b7 Folders: %2$d</string>
     <string name="shelldon_identity_delete_title">Delete identity?</string>
     <string name="shelldon_identity_delete_body">Hosts and folders that use \u201c%1$s\u201d go back to their own login. None of them is deleted.</string>
     <string name="shelldon_keys_title">Keys</string>
-    <string name="shelldon_keys_manage">Manage</string>
-    <string name="shelldon_keys_empty">No keys yet. Generate or import one to sign in without a password.</string>
+    <string name="shelldon_identities_empty_title">No identities yet</string>
+    <string name="shelldon_identity_row_no_key">no key</string>
+    <plurals name="shelldon_identity_used_hosts">
+        <item quantity="one">Used by %1$d host</item>
+        <item quantity="other">Used by %1$d hosts</item>
+    </plurals>
+    <plurals name="shelldon_identity_used_folders">
+        <item quantity="one">%1$d folder</item>
+        <item quantity="other">%1$d folders</item>
+    </plurals>
+    <string name="shelldon_badge_hardware_key">Hardware key</string>
+    <string name="shelldon_keys_empty_title">No keys yet</string>
+    <string name="shelldon_keys_empty_body">Generate or import a key to sign in without a password.</string>
+    <string name="shelldon_key_new">New key</string>
+    <string name="shelldon_key_add">Add a key</string>
+    <string name="shelldon_key_subtitle_added">%1$s \u00b7 added %2$s</string>
+    <string name="shelldon_key_subtitle_fido2">%1$s \u00b7 FIDO2 security key</string>
+    <string name="shelldon_key_subtitle_piv">%1$s \u00b7 PIV smart card</string>
+    <string name="shelldon_key_subtitle_keystore">%1$s \u00b7 Android keystore</string>
+    <string name="shelldon_known_hosts_empty_title">No saved host keys</string>
+    <string name="shelldon_keychain_vault_unlocked">Vault unlocked</string>
+    <string name="shelldon_keychain_vault_locked">Vault locked</string>
+    <string name="shelldon_keychain_vault_locked_sub">Unlock Shelldon to use your keys and saved passwords.</string>
+    <string name="shelldon_keychain_vault_lock">Lock</string>
+    <string name="shelldon_keychain_vault_biometric">Biometric unlock</string>
+    <string name="shelldon_keychain_vault_autolock">Auto-lock \u00b7 %1$s</string>
     <string name="shelldon_known_hosts_title">Known hosts</string>
-    <string name="shelldon_known_hosts_summary">Saved host keys: %1$d</string>
     <string name="shelldon_known_hosts_empty">No host keys saved yet. They appear after you trust a server on first connect.</string>
     <string name="shelldon_known_hosts_forget">Forget host key</string>
     <string name="shelldon_known_hosts_forget_body">Forget the saved key of %1$s? The next connection asks you to trust the server again.</string>
@@ -266,7 +288,8 @@
     <!-- Snippets -->
     <string name="shelldon_snippets_title">Snippets</string>
     <string name="shelldon_snippets_search">Search snippets</string>
-    <string name="shelldon_snippets_empty">A snippet is text you send to a session with one tap: a command you type often, or a short script. Tap + to add the first one.</string>
+    <string name="shelldon_snippets_empty_title">No snippets yet</string>
+    <string name="shelldon_snippets_empty">A snippet is text you send to a session with one tap: a command you type often, or a short script.</string>
     <string name="shelldon_snippets_empty_short">No snippets yet. Add them on the Snippets tab.</string>
     <string name="shelldon_snippets_no_match">No snippet matches “%1$s”.</string>
     <string name="shelldon_snippet_new">New snippet</string>
@@ -293,7 +316,9 @@
 
     <!-- Tunnels -->
     <string name="shelldon_tunnels_title">Tunnels</string>
-    <string name="shelldon_tunnels_empty">No port forwards yet. Tap + to add one to a host.</string>
+    <string name="shelldon_tunnels_empty_title">No tunnels yet</string>
+    <string name="shelldon_tunnels_no_hosts_title">No SSH hosts yet</string>
+    <string name="shelldon_tunnels_empty">A tunnel sends a port through an SSH connection: reach a database on a server, or start a SOCKS proxy. Add one to a host.</string>
     <string name="shelldon_tunnels_no_hosts">Port forwards belong to SSH hosts. Add a host first.</string>
     <string name="shelldon_tunnels_hint">A tunnel runs inside its host’s SSH session. It stops when that session ends.</string>
     <string name="shelldon_tunnels_host_connected">Connected, %1$d of %2$d running</string>
@@ -302,7 +327,6 @@
     <string name="shelldon_tunnels_manage">Manage</string>
     <string name="shelldon_tunnel_new">New tunnel</string>
     <string name="shelldon_tunnel_pick_host">Add a tunnel to which host?</string>
-    <string name="shelldon_tunnel_state_offline">Host not connected</string>
     <string name="shelldon_tunnel_exposed">Open to the network: %1$s</string>
     <string name="shelldon_tunnel_start_failed">Could not start %1$s</string>
     <string name="shelldon_tunnel_stop_failed">Could not stop %1$s</string>
