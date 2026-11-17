@@ -560,7 +560,7 @@ Notes:
   `gradle/verification-metadata.xml`, commit it. That is why Dependabot is limited to GitHub Actions.
 - The dependency audit done on 2026-11-17 was partial (about 15 of 73 libraries, from third-party
   sources because the build host cannot reach the vulnerability databases). The first OSV-Scanner run
-  replaces it. Done from the partial audit: Bouncy Castle 1.85.2 to 1.86.2. Open: `biometric-ktx` is on an alpha
+  replaces it. Done from the partial audit: Bouncy Castle 1.85.2 to 1.86. Open: `biometric-ktx` is on an alpha
   (`1.4.0-alpha02`) in the unlock path; beta or stable should be chosen before the first release.
 - Trap for later: `build.yml` and `checks.yml` skip docs-only changes with `paths-ignore`. A
   branch-protection rule or ruleset that *requires* `Build APK` would then wait forever on a
