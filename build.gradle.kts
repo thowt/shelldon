@@ -41,8 +41,14 @@ allprojects {
     }
 }
 
+// Shelldon-written files that sit in an upstream package because they test an upstream class.
+val shelldonOwnedOutsideItsPackage = "app/src/test/kotlin/org/connectbot/data/PubkeyRepositoryVaultTest.kt"
+
 spotless {
-    ratchetFrom = "origin/main"
+    // Local runs only look at files changed since main. CI passes -PspotlessFull and checks everything.
+    if (!providers.gradleProperty("spotlessFull").isPresent) {
+        ratchetFrom = "origin/main"
+    }
 
     java {
         target("app/src/main/java/org/connectbot/**/*.java")
@@ -52,20 +58,26 @@ spotless {
         licenseHeaderFile("spotless/license-header.txt")
     }
 
+    // One ktlint run over all Kotlin, upstream and Shelldon code alike. Spotless allows only one
+    // kotlin block, so it carries no licence header; the headers come from the two blocks below.
     kotlin {
         target("app/src/**/*.kt", "build-logic/src/**/*.kt", "ctap2/src/**/*.kt", "ctap2-android/src/**/*.kt")
-        // Project-owned code lives in the shelldon package and carries the Shelldon header (see below).
-        targetExclude("app/src/**/org/connectbot/shelldon/**")
         ktlint("1.8.0")
             .customRuleSets(listOf("io.nlopez.compose.rules:ktlint:0.6.8"))
-        licenseHeaderFile("spotless/license-header.txt")
     }
 
-    // Shelldon-owned Kotlin files: own license header. Spotless allows only one kotlin block, so
-    // ktlint does not run on this package; keep the style by hand until this is revisited.
+    // Licence headers, one block per owner. The delimiter lets a file start with @file: annotations.
+    format("upstreamKotlinHeader") {
+        target("app/src/**/*.kt", "build-logic/src/**/*.kt", "ctap2/src/**/*.kt", "ctap2-android/src/**/*.kt")
+        // Project-owned code carries the Shelldon header instead (next block).
+        targetExclude("app/src/**/org/connectbot/shelldon/**", shelldonOwnedOutsideItsPackage)
+        licenseHeaderFile("spotless/license-header.txt", "(package |@file|import )")
+    }
+
+    // Shelldon-owned Kotlin files: their own licence header.
     format("shelldonKotlin") {
-        target("app/src/**/org/connectbot/shelldon/**/*.kt")
-        licenseHeaderFile("spotless/shelldon-license-header.txt", "package ")
+        target("app/src/**/org/connectbot/shelldon/**/*.kt", shelldonOwnedOutsideItsPackage)
+        licenseHeaderFile("spotless/shelldon-license-header.txt", "(package |@file|import )")
         trimTrailingWhitespace()
         endWithNewline()
     }

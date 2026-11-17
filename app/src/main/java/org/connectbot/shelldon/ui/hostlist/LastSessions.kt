@@ -62,6 +62,7 @@ internal fun LastSession.matchesQuery(query: String): Boolean {
     if (text.isEmpty()) return true
     return when (this) {
         is LastSession.Saved -> host.matchesQuery(text)
+
         is LastSession.Unsaved -> target.nickname.contains(text, ignoreCase = true) ||
             target.hostname.contains(text, ignoreCase = true) ||
             target.username.contains(text, ignoreCase = true) ||

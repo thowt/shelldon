@@ -509,67 +509,69 @@ private fun HostMenuItems(
     onDelete: () -> Unit,
     onMoveToGroup: (() -> Unit)?,
 ) {
-    DropdownMenuItem(
-        text = { Text(stringResource(R.string.list_host_edit)) },
-        onClick = {
-            onDismiss()
-            onEdit()
-        },
-        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-    )
-    if (host.protocol == "ssh") {
+    Column {
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.list_host_portforwards)) },
+            text = { Text(stringResource(R.string.list_host_edit)) },
             onClick = {
                 onDismiss()
-                onPortForwards()
+                onEdit()
             },
-            leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
         )
-    }
-    if (onMoveToGroup != null) {
+        if (host.protocol == "ssh") {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.list_host_portforwards)) },
+                onClick = {
+                    onDismiss()
+                    onPortForwards()
+                },
+                leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) },
+            )
+        }
+        if (onMoveToGroup != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.shelldon_move_to_folder)) },
+                onClick = {
+                    onDismiss()
+                    onMoveToGroup()
+                },
+                leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) },
+            )
+        }
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.shelldon_move_to_folder)) },
+            text = { Text(stringResource(R.string.list_host_duplicate)) },
             onClick = {
                 onDismiss()
-                onMoveToGroup()
+                onDuplicate()
             },
-            leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
         )
-    }
-    DropdownMenuItem(
-        text = { Text(stringResource(R.string.list_host_duplicate)) },
-        onClick = {
-            onDismiss()
-            onDuplicate()
-        },
-        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
-    )
-    if (host.protocol == "ssh") {
+        if (host.protocol == "ssh") {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.list_host_forget_keys)) },
+                onClick = {
+                    onDismiss()
+                    onForgetHostKeys()
+                },
+                leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+            )
+        }
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.list_host_forget_keys)) },
+            text = { Text(stringResource(R.string.list_host_disconnect)) },
             onClick = {
                 onDismiss()
-                onForgetHostKeys()
+                onDisconnect()
             },
-            leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+            enabled = connectionState == ConnectionState.CONNECTED,
+            leadingIcon = { Icon(Icons.Default.LinkOff, contentDescription = null) },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.list_host_delete)) },
+            onClick = {
+                onDismiss()
+                onDelete()
+            },
+            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
         )
     }
-    DropdownMenuItem(
-        text = { Text(stringResource(R.string.list_host_disconnect)) },
-        onClick = {
-            onDismiss()
-            onDisconnect()
-        },
-        enabled = connectionState == ConnectionState.CONNECTED,
-        leadingIcon = { Icon(Icons.Default.LinkOff, contentDescription = null) },
-    )
-    DropdownMenuItem(
-        text = { Text(stringResource(R.string.list_host_delete)) },
-        onClick = {
-            onDismiss()
-            onDelete()
-        },
-        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
-    )
 }
