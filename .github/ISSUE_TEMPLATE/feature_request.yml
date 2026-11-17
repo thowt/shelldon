@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest something Shelldon SSH should do
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Shelldon SSH borrows from the best SSH clients instead of inventing new ones, and it prefers
+        leaving a feature out to adding a risky or confusing one. The more concrete the request, the
+        easier it is to judge.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation or problem, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: existing
+    attributes:
+      label: Does another app do this well?
+      description: Name the app and describe how it works there. A link or a screenshot helps.
+    validations:
+      required: false
+
+  - type: textarea
+    id: security
+    attributes:
+      label: Security or privacy impact, if you can see one
+      description: For example "this would need to store a secret" or "this opens a port".
+    validations:
+      required: false

@@ -1,0 +1,21 @@
+# Dependabot keeps the pinned GitHub Actions current. It only touches .github/workflows: each action is
+# pinned to a full commit SHA with the version in a trailing comment, and Dependabot updates both.
+#
+# Gradle dependencies are deliberately NOT listed. They are pinned by checksum in
+# gradle/verification-metadata.xml, so a bump needs the Dependency metadata workflow as well as the
+# version change; they are updated by hand in a monthly batch instead. The vulnerability scan for them
+# is the OSV-Scanner job in .github/workflows/security.yml.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
+    groups:
+      github-actions:
+        patterns:
+          - '*'

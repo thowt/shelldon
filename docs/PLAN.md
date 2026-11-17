@@ -535,6 +535,39 @@ was run by hand; the CI run is the first compile.
 - Telnet only as a per-host opt-in with a plaintext warning.
 - Do not support SSHv1. Servers that advertise "1.99" still speak SSHv2.
 
+## Quality gates (added 2026-11-17)
+
+What runs on every change, and what each gate does and does not prove. "Wired" means the workflow
+exists; whether it is green is shown by the CI run, not by this file.
+
+| Gate | Workflow | Runs on | What it checks |
+| --- | --- | --- | --- |
+| Build, unit and container tests, Room schema | `build.yml` | PR, push to `main`, manual (not docs-only) | It compiles, the tests pass, the Room schema JSON matches the generated code |
+| Spotless and ktlint | `checks.yml` job `style` | PR, push to `main`, manual (not docs-only) | ktlint 1.8.0 with the Compose rules over all Kotlin including `org.connectbot.shelldon`, licence headers, whitespace. CI passes `-PspotlessFull`, so it checks every file, not only those changed since `main` |
+| Android lint | `checks.yml` job `lint` | PR and manual (not docs-only) | `:app:lintOssDebug`; the findings are printed in the log and attached |
+| Secret scan | `security.yml` job `secrets` | every push and PR, also docs-only | gitleaks 8.30.1 over the full history; reviewed false positives are listed by fingerprint in `.gitleaksignore` |
+| Known vulnerabilities | `security.yml` job `osv` | every push and PR, weekly | OSV-Scanner 2.5.1 reads `gradle/verification-metadata.xml` |
+| Dependency checksums | Gradle itself | every build | Once `gradle/verification-metadata.xml` exists, Gradle refuses any library whose SHA-256 differs |
+| Action updates | `.github/dependabot.yml` | weekly | Pull requests that bump the SHA-pinned actions, grouped into one |
+
+Notes:
+- gitleaks and OSV-Scanner are downloaded as release binaries and checked against a SHA-256 in the
+  workflow. No third-party action runs in these jobs. gitleaks is in maintenance mode upstream
+  (security fixes only; its author moved on to a successor), which is fine for a scan of this size;
+  revisit if it stops receiving fixes.
+- Gradle dependency bumps are **not** automated. They are done by hand in one monthly batch: change
+  the version, run the `Dependency metadata` workflow on the branch, read the diff of
+  `gradle/verification-metadata.xml`, commit it. That is why Dependabot is limited to GitHub Actions.
+- The dependency audit done on 2026-11-17 was partial (about 15 of 73 libraries, from third-party
+  sources because the build host cannot reach the vulnerability databases). The first OSV-Scanner run
+  replaces it. Done from the partial audit: Bouncy Castle 1.85.2 to 1.86.2. Open: `biometric-ktx` is on an alpha
+  (`1.4.0-alpha02`) in the unlock path; beta or stable should be chosen before the first release.
+- Trap for later: `build.yml` and `checks.yml` skip docs-only changes with `paths-ignore`. A
+  branch-protection rule or ruleset that *requires* `Build APK` would then wait forever on a
+  docs-only pull request, because the check never starts. Before requiring checks, either do not
+  require them, or replace `paths-ignore` with a first job that detects docs-only changes and lets
+  the required job finish at once.
+
 ## Hosting and CI
 
 State on 2026-11-15:
