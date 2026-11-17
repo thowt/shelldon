@@ -1385,6 +1385,13 @@ fun ConsoleScreen(
                 onDismiss = { showSnippetsDialog = false },
             )
         }
+        if (currentBridge != null) {
+            // Draws nothing unless the user came from "Install on server" and tapped Connect for this server.
+            org.connectbot.shelldon.ui.keychain.AfterLoginKeyInstall(
+                hostId = currentBridge.host.id,
+                hostName = currentBridge.host.nickname.ifBlank { currentBridge.host.hostname },
+            )
+        }
         if (showInstallKeyDialog && currentBridge != null) {
             org.connectbot.shelldon.ui.keychain.KeyPickerInstallDialog(
                 hostId = currentBridge.host.id,

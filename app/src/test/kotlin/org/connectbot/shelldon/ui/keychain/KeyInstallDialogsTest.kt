@@ -35,12 +35,14 @@ import org.connectbot.service.TerminalBridge
 import org.connectbot.service.TerminalManager
 import org.connectbot.shelldon.exec.ExecResult
 import org.connectbot.shelldon.keyinstall.KeyInstallScript
+import org.connectbot.shelldon.keyinstall.PendingKeyInstall
 import org.connectbot.shelldon.keyinstall.toAuthorizedKeyLine
 import org.connectbot.transport.AbsTransport
 import org.connectbot.ui.LocalTerminalManager
 import org.connectbot.ui.theme.ConnectBotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -88,6 +90,9 @@ class KeyInstallDialogsTest {
     )
 
     private val key = ecKey("ops-key")
+
+    /** The same holder the view model uses, so a test can see and set what is waiting for a login. */
+    private val pendingInstall = PendingKeyInstall()
 
     private class Calls {
         var connected: Host? = null
@@ -155,6 +160,7 @@ class KeyInstallDialogsTest {
         bridges: List<TerminalBridge>,
         shown: Pubkey,
         picker: Boolean = false,
+        afterLogin: Boolean = false,
     ) {
         val hostRepository = mock<HostRepository> {
             on { observeHosts() } doReturn flowOf(hosts)
@@ -167,11 +173,17 @@ class KeyInstallDialogsTest {
             on { hostStatusChangedFlow } doReturn MutableSharedFlow<Unit>()
         }
         val dispatchers = CoroutineDispatchers(Dispatchers.Default, Dispatchers.IO, Dispatchers.Main)
-        val viewModel = KeyInstallViewModel(hostRepository, pubkeyRepository, dispatchers)
+        val viewModel = KeyInstallViewModel(hostRepository, pubkeyRepository, dispatchers, pendingInstall)
         composeTestRule.setContent {
             ConnectBotTheme {
                 CompositionLocalProvider(LocalTerminalManager provides manager) {
-                    if (picker) {
+                    if (afterLogin) {
+                        AfterLoginKeyInstall(
+                            hostId = bastion.id,
+                            hostName = "bastion",
+                            viewModel = viewModel,
+                        )
+                    } else if (picker) {
                         KeyPickerInstallDialog(
                             hostId = bastion.id,
                             hostName = "bastion",
@@ -257,6 +269,124 @@ class KeyInstallDialogsTest {
         composeTestRule.onNodeWithTag("key_install_connect_legacy").performClick()
 
         assertEquals(legacy, calls.connected)
+    }
+
+    @Test
+    fun connectOnAnUnconnectedServer_remembersWhichKeyToInstallAfterTheLogin() {
+        setDialog(
+            hosts = listOf(bastion, legacy),
+            keys = listOf(key),
+            bridges = listOf(connection(bastion, reply(KeyInstallScript.ADDED_MARKER))),
+            shown = key,
+        )
+        waitForTag("key_install_connect_legacy")
+        assertNull(pendingInstall.request.value)
+
+        composeTestRule.onNodeWithTag("key_install_connect_legacy").performClick()
+
+        val request = pendingInstall.request.value
+        assertNotNull(request)
+        assertEquals(legacy.id, request!!.hostId)
+        assertEquals(key.id, request.keyId)
+        assertEquals(legacy, calls.connected)
+    }
+
+    @Test
+    fun afterTheLogin_theConsoleAsksToInstallTheRememberedKeyAndReportsTheResult() {
+        val line = key.toAuthorizedKeyLine()
+        assertNotNull(line)
+        pendingInstall.set(bastion.id, key.id)
+        setDialog(
+            hosts = listOf(bastion),
+            keys = listOf(key),
+            bridges = listOf(connection(bastion, reply(KeyInstallScript.ADDED_MARKER))),
+            shown = key,
+            afterLogin = true,
+        )
+
+        waitForTag("key_install_confirm")
+        composeTestRule.onNodeWithText(
+            string(R.string.shelldon_key_install_confirm_body, "ops-key", line!!.fingerprint, "bastion"),
+        ).assertIsDisplayed()
+        assertTrue("nothing runs before the confirmation", commands.isEmpty())
+
+        composeTestRule.onNodeWithTag("key_install_confirm").performClick()
+        waitForTag("key_after_login_result")
+
+        composeTestRule.onNodeWithText(string(R.string.shelldon_key_install_added)).assertIsDisplayed()
+        assertEquals(1, commands.size)
+        assertTrue(commands.single().contains(line.keyText))
+
+        composeTestRule.onNodeWithTag("key_after_login_done").performClick()
+        composeTestRule.waitForIdle()
+        assertNull(pendingInstall.request.value)
+        composeTestRule.onAllNodesWithTag("key_after_login_result").assertCountEquals(0)
+    }
+
+    @Test
+    fun afterTheLogin_cancellingEndsTheRequestWithoutInstalling() {
+        pendingInstall.set(bastion.id, key.id)
+        setDialog(
+            hosts = listOf(bastion),
+            keys = listOf(key),
+            bridges = listOf(connection(bastion, reply(KeyInstallScript.ADDED_MARKER))),
+            shown = key,
+            afterLogin = true,
+        )
+        waitForTag("key_install_confirm")
+
+        composeTestRule.onNodeWithText(string(R.string.shelldon_cancel)).performClick()
+        composeTestRule.waitForIdle()
+
+        assertTrue(commands.isEmpty())
+        assertNull(pendingInstall.request.value)
+    }
+
+    @Test
+    fun beforeTheLoginIsThrough_theConsoleAsksNothing() {
+        pendingInstall.set(bastion.id, key.id)
+        // No open connection to the server yet: the console is still at its password prompt.
+        setDialog(hosts = listOf(bastion), keys = listOf(key), bridges = emptyList(), shown = key, afterLogin = true)
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onAllNodesWithTag("key_install_confirm").assertCountEquals(0)
+        assertNotNull("the request waits", pendingInstall.request.value)
+    }
+
+    @Test
+    fun aRequestForAnotherServerOrAnExpiredOne_isIgnored() {
+        setDialog(
+            hosts = listOf(bastion, legacy),
+            keys = listOf(key),
+            bridges = listOf(connection(bastion, reply(KeyInstallScript.ADDED_MARKER))),
+            shown = key,
+            afterLogin = true,
+        )
+        pendingInstall.set(legacy.id, key.id)
+        composeTestRule.waitForIdle()
+        composeTestRule.onAllNodesWithTag("key_install_confirm").assertCountEquals(0)
+
+        pendingInstall.set(bastion.id, key.id, nowMillis = System.currentTimeMillis() - 2 * PendingKeyInstall.MAX_AGE_MILLIS)
+        composeTestRule.waitForIdle()
+        composeTestRule.onAllNodesWithTag("key_install_confirm").assertCountEquals(0)
+        assertTrue(commands.isEmpty())
+    }
+
+    @Test
+    fun aRememberedKeyThatWasDeletedEndsTheRequestQuietly() {
+        pendingInstall.set(bastion.id, UUID(7, 7))
+        setDialog(
+            hosts = listOf(bastion),
+            keys = listOf(key),
+            bridges = listOf(connection(bastion, reply(KeyInstallScript.ADDED_MARKER))),
+            shown = key,
+            afterLogin = true,
+        )
+
+        composeTestRule.waitUntil(timeoutMillis = 10_000) { pendingInstall.request.value == null }
+
+        composeTestRule.onAllNodesWithTag("key_install_confirm").assertCountEquals(0)
     }
 
     @Test
