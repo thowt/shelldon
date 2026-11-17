@@ -49,7 +49,8 @@ object SshExec {
             return ExecResult(
                 stdout = output.text,
                 stderr = errors.text,
-                exitCode = (exit as? SessionExit.Status)?.code,
+                // The wire value is an unsigned 32-bit number; anything that is not a plain exit code is reported as none.
+                exitCode = (exit as? SessionExit.Status)?.code?.takeIf { it in 0..Int.MAX_VALUE.toLong() }?.toInt(),
                 signal = (exit as? SessionExit.Signal)?.signalName,
                 stdoutTruncated = output.truncated,
                 stderrTruncated = errors.truncated,
