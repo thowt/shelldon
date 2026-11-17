@@ -562,6 +562,47 @@ State on 2026-11-15:
 - Compile feedback also comes from the VM, since the cloud workspace used for planning cannot build
   Android code (no SDK, Maven Central blocked).
 
+## Going public (checked 2026-11-17)
+
+The owner wants the project public, possibly soon. What was checked and what is still open.
+
+**History and tree.** The history is ConnectBot's public history (3,400 commits) plus ours. Scanned
+for key and keystore files, private-key headers, token patterns, the owner's email and domain, and
+private addresses in our commits. Nothing real turned up: the only hits are test fixtures (fake keys,
+`10.0.0.x` addresses in `ssh_config` tests) and a `tests/local.properties` that upstream committed in 2009 (an Android SDK path, since removed). Our
+commits carry `Claude <noreply@anthropic.com>` as author, so no personal address is exposed. This was
+a manual scan; the quality PR adds a gitleaks job that scans the whole history in CI.
+
+**Done in the readiness PR (Markdown only, so CI is skipped):** README (status, badges, security
+commitments, build steps including the upstream tag a fresh clone needs), CONTRIBUTING (was still
+ConnectBot's text with ConnectBot's links), SECURITY.md, THIRD_PARTY.md, CHANGELOG section for Shelldon,
+branding note.
+
+**Open, the owner's call:**
+1. **Icon licence.** AI-generated artwork; the repo has to say what licence it is under (options: CC0
+   dedication, the same Apache-2.0, or all rights reserved for the artwork only). `branding/README.md` says
+   "not yet decided".
+2. **Mosh is GPL-3.0-or-later (OpenSSL exception).** It ships inside an Apache-2.0 app, as ConnectBot
+   does. `THIRD_PARTY.md` states the facts and the source pointer. Needs a position before release; the
+   fallback is a build without the Mosh module.
+3. **Name and trademark.** One web search found no app called "Shelldon"; similar names exist
+   (ShellDroid, Shellwave, Shelly). A search in the trademark registers (EUIPO, USPTO, WIPO) is still to do.
+4. **Internal-key APKs.** Once public, CI artifacts of release runs are downloadable by anyone with a
+   GitHub login, signed with the internal key. That is harmless in itself, but never publish them as a
+   release: releases get the separate production key (see `docs/FDROID.md`).
+
+**GitHub settings after the switch (the owner flips these; an assistant does not change repo settings):**
+Settings, General: description, topics, social preview image (the turtle). Security: private
+vulnerability reporting, Dependabot alerts and security updates, dependency graph with automatic
+dependency submission, secret scanning with push protection, code scanning (CodeQL default setup).
+Branch protection or a ruleset on `main`: require a pull request and the `Build APK` check, block force
+pushes. Actions, General: fork pull request workflows from outside collaborators must need approval
+(set it to "all outside collaborators"), and keep the default workflow token read-only.
+
+**What public changes for CI.** Public repositories get free Actions minutes and, per the comment in
+`build.yml`, larger runners than private ones. The memory workarounds in the workflow (low heap,
+in-process Kotlin, swap) may then be unnecessary; check before removing them.
+
 ## Milestones
 
 Each milestone is a branch and a pull request into `main`. The user merges after CI is green.

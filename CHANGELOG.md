@@ -2,6 +2,29 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Shelldon SSH (unreleased)
+
+Everything below the "ConnectBot" history that follows is upstream's. Shelldon SSH has no release yet;
+this section collects what has been added on top of ConnectBot since the fork.
+
+### Added
+- Hosts, nested groups, tags, quick connect and search; reusable identities; a keychain with
+  identities, keys and known hosts
+- A vault protected by a master password (Argon2id) with a biometric shortcut and auto-lock
+- Encrypted backup, export and import, and `~/.ssh/config` import
+- SFTP browser, snippets, and a Tunnels tab for local, remote and SOCKS (`-L`, `-R`, `-D`) forwards
+- OpenSSH container tests for the SSH transport and for SFTP
+
+### Changed
+- New application id, name and launcher icon; bottom navigation with Hosts, Keychain, Snippets,
+  Tunnels and Settings
+- Mosh archives are pinned by SHA-256 in `gradle/mosh4android.sha256`
+
+### Removed
+- Upstream donation links; Android backup is switched off
+
+## ConnectBot history (upstream)
+
 ## [1.11.1][1.11.1]
 
 ### Added

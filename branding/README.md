@@ -11,6 +11,8 @@ Background colour is `#0C1916` (see `drawable/ic_launcher_background.xml`).
 
 Provenance: the turtle artwork was made by the owner with an AI image tool and handed over for this
 project. Whether and how such images are protected by copyright differs between countries and tool
-terms, so this is an open question for the owner before any public release (see `docs/PLAN.md`).
-The artwork is not ConnectBot's and is not taken from any existing mascot.
-`icons/` at the repository root is still ConnectBot's upstream artwork and is not used by the app.
+terms. The artwork is not ConnectBot's and is not taken from any existing mascot.
+
+**Licence: not yet decided.** The owner has to settle this before the first public release (see
+`docs/PLAN.md`, "Open items", and `docs/FDROID.md`). Until it is stated here, do not assume the icon
+or the files in this folder may be reused outside this project.
