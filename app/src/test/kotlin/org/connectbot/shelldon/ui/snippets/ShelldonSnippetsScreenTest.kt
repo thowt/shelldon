@@ -55,9 +55,10 @@ class ShelldonSnippetsScreenTest {
                 onBlocking { save(anyOrNull(), any(), any()) } doReturn saveResult
             }
         }
+        val viewModel = SnippetsViewModel(repository)
         composeTestRule.setContent {
             ConnectBotTheme {
-                ShelldonSnippetsScreen(viewModel = SnippetsViewModel(repository))
+                ShelldonSnippetsScreen(viewModel = viewModel)
             }
         }
         return repository

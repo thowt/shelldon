@@ -117,7 +117,7 @@ class ShelldonKeychainContentTest {
         setContent(KeychainUiState(isLoading = true))
 
         composeTestRule.onNodeWithTag("keychain_tab_0").assertDoesNotExist()
-        composeTestRule.onNodeWithTag("identity_new").assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.shelldon_identities_empty_title)).assertDoesNotExist()
     }
 
     @Test

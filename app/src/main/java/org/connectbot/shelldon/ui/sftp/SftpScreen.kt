@@ -59,7 +59,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -86,7 +86,7 @@ fun SftpScreen(
     val state by viewModel.uiState.collectAsState()
     val notice by viewModel.notice.collectAsState()
     val terminalManager = LocalTerminalManager.current
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbar = remember { SnackbarHostState() }
 
     var menu by remember { mutableStateOf(false) }
@@ -103,9 +103,9 @@ fun SftpScreen(
     LaunchedEffect(notice) {
         notice?.let { n ->
             val text = buildString {
-                append(context.getString(n.what, n.subject))
+                append(resources.getString(n.what, n.subject))
                 append(": ")
-                append(context.getString(n.problem))
+                append(resources.getString(n.problem))
                 if (n.detail.isNotEmpty()) append(" (").append(n.detail).append(')')
             }
             snackbar.showSnackbar(text)

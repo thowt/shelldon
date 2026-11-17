@@ -44,7 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -88,7 +88,7 @@ fun ShelldonTunnelsScreen(
     val state by viewModel.uiState.collectAsState()
     val notice by viewModel.notice.collectAsState()
     val terminalManager = LocalTerminalManager.current
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbar = remember { SnackbarHostState() }
     var pickingHost by remember { mutableStateOf(false) }
 
@@ -102,9 +102,9 @@ fun ShelldonTunnelsScreen(
     LaunchedEffect(notice) {
         notice?.let {
             val text = when (it.kind) {
-                TunnelNotice.Kind.START_FAILED -> context.getString(R.string.shelldon_tunnel_start_failed, it.name)
-                TunnelNotice.Kind.STOP_FAILED -> context.getString(R.string.shelldon_tunnel_stop_failed, it.name)
-                TunnelNotice.Kind.NOT_CONNECTED -> context.getString(R.string.shelldon_tunnel_not_connected, it.name)
+                TunnelNotice.Kind.START_FAILED -> resources.getString(R.string.shelldon_tunnel_start_failed, it.name)
+                TunnelNotice.Kind.STOP_FAILED -> resources.getString(R.string.shelldon_tunnel_stop_failed, it.name)
+                TunnelNotice.Kind.NOT_CONNECTED -> resources.getString(R.string.shelldon_tunnel_not_connected, it.name)
             }
             snackbar.showSnackbar(text)
             viewModel.clearNotice()

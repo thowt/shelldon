@@ -80,6 +80,7 @@ class ShelldonTunnelsScreenTest {
             on { observeAllPortForwards() } doReturn flowOf(forwards)
         }
         val dispatchers = CoroutineDispatchers(Dispatchers.Default, Dispatchers.IO, Dispatchers.Main)
+        val viewModel = TunnelsViewModel(repository, dispatchers)
         composeTestRule.setContent {
             ConnectBotTheme {
                 ShelldonTunnelsScreen(
@@ -93,7 +94,7 @@ class ShelldonTunnelsScreenTest {
                         calls.manageCalls++
                         calls.managedHost = it
                     },
-                    viewModel = TunnelsViewModel(repository, dispatchers),
+                    viewModel = viewModel,
                 )
             }
         }
