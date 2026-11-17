@@ -568,6 +568,12 @@ adds no second login path, so it cannot bypass any of that.
   and "Install a key here…" in the console menu, which lists keys. Keys without a usable public part (old
   imports of unknown type) say so and cannot be installed. FIDO2 keys are installed as `sk-…@openssh.com`.
 
+**Lesson for unattended runs.** The SSH library hangs up by itself when its last channel closes
+(`autoDisconnectOnLastChannelClose`, default true). The app turns that off for console sessions, so key
+install on an open session is unaffected, but a background connection that runs several commands (a
+monitoring refresh) must set it off on purpose and close the connection itself. The container tests missed
+this at first: every second command on a test connection found it gone.
+
 **Open decision for the owner: unattended runs.** Installing a key or running a command on a server that is
 not connected, and anything on a whole group (monitoring, collection), needs logins without prompts: a
 saved key or a vault password, host key already known, and a hard failure (no prompt) if the key is
