@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
@@ -64,8 +65,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -138,15 +137,19 @@ fun ShelldonHostListContent(
     onQuickConnect: (QuickConnectTarget) -> Unit = {},
     unsavedSessions: List<Host> = emptyList(),
     lastSessions: List<LastSession> = emptyList(),
-    onSaveActiveSession: (Host) -> Unit = {},
+    onSaveActiveSession: (Host, SaveFolder, onResult: (Rejection?) -> Unit) -> Unit = { _, _, onResult -> onResult(null) },
     onOpenLastSession: (LastSession) -> Unit = {},
-    onSaveLastSession: (LastSession.Unsaved) -> Unit = {},
+    onSaveLastSession: (LastSession.Unsaved, SaveFolder, onResult: (Rejection?) -> Unit) -> Unit = { _, _, onResult -> onResult(null) },
     groupSnapshot: GroupSnapshot = GroupSnapshot(emptyList(), emptyList(), emptyList(), emptyList()),
     groupActions: HostGroupActions = HostGroupActions(),
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var filterIndex by rememberSaveable { mutableIntStateOf(0) }
     var showMenu by remember { mutableStateOf(false) }
+    var showNewMenu by remember { mutableStateOf(false) }
+    var savingActive by remember { mutableStateOf<Host?>(null) }
+    var savingLast by remember { mutableStateOf<LastSession.Unsaved?>(null) }
+    var saveError by remember { mutableStateOf<Rejection?>(null) }
     var showDisconnectAllDialog by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
@@ -191,16 +194,39 @@ fun ShelldonHostListContent(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             if (!makingShortcut && (hosts.isNotEmpty() || hasGroups)) {
-                val addHost = stringResource(R.string.hostpref_add_host)
-                ExtendedFloatingActionButton(
-                    onClick = { onNavigateToEditHost(null) },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.semantics { contentDescription = addHost },
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.shelldon_new), fontWeight = FontWeight.SemiBold)
+                // New is a choice, not a shortcut to one of the two: a host or a folder.
+                Box {
+                    ExtendedFloatingActionButton(
+                        onClick = { showNewMenu = true },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.testTag("host_new"),
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.shelldon_new), fontWeight = FontWeight.SemiBold)
+                    }
+                    DropdownMenu(expanded = showNewMenu, onDismissRequest = { showNewMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.shelldon_new_host)) },
+                            onClick = {
+                                showNewMenu = false
+                                onNavigateToEditHost(null)
+                            },
+                            leadingIcon = { Icon(Icons.Default.Terminal, contentDescription = null) },
+                            modifier = Modifier.testTag("host_new_host"),
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.shelldon_group_new)) },
+                            onClick = {
+                                showNewMenu = false
+                                groupError = null
+                                creatingGroup = true
+                            },
+                            leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) },
+                            modifier = Modifier.testTag("host_new_folder"),
+                        )
+                    }
                 }
             }
         },
@@ -313,16 +339,6 @@ fun ShelldonHostListContent(
                                 label = stringResource(R.string.shelldon_sort_color),
                                 onClick = onToggleSortOrder,
                             )
-                            if (!makingShortcut) {
-                                ShelldonChip(
-                                    selected = false,
-                                    label = stringResource(R.string.shelldon_group_add_chip),
-                                    onClick = {
-                                        groupError = null
-                                        creatingGroup = true
-                                    },
-                                )
-                            }
                         }
                     }
                 }
@@ -385,7 +401,10 @@ fun ShelldonHostListContent(
                                     host = host,
                                     connectionState = ConnectionState.CONNECTED,
                                     onClick = { onNavigateToConsole(host) },
-                                    onSave = { onSaveActiveSession(host) },
+                                    onSave = {
+                                        saveError = null
+                                        savingActive = host
+                                    },
                                 )
                             }
                         }
@@ -403,7 +422,12 @@ fun ShelldonHostListContent(
                         LastSessionRow(
                             session = session,
                             onClick = { onOpenLastSession(session) },
-                            onSave = { (session as? LastSession.Unsaved)?.let(onSaveLastSession) },
+                            onSave = {
+                                (session as? LastSession.Unsaved)?.let {
+                                    saveError = null
+                                    savingLast = it
+                                }
+                            },
                         )
                     }
                 }
@@ -551,6 +575,36 @@ fun ShelldonHostListContent(
             onMove = { groupId ->
                 groupActions.onMoveHost(host, groupId)
                 movingHost = null
+            },
+        )
+    }
+
+    savingActive?.let { host ->
+        SaveSessionDialog(
+            nickname = host.nickname,
+            snapshot = groupSnapshot,
+            error = saveError,
+            onDismiss = { savingActive = null },
+            onSave = { folder ->
+                onSaveActiveSession(host, folder) { rejection ->
+                    saveError = rejection
+                    if (rejection == null) savingActive = null
+                }
+            },
+        )
+    }
+
+    savingLast?.let { session ->
+        SaveSessionDialog(
+            nickname = session.target.nickname,
+            snapshot = groupSnapshot,
+            error = saveError,
+            onDismiss = { savingLast = null },
+            onSave = { folder ->
+                onSaveLastSession(session, folder) { rejection ->
+                    saveError = rejection
+                    if (rejection == null) savingLast = null
+                }
             },
         )
     }

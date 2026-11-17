@@ -12,7 +12,7 @@
 
     <!-- Hosts screen -->
     <string name="shelldon_hosts_title">Hosts</string>
-    <string name="shelldon_search_hint">Search, or type user@host</string>
+    <string name="shelldon_search_hint">Search, or quick connect user@host</string>
     <string name="shelldon_quick_connect">Quick connect</string>
     <string name="shelldon_connect_to">Connect to %1$s</string>
     <string name="shelldon_connect_to_hint">Connect once without saving</string>
@@ -25,6 +25,10 @@
     <string name="shelldon_clear_search">Clear search</string>
     <string name="shelldon_save_session_cd">Save %1$s to hosts</string>
     <string name="shelldon_saved_toast">Saved %1$s to Hosts</string>
+    <string name="shelldon_new_host">New host</string>
+    <string name="shelldon_save_session_title">Save %1$s</string>
+    <string name="shelldon_save_no_folder">No folder</string>
+    <string name="shelldon_save_new_folder_option">New folder\u2026</string>
     <string name="shelldon_save_failed">Could not save the host: %1$s</string>
     <string name="shelldon_hosts_section">Hosts</string>
     <string name="shelldon_disconnect_all">Disconnect all</string>
@@ -82,7 +86,6 @@
 
     <!-- Folders on the Hosts screen -->
     <string name="shelldon_groups_section">Folders</string>
-    <string name="shelldon_group_add_chip">+ Folder</string>
     <string name="shelldon_group_root">All hosts</string>
     <string name="shelldon_group_empty">This folder is empty. Use a host\u2019s menu and choose Move to folder.</string>
     <string name="shelldon_no_tag_matches">No host carries all of the selected tags.</string>

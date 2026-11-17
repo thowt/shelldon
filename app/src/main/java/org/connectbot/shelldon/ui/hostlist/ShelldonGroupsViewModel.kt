@@ -50,6 +50,12 @@ class ShelldonGroupsViewModel @Inject constructor(
         viewModelScope.launch { groups.deleteGroup(id) }
     }
 
+    /** Creates a top-level folder and returns it, or why it was refused; used when saving a session into a new folder. */
+    suspend fun createTopLevelGroup(name: String): Outcome<HostGroup> = groups.createGroup(name, parentId = null)
+
+    /** Puts a saved host into a folder and waits for the result. */
+    suspend fun placeHost(hostId: UUID, groupId: UUID): Outcome<Unit> = groups.setHostGroup(hostId, groupId)
+
     fun moveHost(host: Host, groupId: UUID?) {
         viewModelScope.launch { groups.setHostGroup(host.id, groupId) }
     }
