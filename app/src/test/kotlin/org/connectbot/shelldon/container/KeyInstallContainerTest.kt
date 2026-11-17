@@ -140,8 +140,9 @@ class KeyInstallContainerTest {
     @Test
     fun theInstalledKeyIsAcceptedWhenSshdChecksItsFileModes() = LiveServer.withConnection { server ->
         val key = realKey("phone")
-        server.install(key)
+        assertThat(server.install(key)).isEqualTo(KeyInstallResult.Added)
         // sshd's StrictModes refuses a file or folder others can write to; ours must pass the same test.
-        assertThat(server.sh("find $DIR -perm /022 | wc -l").trim()).isEqualTo("0")
+        // (The leading test makes this fail, not pass, when the file is not there.)
+        assertThat(server.sh("test -f $FILE && find $DIR -perm /022 | wc -l").trim()).isEqualTo("0")
     }
 }

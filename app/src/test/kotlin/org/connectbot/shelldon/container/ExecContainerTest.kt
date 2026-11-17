@@ -45,6 +45,16 @@ class ExecContainerTest {
     }
 
     @Test
+    fun severalCommandsInARowShareOneConnection() = LiveServer.withConnection { server ->
+        // A monitoring refresh runs many commands one after another on the same login.
+        repeat(12) { n ->
+            val result = SshExec.run(server.client, "echo run-$n")
+            assertThat(result.stdout).isEqualTo("run-$n\n")
+            assertThat(result.exitCode).isEqualTo(0)
+        }
+    }
+
+    @Test
     fun errorsAndANonZeroExitCodeAreKeptApart() = LiveServer.withConnection { server ->
         val result = SshExec.run(server.client, "echo out; echo oops 1>&2; exit 3")
         assertThat(result.stdout).isEqualTo("out\n")

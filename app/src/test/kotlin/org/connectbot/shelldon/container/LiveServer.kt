@@ -64,6 +64,9 @@ internal object LiveServer {
                             handshakeTimeoutMs = 30_000
                             cryptoPolicy(HostCryptoConfig().resolve())
                             ShelldonSshIdentity.applyTo(this)
+                            // As in the app: the library would otherwise hang up when the last channel closes,
+                            // and a second command on the same connection would find it gone.
+                            autoDisconnectOnLastChannelClose = false
                             hostKeyVerifier = object : HostKeyVerifier {
                                 override suspend fun verify(key: PublicKey): Boolean = server.hostKeys.any { (type, blob) -> PublicKey(type, blob) == key }
                             }
