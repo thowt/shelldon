@@ -26,6 +26,8 @@ import org.connectbot.data.entity.PortForward
 import org.connectbot.di.CoroutineDispatchers
 import org.connectbot.service.TerminalBridge
 import org.connectbot.service.TerminalManager
+import org.connectbot.shelldon.exec.ExecLimits
+import org.connectbot.shelldon.exec.ExecResult
 import org.connectbot.sshlib.ConnectionInfo
 import org.connectbot.sshlib.SftpClient
 import org.connectbot.sshlib.SftpResult
@@ -199,6 +201,20 @@ abstract class AbsTransport {
      * @return null if this transport has no SFTP
      */
     open suspend fun openSftp(): SftpResult<SftpClient>? = null
+
+    /**
+     * Whether a command can be run on this connection right now, on a new channel of the login that is
+     * already there. Only SSH can; Telnet, Mosh and local shells answer false.
+     */
+    open fun canExecCommand(): Boolean = false
+
+    /**
+     * Runs [command] on the server and collects what it printed, without a second login.
+     * @return null if this transport cannot run commands
+     * @throws IOException if the server refused it, it did not finish in time, or the connection broke
+     */
+    @Throws(IOException::class)
+    open suspend fun execCommand(command: String, limits: ExecLimits = ExecLimits()): ExecResult? = null
 
     /**
      * Adds the [PortForward] to the list.

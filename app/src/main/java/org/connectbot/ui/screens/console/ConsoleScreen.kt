@@ -849,6 +849,7 @@ fun ConsoleScreen(
     var showKeyboardSettings by rememberSaveable(currentBridgeId) { mutableStateOf(false) }
     var showConnectionInfoDialog by remember(currentBridgeId) { mutableStateOf(false) }
     var showSnippetsDialog by remember(currentBridgeId) { mutableStateOf(false) }
+    var showInstallKeyDialog by remember(currentBridgeId) { mutableStateOf(false) }
     val automationState by currentBridge?.automationState?.collectAsState()
         ?: remember { mutableStateOf(org.connectbot.service.automation.AutomationState()) }
 
@@ -878,6 +879,7 @@ fun ConsoleScreen(
     // Check if any modal (menu or dialog) is currently active
     val anyModalActive = showKeyboardSettings || showMenu || showUrlScanDialog || showResizeDialog ||
         showDisconnectDialog || showSessionPickerDialog || showTextInputDialog || showConnectionInfoDialog || showSnippetsDialog ||
+        showInstallKeyDialog ||
         isHardwareKeyPromptActive || currentAuthBanner != null
 
     fun restartTitleBarTimer() {
@@ -1070,6 +1072,7 @@ fun ConsoleScreen(
     val connecting = currentBridge?.isConnecting == true
     val canForwardPorts = currentBridge?.canFowardPorts() == true
     val canOpenFiles = currentBridge?.canOpenSftp() == true
+    val canInstallKey = currentBridge?.transport?.canExecCommand() == true
     val snackbarHostState = remember { SnackbarHostState() }
 
     val isConnectionActive = currentBridge != null && !disconnected
@@ -1380,6 +1383,13 @@ fun ConsoleScreen(
                     currentBridge.sendKeyboardMacro(snippet.document)
                 },
                 onDismiss = { showSnippetsDialog = false },
+            )
+        }
+        if (showInstallKeyDialog && currentBridge != null) {
+            org.connectbot.shelldon.ui.keychain.KeyPickerInstallDialog(
+                hostId = currentBridge.host.id,
+                hostName = currentBridge.host.nickname.ifBlank { currentBridge.host.hostname },
+                onDismiss = { showInstallKeyDialog = false },
             )
         }
 
@@ -1708,6 +1718,18 @@ fun ConsoleScreen(
                                 },
                                 enabled = sessionOpen,
                             )
+
+                            // Put one of the stored public keys into authorized_keys on this server
+                            if (canInstallKey) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.shelldon_console_menu_install_key)) },
+                                    onClick = {
+                                        showMenu = false
+                                        showInstallKeyDialog = true
+                                    },
+                                    enabled = sessionOpen,
+                                )
+                            }
 
                             // Fullscreen toggle
                             DropdownMenuItem(

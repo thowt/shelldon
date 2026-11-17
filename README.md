@@ -23,6 +23,7 @@ rough edges, and do not rely on it for anything you cannot afford to lose.
 | Vault: master password (Argon2id), biometric unlock, auto-lock | Built |
 | Encrypted backup, export and import, `~/.ssh/config` import | Built |
 | SFTP browser, snippets, port forwarding (`-L`, `-R`, `-D`) with a Tunnels tab | Built |
+| Install a public key on a server (`ssh-copy-id`) from the keychain or the console | In review |
 | Legacy servers (old Cisco IOS, old Debian, BSD, Telnet) through explicit per-host or per-group choices | Built, tested against OpenSSH containers; real old devices are untested |
 | Post-quantum key exchange (ML-KEM and sntrup hybrids) where the server supports it | In the SSH engine; not yet verified against a real server on a phone |
 | Sync through your own storage (WebDAV first), end-to-end encrypted | Planned |
