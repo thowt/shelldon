@@ -60,6 +60,9 @@ import org.connectbot.service.requestFido2Connect
 import org.connectbot.service.requestFido2Pin
 import org.connectbot.service.requestHostKeyFingerprintPrompt
 import org.connectbot.service.requestStringPrompt
+import org.connectbot.shelldon.exec.ExecLimits
+import org.connectbot.shelldon.exec.ExecResult
+import org.connectbot.shelldon.exec.SshExec
 import org.connectbot.shelldon.ssh.ShelldonSshIdentity
 import org.connectbot.sshlib.AgentProvider
 import org.connectbot.sshlib.AgentResult
@@ -1530,6 +1533,14 @@ open class SSH : AbsTransport {
     override suspend fun openSftp(): SftpResult<SftpClient>? {
         if (!canOpenSftp()) return null
         return client?.openSftp()
+    }
+
+    override fun canExecCommand(): Boolean = connected && authenticated && client != null
+
+    override suspend fun execCommand(command: String, limits: ExecLimits): ExecResult? {
+        if (!canExecCommand()) return null
+        val ssh = client ?: return null
+        return SshExec.run(ssh, command, limits)
     }
 
     override fun getPortForwards(): List<PortForward> = portForwards
