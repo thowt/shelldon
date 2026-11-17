@@ -29,6 +29,19 @@ data class KnownHostRow(
     val endpoint: String,
 )
 
+/**
+ * Search matches the host and port, the key fingerprint or the key type, ignoring case. A pasted
+ * `SHA256:` fingerprint finds the host that presented it.
+ */
+internal fun KnownHostRow.matchesQuery(query: String): Boolean {
+    val text = query.trim()
+    if (text.isEmpty()) return true
+    return endpoint.contains(text, ignoreCase = true) ||
+        knownHost.hostname.contains(text, ignoreCase = true) ||
+        fingerprint.contains(text, ignoreCase = true) ||
+        knownHost.hostKeyAlgo.contains(text, ignoreCase = true)
+}
+
 /** Every saved host key across all hosts, so a changed or stale key can be found and forgotten in one place. */
 @HiltViewModel
 class KnownHostsOverviewViewModel @Inject constructor(

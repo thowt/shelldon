@@ -192,6 +192,7 @@ internal fun ShelldonSearchField(
     placeholder: String,
     clearDescription: String,
     modifier: Modifier = Modifier,
+    clearModifier: Modifier = Modifier,
 ) {
     val container = MaterialTheme.colorScheme.surfaceContainer
     TextField(
@@ -202,7 +203,7 @@ internal fun ShelldonSearchField(
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         trailingIcon = if (query.isNotEmpty()) {
             {
-                IconButton(onClick = { onQueryChange("") }) {
+                IconButton(onClick = { onQueryChange("") }, modifier = clearModifier) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = clearDescription)
                 }
             }

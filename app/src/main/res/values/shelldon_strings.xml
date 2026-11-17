@@ -179,6 +179,8 @@
     <string name="shelldon_key_subtitle_fido2">%1$s \u00b7 FIDO2 security key</string>
     <string name="shelldon_key_subtitle_piv">%1$s \u00b7 PIV smart card</string>
     <string name="shelldon_key_subtitle_keystore">%1$s \u00b7 Android keystore</string>
+    <string name="shelldon_known_hosts_search">Search known hosts</string>
+    <string name="shelldon_known_hosts_no_matches">No known host matches \u201c%1$s\u201d.</string>
     <string name="shelldon_known_hosts_empty_title">No saved host keys</string>
     <string name="shelldon_keychain_vault_unlocked">Vault unlocked</string>
     <string name="shelldon_keychain_vault_locked">Vault locked</string>
