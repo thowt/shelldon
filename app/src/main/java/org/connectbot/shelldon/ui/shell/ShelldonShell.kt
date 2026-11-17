@@ -40,10 +40,11 @@ internal enum class ShellTab(
     @param:StringRes val label: Int,
     val icon: ImageVector,
 ) {
+    // The order of the design: what you connect to, what logs you in, what you send, what you forward.
     HOSTS(NavDestinations.HOST_LIST, R.string.shelldon_tab_hosts, Icons.Default.Dns),
-    TUNNELS(NavDestinations.TUNNELS, R.string.shelldon_tab_tunnels, Icons.Default.SwapHoriz),
-    SNIPPETS(NavDestinations.SNIPPETS, R.string.shelldon_tab_snippets, Icons.Default.Code),
     KEYCHAIN(NavDestinations.KEYCHAIN, R.string.shelldon_tab_keychain, Icons.Default.Key),
+    SNIPPETS(NavDestinations.SNIPPETS, R.string.shelldon_tab_snippets, Icons.Default.Code),
+    TUNNELS(NavDestinations.TUNNELS, R.string.shelldon_tab_tunnels, Icons.Default.SwapHoriz),
     SETTINGS(NavDestinations.SETTINGS, R.string.shelldon_tab_settings, Icons.Default.Settings),
     ;
 

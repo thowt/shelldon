@@ -10,28 +10,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -57,6 +53,14 @@ import org.connectbot.service.TerminalBridge
 import org.connectbot.shelldon.snippets.Snippet
 import org.connectbot.shelldon.snippets.SnippetRejection
 import org.connectbot.shelldon.snippets.SnippetResult
+import org.connectbot.shelldon.ui.components.ShelldonEmptyState
+import org.connectbot.shelldon.ui.components.ShelldonNewButton
+import org.connectbot.shelldon.ui.components.ShelldonRowCard
+import org.connectbot.shelldon.ui.components.ShelldonSearchField
+import org.connectbot.shelldon.ui.components.ShelldonTile
+import org.connectbot.shelldon.ui.components.tileColorFor
+import org.connectbot.shelldon.ui.hostlist.ShelldonBadge
+import org.connectbot.shelldon.ui.theme.LocalShelldonExtraColors
 import org.connectbot.ui.LocalTerminalManager
 
 private fun TerminalBridge.displayName(): String = host.nickname.ifBlank { host.hostname }
@@ -114,15 +118,14 @@ fun ShelldonSnippetsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            FloatingActionButton(
+            ShelldonNewButton(
+                description = stringResource(R.string.shelldon_snippet_new),
                 onClick = {
                     editError = null
                     creating = true
                 },
                 modifier = Modifier.testTag("snippet_new"),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.shelldon_snippet_new))
-            }
+            )
         },
     ) { padding ->
         if (state.isLoading) {
@@ -155,29 +158,36 @@ fun ShelldonSnippetsScreen(
                 }
                 if (state.snippets.isEmpty()) {
                     item(key = "empty") {
-                        Text(
-                            text = stringResource(R.string.shelldon_snippets_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ShelldonEmptyState(
+                            icon = Icons.Default.Code,
+                            title = stringResource(R.string.shelldon_snippets_empty_title),
+                            body = stringResource(R.string.shelldon_snippets_empty),
                             modifier = Modifier.testTag("snippets_empty"),
-                        )
+                        ) {
+                            Button(
+                                onClick = {
+                                    editError = null
+                                    creating = true
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                                Text(
+                                    text = stringResource(R.string.shelldon_snippet_new),
+                                    modifier = Modifier.padding(start = 8.dp),
+                                )
+                            }
+                        }
                     }
                 } else {
                     item(key = "search") {
-                        OutlinedTextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            singleLine = true,
-                            label = { Text(stringResource(R.string.shelldon_snippets_search)) },
-                            trailingIcon = {
-                                if (query.isNotEmpty()) {
-                                    IconButton(onClick = { query = "" }) {
-                                        Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.shelldon_clear_search))
-                                    }
-                                }
-                            },
+                        ShelldonSearchField(
+                            query = query,
+                            onQueryChange = { query = it },
+                            placeholder = stringResource(R.string.shelldon_snippets_search),
+                            clearDescription = stringResource(R.string.shelldon_clear_search),
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .padding(top = 4.dp)
                                 .testTag("snippets_search"),
                         )
                     }
@@ -319,47 +329,42 @@ private fun SnippetCard(
     onSend: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("snippet_card_${snippet.name}"),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
-        Row(
-            modifier = Modifier
-                .clickable(onClick = onEdit)
-                .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = snippet.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = snippet.body.firstLine,
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (snippet.body.isScript) {
-                    Text(
-                        text = stringResource(R.string.shelldon_snippet_lines, snippet.body.lineCount),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
+    ShelldonRowCard(
+        onClick = onEdit,
+        modifier = modifier.testTag("snippet_card_${snippet.name}"),
+        tile = {
+            ShelldonTile(icon = Icons.Default.Code, color = tileColorFor(snippet.id))
+        },
+        trailing = {
             IconButton(onClick = onSend, modifier = Modifier.testTag("snippet_send_${snippet.name}")) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
                     contentDescription = stringResource(R.string.shelldon_snippet_send_cd, snippet.name),
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
+        },
+    ) {
+        Text(
+            text = snippet.name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = snippet.body.firstLine,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (snippet.body.isScript) {
+            ShelldonBadge(
+                text = stringResource(R.string.shelldon_snippet_lines, snippet.body.lineCount),
+                colors = LocalShelldonExtraColors.current.neutral,
+                modifier = Modifier.padding(top = 6.dp),
+            )
         }
     }
 }

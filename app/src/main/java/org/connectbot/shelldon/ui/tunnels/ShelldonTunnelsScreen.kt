@@ -6,8 +6,10 @@
 
 package org.connectbot.shelldon.ui.tunnels
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,19 +19,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,6 +47,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -57,6 +62,13 @@ import org.connectbot.shelldon.tunnels.TunnelBoard
 import org.connectbot.shelldon.tunnels.TunnelHost
 import org.connectbot.shelldon.tunnels.TunnelItem
 import org.connectbot.shelldon.tunnels.TunnelState
+import org.connectbot.shelldon.ui.components.ShelldonEmptyState
+import org.connectbot.shelldon.ui.components.ShelldonNewButton
+import org.connectbot.shelldon.ui.components.ShelldonQuietTile
+import org.connectbot.shelldon.ui.components.ShelldonRowCard
+import org.connectbot.shelldon.ui.components.ShelldonTile
+import org.connectbot.shelldon.ui.hostlist.ShelldonBadge
+import org.connectbot.shelldon.ui.theme.LocalShelldonExtraColors
 import org.connectbot.ui.LocalTerminalManager
 import org.connectbot.util.HostConstants
 import java.util.UUID
@@ -105,9 +117,11 @@ fun ShelldonTunnelsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             if (state.sshHosts.isNotEmpty()) {
-                FloatingActionButton(onClick = { pickingHost = true }, modifier = Modifier.testTag("tunnel_new")) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.shelldon_tunnel_new))
-                }
+                ShelldonNewButton(
+                    description = stringResource(R.string.shelldon_tunnel_new),
+                    onClick = { pickingHost = true },
+                    modifier = Modifier.testTag("tunnel_new"),
+                )
             }
         },
     ) { padding ->
@@ -141,14 +155,30 @@ fun ShelldonTunnelsScreen(
                 }
                 if (state.hosts.isEmpty()) {
                     item(key = "empty") {
-                        Text(
-                            text = stringResource(
-                                if (state.sshHosts.isEmpty()) R.string.shelldon_tunnels_no_hosts else R.string.shelldon_tunnels_empty,
+                        val noHosts = state.sshHosts.isEmpty()
+                        ShelldonEmptyState(
+                            icon = Icons.Default.SwapHoriz,
+                            title = stringResource(
+                                if (noHosts) R.string.shelldon_tunnels_no_hosts_title else R.string.shelldon_tunnels_empty_title,
                             ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            body = stringResource(
+                                if (noHosts) R.string.shelldon_tunnels_no_hosts else R.string.shelldon_tunnels_empty,
+                            ),
                             modifier = Modifier.testTag("tunnels_empty"),
-                        )
+                        ) {
+                            if (!noHosts) {
+                                Button(
+                                    onClick = { pickingHost = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null)
+                                    Text(
+                                        text = stringResource(R.string.shelldon_tunnel_new),
+                                        modifier = Modifier.padding(start = 8.dp),
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 state.hosts.forEach { group ->
@@ -227,18 +257,32 @@ private fun TunnelHostHeader(
             Text(
                 text = group.name,
                 style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = if (group.connected) {
-                    stringResource(R.string.shelldon_tunnels_host_connected, group.runningCount, group.items.size)
-                } else {
-                    stringResource(R.string.shelldon_tunnels_host_offline)
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            if (group.connected) LocalShelldonExtraColors.current.connected else MaterialTheme.colorScheme.outline,
+                            CircleShape,
+                        ),
+                )
+                Text(
+                    text = if (group.connected) {
+                        stringResource(R.string.shelldon_tunnels_host_connected, group.runningCount, group.items.size)
+                    } else {
+                        stringResource(R.string.shelldon_tunnels_host_offline)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         if (!group.connected) {
             TextButton(onClick = onConnect, modifier = Modifier.testTag("tunnel_connect_${group.name}")) {
@@ -258,62 +302,56 @@ private fun TunnelRow(
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("tunnel_row_${item.forward.nickname}"),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
-        Row(
-            modifier = Modifier
-                .clickable(onClick = onClick)
-                .padding(start = 16.dp, top = 10.dp, bottom = 10.dp, end = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.forward.nickname,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "${typeLabel(item.forward)}: ${describe(item.forward)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (item.exposed) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier
-                                .padding(end = 4.dp)
-                                .size(14.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.shelldon_tunnel_exposed, item.forward.sourceAddr),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
+    val extras = LocalShelldonExtraColors.current
+    val running = item.state == TunnelState.RUNNING
+    val name = item.forward.nickname
+    ShelldonRowCard(
+        onClick = onClick,
+        modifier = modifier.testTag("tunnel_row_$name"),
+        tile = {
+            if (running) {
+                ShelldonTile(icon = Icons.Default.SwapHoriz, color = extras.connected)
+            } else {
+                ShelldonQuietTile(icon = Icons.Default.SwapHoriz)
             }
-            when (item.state) {
-                TunnelState.HOST_OFFLINE -> Text(
-                    text = stringResource(R.string.shelldon_tunnel_state_offline),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                TunnelState.RUNNING, TunnelState.STOPPED -> Switch(
-                    checked = item.state == TunnelState.RUNNING,
-                    onCheckedChange = onToggle,
-                    modifier = Modifier.testTag("tunnel_switch_${item.forward.nickname}"),
+        },
+        trailing = {
+            // A host that is not connected cannot run anything, so its switches are shown off and disabled.
+            Switch(
+                checked = running,
+                onCheckedChange = onToggle,
+                enabled = item.state != TunnelState.HOST_OFFLINE,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .semantics { contentDescription = name }
+                    .testTag("tunnel_switch_$name"),
+            )
+        },
+    ) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = describe(item.forward),
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row(
+            modifier = Modifier.padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            ShelldonBadge(text = typeLabel(item.forward), colors = extras.neutral)
+            if (item.exposed) {
+                ShelldonBadge(
+                    text = stringResource(R.string.shelldon_tunnel_exposed, item.forward.sourceAddr),
+                    colors = extras.plaintext,
+                    icon = Icons.Default.Warning,
                 )
             }
         }
