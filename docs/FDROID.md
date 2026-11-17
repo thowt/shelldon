@@ -48,7 +48,8 @@ tied to a specific proprietary service, F-Droid would add an anti-feature label.
 
 ## Checklist before the first public release
 
-1. Repo goes public, licence and NOTICE re-read, name and trademark check done.
+1. Repo goes public (readiness docs are in: README, CONTRIBUTING, SECURITY, THIRD_PARTY), licence and NOTICE
+   re-read, name and trademark check done, and the Mosh GPL question in `THIRD_PARTY.md` settled.
 2. Icon licence position settled and stated in the repo (who holds the rights, which licence).
 3. Production signing key created and backed up.
 4. `v0.1.0` tag pushed, anchor switched, changelog file for that version code added.
