@@ -46,16 +46,17 @@ class ShelldonKeychainContentTest {
         var editedIdentity: Identity? = null
         var deletedIdentity: IdentityRow? = null
         var forgottenHost: KnownHostRow? = null
+        var installedKey: Pubkey? = null
     }
 
     private val calls = Calls()
 
     private fun string(id: Int) = context.getString(id)
 
-    private fun identityRow(name: String) = IdentityRow(
-        identity = Identity(id = UUID(0, name.hashCode().toLong()), name = name, username = "root"),
+    private fun identityRow(name: String, keyId: UUID? = null, keyMissing: Boolean = false) = IdentityRow(
+        identity = Identity(id = UUID(0, name.hashCode().toLong()), name = name, username = "root", keyId = keyId),
         keyName = null,
-        keyMissing = false,
+        keyMissing = keyMissing,
         keyStorage = null,
         hostCount = 2,
         groupCount = 0,
@@ -105,6 +106,7 @@ class ShelldonKeychainContentTest {
                     onAddKey = { calls.addKey++ },
                     onManageKeys = { calls.manageKeys++ },
                     onNavigateToEditKey = { calls.openedKey = it },
+                    onInstallKey = { calls.installedKey = it },
                     onForgetKnownHost = { calls.forgottenHost = it },
                     onLockVault = { calls.lockVault++ },
                 )
@@ -189,6 +191,53 @@ class ShelldonKeychainContentTest {
 
         composeTestRule.onNodeWithTag("keys_manage").performClick()
         assertEquals(1, calls.manageKeys)
+    }
+
+    @Test
+    fun keys_canBeInstalledOnAServerFromTheirMenu() {
+        val deploy = key("deploy-key")
+        setContent(KeychainUiState(keys = listOf(deploy), isLoading = false), startTab = 1)
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.button_more_options)).performClick()
+        composeTestRule.onNodeWithTag("key_install_${deploy.id}").performClick()
+
+        assertEquals(deploy, calls.installedKey)
+        assertNull(calls.openedKey)
+    }
+
+    @Test
+    fun identity_withAKey_canInstallThatKeyFromItsMenu() {
+        val deploy = key("deploy-key")
+        val row = identityRow("deploy", keyId = deploy.id)
+        setContent(KeychainUiState(identities = listOf(row), keys = listOf(deploy), isLoading = false))
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.button_more_options)).performClick()
+        composeTestRule.onNodeWithTag("identity_install_${row.identity.id}").performClick()
+
+        assertEquals(deploy, calls.installedKey)
+    }
+
+    @Test
+    fun identity_withoutAKey_hasNothingToInstall() {
+        val row = identityRow("password-only")
+        setContent(KeychainUiState(identities = listOf(row), isLoading = false))
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.button_more_options)).performClick()
+
+        composeTestRule.onNodeWithText(string(R.string.shelldon_delete)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag("identity_install_${row.identity.id}").assertDoesNotExist()
+    }
+
+    @Test
+    fun identity_whoseKeyIsGone_hasNothingToInstall() {
+        val gone = UUID(9, 9)
+        val row = identityRow("orphan", keyId = gone, keyMissing = true)
+        setContent(KeychainUiState(identities = listOf(row), keys = listOf(key("other")), isLoading = false))
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.button_more_options)).performClick()
+
+        composeTestRule.onNodeWithText(string(R.string.shelldon_delete)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag("identity_install_${row.identity.id}").assertDoesNotExist()
     }
 
     @Test

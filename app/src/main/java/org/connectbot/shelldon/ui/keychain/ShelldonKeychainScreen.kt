@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
@@ -63,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.connectbot.R
+import org.connectbot.data.entity.Host
 import org.connectbot.data.entity.KeyStorageType
 import org.connectbot.data.entity.Pubkey
 import org.connectbot.shelldon.data.groups.Identity
@@ -96,6 +96,7 @@ fun ShelldonKeychainScreen(
     onNavigateToImportFido2: () -> Unit,
     onNavigateToManageKeys: () -> Unit,
     onNavigateToEditKey: (UUID) -> Unit,
+    onConnectHost: (Host) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: KeychainViewModel = hiltViewModel(),
     knownHostsViewModel: KnownHostsOverviewViewModel = hiltViewModel(),
@@ -109,6 +110,7 @@ fun ShelldonKeychainScreen(
     var deleting by remember { mutableStateOf<IdentityRow?>(null) }
     var forgetting by remember { mutableStateOf<KnownHostRow?>(null) }
     var addingKey by remember { mutableStateOf(false) }
+    var installing by remember { mutableStateOf<Pubkey?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     ShelldonKeychainContent(
@@ -128,6 +130,7 @@ fun ShelldonKeychainScreen(
         onAddKey = { addingKey = true },
         onManageKeys = onNavigateToManageKeys,
         onNavigateToEditKey = onNavigateToEditKey,
+        onInstallKey = { installing = it },
         onForgetKnownHost = { forgetting = it },
         onLockVault = viewModel::lockVault,
         snackbarHostState = snackbarHostState,
@@ -141,6 +144,17 @@ fun ShelldonKeychainScreen(
         onImportFido2 = onNavigateToImportFido2,
         onMessage = { message -> snackbarHostState.showSnackbar(message) },
     )
+
+    installing?.let { key ->
+        KeyInstallDialog(
+            key = key,
+            onConnect = { host ->
+                installing = null
+                onConnectHost(host)
+            },
+            onDismiss = { installing = null },
+        )
+    }
 
     if (creating || editing != null) {
         val existing = editing
@@ -225,6 +239,7 @@ internal fun ShelldonKeychainContent(
     onAddKey: () -> Unit,
     onManageKeys: () -> Unit,
     onNavigateToEditKey: (UUID) -> Unit,
+    onInstallKey: (Pubkey) -> Unit,
     onForgetKnownHost: (KnownHostRow) -> Unit,
     onLockVault: () -> Unit,
     modifier: Modifier = Modifier,
@@ -306,9 +321,11 @@ internal fun ShelldonKeychainContent(
                 when (tab) {
                     TAB_IDENTITIES -> identityItems(
                         rows = state.identities,
+                        keys = state.keys,
                         onNew = onNewIdentity,
                         onEdit = onEditIdentity,
                         onDelete = onDeleteIdentity,
+                        onInstallKey = onInstallKey,
                     )
 
                     TAB_KEYS -> keyItems(
@@ -316,6 +333,7 @@ internal fun ShelldonKeychainContent(
                         onNew = onAddKey,
                         onManage = onManageKeys,
                         onOpen = onNavigateToEditKey,
+                        onInstall = onInstallKey,
                     )
 
                     else -> knownHostItems(rows = knownHosts, onForget = onForgetKnownHost)
@@ -327,9 +345,11 @@ internal fun ShelldonKeychainContent(
 
 private fun LazyListScope.identityItems(
     rows: List<IdentityRow>,
+    keys: List<Pubkey>,
     onNew: () -> Unit,
     onEdit: (Identity) -> Unit,
     onDelete: (IdentityRow) -> Unit,
+    onInstallKey: (Pubkey) -> Unit,
 ) {
     if (rows.isEmpty()) {
         item(key = "identities_empty") {
@@ -360,10 +380,13 @@ private fun LazyListScope.identityItems(
         )
     }
     items(items = rows, key = { "identity_${it.identity.id}" }) { row ->
+        // Only an identity whose key still exists can put that key on a server.
+        val key = if (row.keyMissing) null else keys.firstOrNull { it.id == row.identity.keyId }
         IdentityCard(
             row = row,
             onEdit = { onEdit(row.identity) },
             onDelete = { onDelete(row) },
+            onInstallKey = key?.let { { onInstallKey(it) } },
         )
     }
 }
@@ -373,6 +396,7 @@ private fun LazyListScope.keyItems(
     onNew: () -> Unit,
     onManage: () -> Unit,
     onOpen: (UUID) -> Unit,
+    onInstall: (Pubkey) -> Unit,
 ) {
     if (keys.isEmpty()) {
         item(key = "keys_empty") {
@@ -411,7 +435,7 @@ private fun LazyListScope.keyItems(
         )
     }
     items(items = keys, key = { "key_${it.id}" }) { key ->
-        KeyCard(key = key, onClick = { onOpen(key.id) })
+        KeyCard(key = key, onClick = { onOpen(key.id) }, onInstall = { onInstall(key) })
     }
 }
 
@@ -515,6 +539,7 @@ private fun IdentityCard(
     row: IdentityRow,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onInstallKey: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -540,6 +565,17 @@ private fun IdentityCard(
                         },
                         leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                     )
+                    if (onInstallKey != null) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.shelldon_key_install_action)) },
+                            onClick = {
+                                showMenu = false
+                                onInstallKey()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Dns, contentDescription = null) },
+                            modifier = Modifier.testTag("identity_install_${row.identity.id}"),
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.shelldon_delete)) },
                         onClick = {
@@ -605,19 +641,32 @@ private fun IdentityCard(
 private fun KeyCard(
     key: Pubkey,
     onClick: () -> Unit,
+    onInstall: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showMenu by remember { mutableStateOf(false) }
     ShelldonRowCard(
         onClick = onClick,
         modifier = modifier.testTag("key_${key.id}"),
         tile = { ShelldonQuietTile(icon = Icons.Default.Key) },
         trailing = {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 10.dp),
-            )
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = stringResource(R.string.button_more_options),
+                )
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.shelldon_key_install_action)) },
+                        onClick = {
+                            showMenu = false
+                            onInstall()
+                        },
+                        leadingIcon = { Icon(Icons.Default.Dns, contentDescription = null) },
+                        modifier = Modifier.testTag("key_install_${key.id}"),
+                    )
+                }
+            }
         },
     ) {
         Text(

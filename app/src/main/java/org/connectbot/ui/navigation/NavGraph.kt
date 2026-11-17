@@ -170,6 +170,7 @@ fun ConnectBotNavHost(
                     onNavigateToImportFido2 = { navController.navigateSafely(NavDestinations.IMPORT_FIDO2) },
                     onNavigateToManageKeys = { navController.navigateSafely(NavDestinations.PUBKEY_LIST) },
                     onNavigateToEditKey = { keyId -> navController.navigateSafely("${NavDestinations.PUBKEY_EDITOR}/$keyId") },
+                    onConnectHost = onNavigateToConsole,
                 )
             }
 

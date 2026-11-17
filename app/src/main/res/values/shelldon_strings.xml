@@ -393,6 +393,27 @@
     <string name="shelldon_sftp_problem_exists">a file with that name already exists</string>
     <string name="shelldon_sftp_problem_lost">the connection was lost</string>
     <string name="shelldon_sftp_problem_unsupported">the server does not support it</string>
+    <!-- Install a public key on a server -->
+    <string name="shelldon_key_install_action">Install on server…</string>
+    <string name="shelldon_key_install_title">Install key on server</string>
+    <string name="shelldon_key_install_intro">Adds the public key “%1$s” to ~/.ssh/authorized_keys on a server, so this key can log in there. Fingerprint: %2$s</string>
+    <string name="shelldon_key_install_hint">It runs inside the server’s open SSH session. For a server that is not connected, tap Connect, log in (a password is fine), then come back.</string>
+    <string name="shelldon_key_install_no_hosts">No SSH servers yet. Add one on the Hosts tab.</string>
+    <string name="shelldon_key_install_unusable">This key has no public part that can be installed.</string>
+    <string name="shelldon_key_install_button">Install</string>
+    <string name="shelldon_key_install_confirm_title">Install this key?</string>
+    <string name="shelldon_key_install_confirm_body">Add “%1$s” (%2$s) to ~/.ssh/authorized_keys on %3$s? Whoever holds the private key will be able to log in there. Nothing already in the file is changed.</string>
+    <string name="shelldon_key_install_running">Installing…</string>
+    <string name="shelldon_key_install_added">Installed</string>
+    <string name="shelldon_key_install_present">Already installed</string>
+    <string name="shelldon_key_install_no_channel">This connection cannot run commands. Only SSH can.</string>
+    <string name="shelldon_key_install_failed">Failed: %1$s</string>
+    <string name="shelldon_key_install_not_confirmed">The server did not confirm. It may not use a Unix shell. %1$s</string>
+    <string name="shelldon_key_install_done">Done</string>
+    <string name="shelldon_console_menu_install_key">Install a key here…</string>
+    <string name="shelldon_key_pick_title">Install which key on %1$s?</string>
+    <string name="shelldon_key_pick_empty">No keys yet. Create one in Keychain.</string>
+
     <string name="shelldon_sftp_problem_truncated">the file got shorter while it was being read</string>
     <string name="shelldon_sftp_problem_name">That name cannot be used: no slashes, no control characters, at most 255 bytes.</string>
     <string name="shelldon_sftp_problem_deep">the folder tree is too deep</string>
