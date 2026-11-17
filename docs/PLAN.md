@@ -451,10 +451,14 @@ reads, pipelined requests). What we take and what we drop:
   stopped, host not connected) and a switch that starts or stops a forward on a connected host, using the
   existing transport calls. Tapping a forward opens the existing editor; "New" asks for the host first.
   Forwards still live and die with their SSH session (`ssh -N` style tunnel-only sessions would need a
-  transport change and are not part of this round). Nothing changes about binding: a forward binds to
-  loopback unless the owner opted in for that forward in the editor, and the list shows the bind address
-  in plain text when it is not loopback.
-- The bottom bar goes from three to five tabs: Hosts, Tunnels, Snippets, Keychain, Settings.
+  transport change and are not part of this round). Binding is unchanged and, as found on 2026-11-17
+  reading `SSH.enablePortForward`, stricter than first written here: **`-L` and `-D` always bind to the
+  phone's loopback**, the editor offers a bind address only for `-R` (where it is the address on the
+  server). So the "exposed" badge can only appear on a `-R` forward, and a SOCKS proxy cannot be shared
+  with other devices on the Wi-Fi. A per-forward "listen on all interfaces" switch (the SSH library has
+  the `bindAddress` overloads, and a SOCKS5 password for `-D`) is a fine-tuning candidate.
+- The bottom bar goes from three to five tabs: Hosts, Keychain, Snippets, Tunnels, Settings (the order of
+  the design canvas).
 
 What was built (all in `org.connectbot.shelldon.*`, upstream files touched only for wiring):
 
@@ -465,7 +469,8 @@ What was built (all in `org.connectbot.shelldon.*`, upstream files touched only 
   new file is removed when an upload fails. Recursive delete asks first and never follows a symlink.
 - `snippets/` and `ui/snippets/`: Snippets tab (list, search, editor) and a snippet picker in the console
   menu. Multi-line snippets show the text and ask before sending.
-- `tunnels/` and `ui/tunnels/`: Tunnels tab. Forwards not bound to loopback carry an "exposed" badge.
+- `tunnels/` and `ui/tunnels/`: Tunnels tab. A `-R` forward whose server-side bind address is not loopback
+  carries an "exposed" badge.
 - Wiring: `AbsTransport.canOpenSftp()/openSftp()` (SSH implements, Mosh says no), `PortForwardDao.observeAll()`,
   `HostRepository.observeAllPortForwards()`, five-tab bottom bar, three new routes.
 
@@ -481,6 +486,35 @@ How far this is checked (say which claim you are reading):
   on the VM; the first real compile is the CI run. Style (`ktlint`) and a name-resolution check were run by hand.
 - **Not run:** `spotlessCheck`, `lint`, the Room schema check (no schema change, so none expected).
 - **Not tried on the phone.** Throughput and odd read limits on Cisco, MikroTik or BSD servers are untested.
+
+### Round 3: design check against the canvas (2026-11-17)
+
+The owner compared the new screens with the "phone UI redesign" canvas (Hosts, Group, First launch,
+Keychain boards) and found the Keychain without its three tabs. What differed, and what was done on
+branch `m8-sftp-snippets-tunnels`:
+
+- **Keychain**: now Identities | Keys | Known hosts as a segmented control, a vault card (state, auto-lock,
+  biometric, Lock), a "New" button, colour tiles, mono `user · key` lines, "Used by N hosts" and "Hardware
+  key" badges, and "added 3 Mar" on keys. The separate Known hosts screen and its route are gone; its list
+  is the third tab.
+- **Snippets, Tunnels**: the canvas has no board for them, so they follow its language: "New" button,
+  pill search, tile rows with a mono line and badges, the same empty state as Hosts. A tunnel's type and
+  its "exposed" warning are badges; a host that is not connected shows its switches off and disabled.
+- **Bottom bar**: order fixed (see above).
+- Shared pieces live in `ui/components/ShelldonComponents.kt`. The Hosts screen still has its own copies
+  from before that file; moving it over is a clean-up for later.
+
+Differences from the canvas that are on purpose:
+
+- **No "auto-locks in 4:32" countdown.** The vault locks after N minutes away from the app, not on a timer
+  while it is open, so the card says "Auto-lock · After 5 minutes away".
+- **No password identities** ("root · password" in the canvas). Identity passwords need a schema change and
+  vault sealing and were left out of round 2. Still a fine-tuning candidate, and the owner's call.
+- The Keys tab's "New" opens the existing key screen (generate, import, FIDO2 live there), one tap more
+  than the canvas implies. Segments are 40 dp high, not 36, for the touch target.
+
+Not verified: none of this is compiled or seen on a phone yet. ktlint is clean and a name-resolution check
+was run by hand; the CI run is the first compile.
 
 ## Security rules and features to drop
 
