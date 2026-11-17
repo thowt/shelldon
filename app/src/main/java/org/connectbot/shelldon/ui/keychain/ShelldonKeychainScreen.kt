@@ -6,6 +6,7 @@
 
 package org.connectbot.shelldon.ui.keychain
 
+import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,23 +14,27 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,43 +47,69 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.connectbot.R
+import org.connectbot.data.entity.KeyStorageType
 import org.connectbot.data.entity.Pubkey
 import org.connectbot.shelldon.data.groups.Identity
 import org.connectbot.shelldon.data.groups.Rejection
+import org.connectbot.shelldon.ui.components.ShelldonEmptyState
+import org.connectbot.shelldon.ui.components.ShelldonNewButton
+import org.connectbot.shelldon.ui.components.ShelldonQuietTile
+import org.connectbot.shelldon.ui.components.ShelldonRowCard
+import org.connectbot.shelldon.ui.components.ShelldonSectionLabel
+import org.connectbot.shelldon.ui.components.ShelldonSegmentedTabs
+import org.connectbot.shelldon.ui.components.ShelldonTile
+import org.connectbot.shelldon.ui.components.tileColorFor
+import org.connectbot.shelldon.ui.hostlist.ShelldonBadge
+import org.connectbot.shelldon.ui.theme.LocalShelldonExtraColors
+import org.connectbot.shelldon.ui.vault.autoLockLabel
+import org.connectbot.shelldon.vault.VaultState
 import java.util.UUID
 
+private const val TAB_IDENTITIES = 0
+private const val TAB_KEYS = 1
+private const val TAB_KNOWN_HOSTS = 2
+
 /**
- * The Keychain tab: identities first, then the stored keys and the known host keys. Everything that
- * logs you in lives here. Key management itself (generate, import, export, FIDO2) stays on the
- * existing key screen, one tap away.
+ * The Keychain tab: everything that logs you in, in three views (identities, keys, known hosts) under
+ * a card that shows whether the vault is open. Key management itself (generate, import, export,
+ * FIDO2) stays on the existing key screen, one tap away.
  */
 @Composable
 fun ShelldonKeychainScreen(
     onNavigateToKeys: () -> Unit,
     onNavigateToEditKey: (UUID) -> Unit,
-    onNavigateToKnownHosts: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: KeychainViewModel = hiltViewModel(),
+    knownHostsViewModel: KnownHostsOverviewViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val knownHosts by knownHostsViewModel.rows.collectAsState()
+    var tab by rememberSaveable { mutableStateOf(TAB_IDENTITIES) }
     var editing by remember { mutableStateOf<Identity?>(null) }
     var creating by remember { mutableStateOf(false) }
     var editError by remember { mutableStateOf<Rejection?>(null) }
     var deleting by remember { mutableStateOf<IdentityRow?>(null) }
+    var forgetting by remember { mutableStateOf<KnownHostRow?>(null) }
 
     ShelldonKeychainContent(
         state = state,
+        knownHosts = knownHosts,
+        tab = tab,
+        onTabChange = { tab = it },
         onNewIdentity = {
             editError = null
             creating = true
@@ -90,7 +121,8 @@ fun ShelldonKeychainScreen(
         onDeleteIdentity = { deleting = it },
         onNavigateToKeys = onNavigateToKeys,
         onNavigateToEditKey = onNavigateToEditKey,
-        onNavigateToKnownHosts = onNavigateToKnownHosts,
+        onForgetKnownHost = { forgetting = it },
+        onLockVault = viewModel::lockVault,
         modifier = modifier,
     )
 
@@ -139,22 +171,73 @@ fun ShelldonKeychainScreen(
             },
         )
     }
+
+    forgetting?.let { row ->
+        AlertDialog(
+            onDismissRequest = { forgetting = null },
+            title = { Text(stringResource(R.string.shelldon_known_hosts_forget)) },
+            text = { Text(stringResource(R.string.shelldon_known_hosts_forget_body, row.endpoint)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        knownHostsViewModel.forget(row.knownHost)
+                        forgetting = null
+                    },
+                    modifier = Modifier.testTag("known_host_forget_confirm"),
+                ) {
+                    Text(stringResource(R.string.shelldon_known_hosts_forget))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { forgetting = null }) {
+                    Text(stringResource(R.string.shelldon_cancel))
+                }
+            },
+        )
+    }
 }
 
 @Composable
 internal fun ShelldonKeychainContent(
     state: KeychainUiState,
+    knownHosts: List<KnownHostRow>?,
+    tab: Int,
+    onTabChange: (Int) -> Unit,
     onNewIdentity: () -> Unit,
     onEditIdentity: (Identity) -> Unit,
     onDeleteIdentity: (IdentityRow) -> Unit,
     onNavigateToKeys: () -> Unit,
     onNavigateToEditKey: (UUID) -> Unit,
-    onNavigateToKnownHosts: () -> Unit,
+    onForgetKnownHost: (KnownHostRow) -> Unit,
+    onLockVault: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val tabLabels = listOf(
+        stringResource(R.string.shelldon_identities_title),
+        stringResource(R.string.shelldon_keys_title),
+        stringResource(R.string.shelldon_known_hosts_title),
+    )
+
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
+        floatingActionButton = {
+            when (tab) {
+                TAB_IDENTITIES -> ShelldonNewButton(
+                    description = stringResource(R.string.shelldon_identity_new),
+                    onClick = onNewIdentity,
+                    modifier = Modifier.testTag("identity_new"),
+                )
+
+                TAB_KEYS -> ShelldonNewButton(
+                    description = stringResource(R.string.shelldon_key_new),
+                    onClick = onNavigateToKeys,
+                    modifier = Modifier.testTag("key_new"),
+                )
+
+                else -> Unit
+            }
+        },
     ) { padding ->
         if (state.isLoading) {
             Column(
@@ -173,7 +256,7 @@ internal fun ShelldonKeychainContent(
                     start = 20.dp,
                     end = 20.dp,
                     top = padding.calculateTopPadding() + 8.dp,
-                    bottom = padding.calculateBottomPadding() + 32.dp,
+                    bottom = padding.calculateBottomPadding() + 88.dp,
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -185,108 +268,216 @@ internal fun ShelldonKeychainContent(
                     )
                 }
 
-                // Identities
-                item(key = "identities_header") {
-                    KeychainSectionHeader(
-                        title = stringResource(R.string.shelldon_identities_title),
-                        actionLabel = stringResource(R.string.shelldon_identity_new),
-                        onAction = onNewIdentity,
-                        actionTag = "identity_new",
-                    )
-                }
-                if (state.identities.isEmpty()) {
-                    item(key = "identities_empty") {
-                        HintCard(text = stringResource(R.string.shelldon_identities_hint))
-                    }
-                } else {
-                    items(items = state.identities, key = { "identity_${it.identity.id}" }) { row ->
-                        IdentityCard(
-                            row = row,
-                            onEdit = { onEditIdentity(row.identity) },
-                            onDelete = { onDeleteIdentity(row) },
-                        )
+                state.vault?.takeIf { it.state != VaultState.NO_VAULT }?.let { vault ->
+                    item(key = "vault") {
+                        VaultCard(status = vault, onLock = onLockVault, modifier = Modifier.padding(top = 4.dp))
                     }
                 }
 
-                // Keys
-                item(key = "keys_header") {
-                    KeychainSectionHeader(
-                        title = stringResource(R.string.shelldon_keys_title),
-                        actionLabel = stringResource(R.string.shelldon_keys_manage),
-                        onAction = onNavigateToKeys,
-                        actionTag = "keys_manage",
-                        modifier = Modifier.padding(top = 12.dp),
+                item(key = "tabs") {
+                    ShelldonSegmentedTabs(
+                        labels = tabLabels,
+                        selected = tab,
+                        onSelect = onTabChange,
+                        modifier = Modifier.padding(top = 6.dp),
+                        tagPrefix = "keychain_tab_",
                     )
-                }
-                if (state.keys.isEmpty()) {
-                    item(key = "keys_empty") {
-                        HintCard(text = stringResource(R.string.shelldon_keys_empty))
-                    }
-                } else {
-                    items(items = state.keys, key = { "key_${it.id}" }) { key ->
-                        KeyRow(key = key, onClick = { onNavigateToEditKey(key.id) })
-                    }
                 }
 
-                // Known hosts
-                item(key = "known_hosts_header") {
-                    KeychainSectionHeader(
-                        title = stringResource(R.string.shelldon_known_hosts_title),
-                        modifier = Modifier.padding(top = 12.dp),
+                when (tab) {
+                    TAB_IDENTITIES -> identityItems(
+                        rows = state.identities,
+                        onNew = onNewIdentity,
+                        onEdit = onEditIdentity,
+                        onDelete = onDeleteIdentity,
                     )
-                }
-                item(key = "known_hosts") {
-                    NavigationRow(
-                        icon = Icons.Default.Dns,
-                        text = stringResource(R.string.shelldon_known_hosts_summary, state.knownHostCount),
-                        onClick = onNavigateToKnownHosts,
-                        modifier = Modifier.testTag("known_hosts_row"),
+
+                    TAB_KEYS -> keyItems(
+                        keys = state.keys,
+                        onNew = onNavigateToKeys,
+                        onOpen = onNavigateToEditKey,
                     )
+
+                    else -> knownHostItems(rows = knownHosts, onForget = onForgetKnownHost)
                 }
             }
         }
     }
 }
 
-@Composable
-private fun KeychainSectionHeader(
-    title: String,
-    modifier: Modifier = Modifier,
-    actionLabel: String? = null,
-    onAction: () -> Unit = {},
-    actionTag: String = "",
+private fun LazyListScope.identityItems(
+    rows: List<IdentityRow>,
+    onNew: () -> Unit,
+    onEdit: (Identity) -> Unit,
+    onDelete: (IdentityRow) -> Unit,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f),
+    if (rows.isEmpty()) {
+        item(key = "identities_empty") {
+            ShelldonEmptyState(
+                icon = Icons.Default.Person,
+                title = stringResource(R.string.shelldon_identities_empty_title),
+                body = stringResource(R.string.shelldon_identities_hint),
+            ) {
+                Button(
+                    onClick = onNew,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text(
+                        text = stringResource(R.string.shelldon_identity_new),
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+        }
+        return
+    }
+    item(key = "identities_header") {
+        ShelldonSectionLabel(
+            title = stringResource(R.string.shelldon_identities_title),
+            count = rows.size,
+            modifier = Modifier.padding(top = 10.dp),
         )
-        if (actionLabel != null) {
-            TextButton(onClick = onAction, modifier = Modifier.testTag(actionTag)) {
-                Text(actionLabel)
+    }
+    items(items = rows, key = { "identity_${it.identity.id}" }) { row ->
+        IdentityCard(
+            row = row,
+            onEdit = { onEdit(row.identity) },
+            onDelete = { onDelete(row) },
+        )
+    }
+}
+
+private fun LazyListScope.keyItems(
+    keys: List<Pubkey>,
+    onNew: () -> Unit,
+    onOpen: (UUID) -> Unit,
+) {
+    if (keys.isEmpty()) {
+        item(key = "keys_empty") {
+            ShelldonEmptyState(
+                icon = Icons.Default.Key,
+                title = stringResource(R.string.shelldon_keys_empty_title),
+                body = stringResource(R.string.shelldon_keys_empty_body),
+            ) {
+                Button(
+                    onClick = onNew,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text(
+                        text = stringResource(R.string.shelldon_key_add),
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+        }
+        return
+    }
+    item(key = "keys_header") {
+        ShelldonSectionLabel(
+            title = stringResource(R.string.shelldon_keys_title),
+            count = keys.size,
+            modifier = Modifier.padding(top = 10.dp),
+        )
+    }
+    items(items = keys, key = { "key_${it.id}" }) { key ->
+        KeyCard(key = key, onClick = { onOpen(key.id) })
+    }
+}
+
+private fun LazyListScope.knownHostItems(
+    rows: List<KnownHostRow>?,
+    onForget: (KnownHostRow) -> Unit,
+) {
+    when {
+        rows == null -> item(key = "known_hosts_loading") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        rows.isEmpty() -> item(key = "known_hosts_empty") {
+            ShelldonEmptyState(
+                icon = Icons.Default.Dns,
+                title = stringResource(R.string.shelldon_known_hosts_empty_title),
+                body = stringResource(R.string.shelldon_known_hosts_empty),
+            )
+        }
+
+        else -> {
+            item(key = "known_hosts_header") {
+                ShelldonSectionLabel(
+                    title = stringResource(R.string.shelldon_known_hosts_title),
+                    count = rows.size,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+            items(items = rows, key = { "known_host_${it.knownHost.id}" }) { row ->
+                KnownHostCard(row = row, onForget = { onForget(row) })
             }
         }
     }
 }
 
+/** Whether the vault is open, with the way to close it now. Locking leaves open sessions running. */
 @Composable
-private fun HintCard(text: String) {
+private fun VaultCard(
+    status: VaultStatus,
+    onLock: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val unlocked = status.state == VaultState.UNLOCKED
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = LocalShelldonExtraColors.current.sessionCard,
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("vault_card"),
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(16.dp),
-        )
+        Row(
+            modifier = Modifier.padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            ShelldonQuietTile(icon = Icons.Default.Lock)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(
+                        if (unlocked) R.string.shelldon_keychain_vault_unlocked else R.string.shelldon_keychain_vault_locked,
+                    ),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                val detail = if (unlocked) {
+                    // The vault locks after time spent away from the app, not on a timer while it is open,
+                    // so this says when, not a countdown.
+                    val autoLock = stringResource(R.string.shelldon_keychain_vault_autolock, autoLockLabel(status.autoLockSeconds))
+                    if (status.biometricEnabled) {
+                        stringResource(R.string.shelldon_keychain_vault_biometric) + " · " + autoLock
+                    } else {
+                        autoLock
+                    }
+                } else {
+                    stringResource(R.string.shelldon_keychain_vault_locked_sub)
+                }
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (unlocked) {
+                FilledTonalButton(onClick = onLock, modifier = Modifier.testTag("vault_lock")) {
+                    Text(stringResource(R.string.shelldon_keychain_vault_lock))
+                }
+            }
+        }
     }
 }
 
@@ -298,66 +489,14 @@ private fun IdentityCard(
     modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    Surface(
+    val extras = LocalShelldonExtraColors.current
+    ShelldonRowCard(
         onClick = onEdit,
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("identity_${row.identity.id}"),
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp),
-            ) {
-                Text(
-                    text = row.identity.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val keyPart = when {
-                    row.keyName != null -> row.keyName
-                    row.keyMissing -> stringResource(R.string.shelldon_identity_key_missing)
-                    else -> stringResource(R.string.shelldon_identity_key_none)
-                }
-                Text(
-                    text = "${row.identity.username} · $keyPart",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (row.keyMissing) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = if (row.hostCount + row.groupCount == 0) {
-                        stringResource(R.string.shelldon_identity_unused)
-                    } else {
-                        stringResource(R.string.shelldon_identity_usage, row.hostCount, row.groupCount)
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (row.keyMissing) {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = stringResource(R.string.shelldon_identity_key_missing),
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+        modifier = modifier.testTag("identity_${row.identity.id}"),
+        tile = {
+            ShelldonTile(icon = Icons.Default.Person, color = tileColorFor(row.identity.id))
+        },
+        trailing = {
             IconButton(onClick = { showMenu = true }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
@@ -382,76 +521,147 @@ private fun IdentityCard(
                     )
                 }
             }
+        },
+    ) {
+        Text(
+            text = row.identity.name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        val keyPart = row.keyName ?: stringResource(R.string.shelldon_identity_row_no_key)
+        Text(
+            text = if (row.keyMissing) row.identity.username else "${row.identity.username} · $keyPart",
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row(
+            modifier = Modifier.padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (row.keyMissing) {
+                ShelldonBadge(
+                    text = stringResource(R.string.shelldon_identity_key_missing),
+                    colors = extras.legacy,
+                    icon = Icons.Default.Warning,
+                )
+            }
+            if (row.keyStorage.isHardwareBacked) {
+                ShelldonBadge(text = stringResource(R.string.shelldon_badge_hardware_key), colors = extras.mosh)
+            }
+            if (row.hostCount + row.groupCount == 0) {
+                ShelldonBadge(text = stringResource(R.string.shelldon_identity_unused), colors = extras.neutral)
+            } else {
+                if (row.hostCount > 0) {
+                    ShelldonBadge(
+                        text = pluralStringResource(R.plurals.shelldon_identity_used_hosts, row.hostCount, row.hostCount),
+                        colors = extras.neutral,
+                    )
+                }
+                if (row.groupCount > 0) {
+                    ShelldonBadge(
+                        text = pluralStringResource(R.plurals.shelldon_identity_used_folders, row.groupCount, row.groupCount),
+                        colors = extras.neutral,
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun KeyRow(
+private fun KeyCard(
     key: Pubkey,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    NavigationRow(
-        icon = Icons.Default.Key,
-        text = key.nickname,
-        supporting = key.type,
+    ShelldonRowCard(
         onClick = onClick,
         modifier = modifier.testTag("key_${key.id}"),
-    )
-}
-
-/** A tappable row with an icon, a line of text and a chevron. */
-@Composable
-private fun NavigationRow(
-    icon: ImageVector,
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    supporting: String? = null,
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp),
-            ) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (supporting != null) {
-                    Text(
-                        text = supporting,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
+        tile = { ShelldonQuietTile(icon = Icons.Default.Key) },
+        trailing = {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 10.dp),
             )
+        },
+    ) {
+        Text(
+            text = key.nickname,
+            style = MaterialTheme.typography.titleSmall.copy(fontFamily = FontFamily.Monospace),
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = keySubtitle(key),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** The key type, and where the key lives or when it was added. */
+@Composable
+private fun keySubtitle(key: Pubkey): String {
+    val context = LocalContext.current
+    return when (key.storageType) {
+        KeyStorageType.FIDO2_RESIDENT_KEY -> stringResource(R.string.shelldon_key_subtitle_fido2, key.type)
+
+        KeyStorageType.PIV -> stringResource(R.string.shelldon_key_subtitle_piv, key.type)
+
+        KeyStorageType.ANDROID_KEYSTORE -> stringResource(R.string.shelldon_key_subtitle_keystore, key.type)
+
+        KeyStorageType.EXPORTABLE -> if (key.createdDate > 0) {
+            val added = DateUtils.formatDateTime(context, key.createdDate, DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_ABBREV_MONTH)
+            stringResource(R.string.shelldon_key_subtitle_added, key.type, added)
+        } else {
+            key.type
         }
+    }
+}
+
+@Composable
+private fun KnownHostCard(
+    row: KnownHostRow,
+    onForget: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ShelldonRowCard(
+        modifier = modifier.testTag("known_host_${row.knownHost.id}"),
+        tile = { ShelldonQuietTile(icon = Icons.Default.Dns) },
+        trailing = {
+            IconButton(onClick = onForget) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.shelldon_known_hosts_forget),
+                )
+            }
+        },
+    ) {
+        Text(
+            text = row.endpoint,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = row.knownHost.hostKeyAlgo,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = row.fingerprint,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

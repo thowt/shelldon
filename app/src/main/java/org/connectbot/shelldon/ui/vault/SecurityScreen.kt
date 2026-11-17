@@ -295,7 +295,7 @@ private fun SwitchRow(
 }
 
 @Composable
-private fun autoLockLabel(seconds: Int): String = stringResource(
+internal fun autoLockLabel(seconds: Int): String = stringResource(
     when (seconds) {
         0 -> R.string.shelldon_security_autolock_0
         60 -> R.string.shelldon_security_autolock_60

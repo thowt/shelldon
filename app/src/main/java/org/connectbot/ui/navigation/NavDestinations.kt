@@ -28,7 +28,6 @@ object NavDestinations {
     const val TUNNELS = "tunnels"
     const val SNIPPETS = "snippets"
     const val SFTP = "sftp"
-    const val KEYCHAIN_KNOWN_HOSTS = "known_hosts_overview"
     const val SECURITY = "shelldon_security"
     const val GENERATE_PUBKEY = "generate_pubkey"
     const val PUBKEY_EDITOR = "pubkey_editor"
