@@ -166,7 +166,9 @@ fun ConnectBotNavHost(
 
             composable(NavDestinations.KEYCHAIN) {
                 ShelldonKeychainScreen(
-                    onNavigateToKeys = { navController.navigateSafely(NavDestinations.PUBKEY_LIST) },
+                    onNavigateToGenerateKey = { navController.navigateSafely(NavDestinations.GENERATE_PUBKEY) },
+                    onNavigateToImportFido2 = { navController.navigateSafely(NavDestinations.IMPORT_FIDO2) },
+                    onNavigateToManageKeys = { navController.navigateSafely(NavDestinations.PUBKEY_LIST) },
                     onNavigateToEditKey = { keyId -> navController.navigateSafely("${NavDestinations.PUBKEY_EDITOR}/$keyId") },
                 )
             }

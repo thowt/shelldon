@@ -161,6 +161,17 @@
     <string name="shelldon_keys_empty_body">Generate or import a key to sign in without a password.</string>
     <string name="shelldon_key_new">New key</string>
     <string name="shelldon_key_add">Add a key</string>
+    <string name="shelldon_keys_manage">Manage</string>
+    <string name="shelldon_key_add_generate">Generate a new key</string>
+    <string name="shelldon_key_add_generate_sub">Create a key pair on this phone</string>
+    <string name="shelldon_key_add_file">Import from a file</string>
+    <string name="shelldon_key_add_file_sub">OpenSSH or PEM, passphrase-protected is fine</string>
+    <string name="shelldon_key_add_clipboard">Paste from clipboard</string>
+    <string name="shelldon_key_add_clipboard_sub">A private key you copied from somewhere</string>
+    <string name="shelldon_key_add_fido2">FIDO2 security key</string>
+    <string name="shelldon_key_add_fido2_sub">Use a key that stays on your YubiKey or similar</string>
+    <string name="shelldon_key_add_piv">YubiKey PIV</string>
+    <string name="shelldon_key_add_piv_sub">Use a certificate slot over NFC or USB</string>
     <string name="shelldon_key_subtitle_added">%1$s \u00b7 added %2$s</string>
     <string name="shelldon_key_subtitle_fido2">%1$s \u00b7 FIDO2 security key</string>
     <string name="shelldon_key_subtitle_piv">%1$s \u00b7 PIV smart card</string>

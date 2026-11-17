@@ -39,6 +39,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -85,12 +87,14 @@ private const val TAB_KNOWN_HOSTS = 2
 
 /**
  * The Keychain tab: everything that logs you in, in three views (identities, keys, known hosts) under
- * a card that shows whether the vault is open. Key management itself (generate, import, export,
- * FIDO2) stays on the existing key screen, one tap away.
+ * a card that shows whether the vault is open. "New" on the Keys tab opens a sheet with every way to add
+ * a key; copying, exporting and deleting keys stays on the key list behind "Manage".
  */
 @Composable
 fun ShelldonKeychainScreen(
-    onNavigateToKeys: () -> Unit,
+    onNavigateToGenerateKey: () -> Unit,
+    onNavigateToImportFido2: () -> Unit,
+    onNavigateToManageKeys: () -> Unit,
     onNavigateToEditKey: (UUID) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: KeychainViewModel = hiltViewModel(),
@@ -104,6 +108,8 @@ fun ShelldonKeychainScreen(
     var editError by remember { mutableStateOf<Rejection?>(null) }
     var deleting by remember { mutableStateOf<IdentityRow?>(null) }
     var forgetting by remember { mutableStateOf<KnownHostRow?>(null) }
+    var addingKey by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     ShelldonKeychainContent(
         state = state,
@@ -119,11 +125,21 @@ fun ShelldonKeychainScreen(
             editing = it
         },
         onDeleteIdentity = { deleting = it },
-        onNavigateToKeys = onNavigateToKeys,
+        onAddKey = { addingKey = true },
+        onManageKeys = onNavigateToManageKeys,
         onNavigateToEditKey = onNavigateToEditKey,
         onForgetKnownHost = { forgetting = it },
         onLockVault = viewModel::lockVault,
+        snackbarHostState = snackbarHostState,
         modifier = modifier,
+    )
+
+    AddKeyHost(
+        sheetVisible = addingKey,
+        onDismissSheet = { addingKey = false },
+        onGenerate = onNavigateToGenerateKey,
+        onImportFido2 = onNavigateToImportFido2,
+        onMessage = { message -> snackbarHostState.showSnackbar(message) },
     )
 
     if (creating || editing != null) {
@@ -206,11 +222,13 @@ internal fun ShelldonKeychainContent(
     onNewIdentity: () -> Unit,
     onEditIdentity: (Identity) -> Unit,
     onDeleteIdentity: (IdentityRow) -> Unit,
-    onNavigateToKeys: () -> Unit,
+    onAddKey: () -> Unit,
+    onManageKeys: () -> Unit,
     onNavigateToEditKey: (UUID) -> Unit,
     onForgetKnownHost: (KnownHostRow) -> Unit,
     onLockVault: () -> Unit,
     modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     val tabLabels = listOf(
         stringResource(R.string.shelldon_identities_title),
@@ -221,6 +239,7 @@ internal fun ShelldonKeychainContent(
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             when (tab) {
                 TAB_IDENTITIES -> ShelldonNewButton(
@@ -231,7 +250,7 @@ internal fun ShelldonKeychainContent(
 
                 TAB_KEYS -> ShelldonNewButton(
                     description = stringResource(R.string.shelldon_key_new),
-                    onClick = onNavigateToKeys,
+                    onClick = onAddKey,
                     modifier = Modifier.testTag("key_new"),
                 )
 
@@ -294,7 +313,8 @@ internal fun ShelldonKeychainContent(
 
                     TAB_KEYS -> keyItems(
                         keys = state.keys,
-                        onNew = onNavigateToKeys,
+                        onNew = onAddKey,
+                        onManage = onManageKeys,
                         onOpen = onNavigateToEditKey,
                     )
 
@@ -351,6 +371,7 @@ private fun LazyListScope.identityItems(
 private fun LazyListScope.keyItems(
     keys: List<Pubkey>,
     onNew: () -> Unit,
+    onManage: () -> Unit,
     onOpen: (UUID) -> Unit,
 ) {
     if (keys.isEmpty()) {
@@ -379,6 +400,14 @@ private fun LazyListScope.keyItems(
             title = stringResource(R.string.shelldon_keys_title),
             count = keys.size,
             modifier = Modifier.padding(top = 10.dp),
+            action = {
+                TextButton(
+                    onClick = onManage,
+                    modifier = Modifier.testTag("keys_manage"),
+                ) {
+                    Text(stringResource(R.string.shelldon_keys_manage))
+                }
+            },
         )
     }
     items(items = keys, key = { "key_${it.id}" }) { key ->

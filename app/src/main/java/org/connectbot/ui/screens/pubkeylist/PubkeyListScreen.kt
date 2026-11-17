@@ -909,7 +909,7 @@ private fun PubkeyDeleteDialog(
 }
 
 @Composable
-private fun NicknameConfirmationDialog(
+internal fun NicknameConfirmationDialog(
     initialNickname: String,
     isSaving: Boolean,
     error: String?,
@@ -935,7 +935,7 @@ private fun NicknameConfirmationDialog(
 }
 
 @Composable
-private fun ImportPasswordDialog(
+internal fun ImportPasswordDialog(
     keyType: String,
     initialNickname: String,
     onDismiss: () -> Unit,
@@ -1063,7 +1063,7 @@ private fun ImportPasswordDialog(
 }
 
 @Composable
-private fun ImportFromClipboardDialog(
+internal fun ImportFromClipboardDialog(
     onDismiss: () -> Unit,
     onImport: (String) -> Unit,
 ) {

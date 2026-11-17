@@ -150,12 +150,13 @@ internal fun ShelldonRowCard(
     }
 }
 
-/** "IDENTITIES" on the left, a count on the right. */
+/** "IDENTITIES" on the left, a count and an optional [action] on the right. */
 @Composable
 internal fun ShelldonSectionLabel(
     title: String,
     modifier: Modifier = Modifier,
     count: Int? = null,
+    action: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -168,12 +169,17 @@ internal fun ShelldonSectionLabel(
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (count != null) {
-            Text(
-                text = count.toString(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        if (count != null || action != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (count != null) {
+                    Text(
+                        text = count.toString(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                action?.invoke()
+            }
         }
     }
 }

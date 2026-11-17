@@ -510,8 +510,14 @@ Differences from the canvas that are on purpose:
   while it is open, so the card says "Auto-lock · After 5 minutes away".
 - **No password identities** ("root · password" in the canvas). Identity passwords need a schema change and
   vault sealing and were left out of round 2. Still a fine-tuning candidate, and the owner's call.
-- The Keys tab's "New" opens the existing key screen (generate, import, FIDO2 live there), one tap more
-  than the canvas implies. Segments are 40 dp high, not 36, for the touch target.
+- Segments are 40 dp high, not 36, for the touch target.
+- **Adding a key.** The first cut of the parity pass sent "New" on the Keys tab to the old Pubkeys screen,
+  which has its own "+" menu: three steps to add a key, which the owner rightly called out. "New" (and the
+  empty-state button) now opens a bottom sheet with the five ways to add a key (generate, file, clipboard,
+  FIDO2, YubiKey PIV). It runs on the same `PubkeyListViewModel` and import dialogs as the old screen, so
+  a key imported here behaves identically. Copy, export, delete and load/unload still live on the old
+  Pubkeys screen, now reached through "Manage" on the Keys list. Moving those into the rows (and retiring
+  that screen, as was done for Known hosts) is a fine-tuning candidate.
 
 Not verified: none of this is compiled or seen on a phone yet. ktlint is clean and a name-resolution check
 was run by hand; the CI run is the first compile.
