@@ -1,0 +1,95 @@
+name: Bug report
+description: Something does not work as it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **A security problem is not a bug report**: use the private link on the
+        "new issue" page instead (see SECURITY.md).
+
+        **Never paste private keys, passwords, tokens or full unredacted logs.** Replace host names and
+        user names if they are private.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open '...'
+        2. Tap '...'
+        3. See the problem
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Settings > About, or the name of the APK you installed.
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: "Pixel 10 Pro, Android 17"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Connection type
+      options:
+        - SSH
+        - SFTP
+        - Mosh
+        - Telnet
+        - Port forward / tunnel
+        - Not about a connection
+    validations:
+      required: true
+
+  - type: input
+    id: server
+    attributes:
+      label: Server software and version
+      description: If it is about a connection. For old or unusual servers this is the most useful field.
+      placeholder: "OpenSSH 9.6 on Debian 12, or Cisco IOS 12.2"
+    validations:
+      required: false
+
+  - type: input
+    id: auth
+    attributes:
+      label: Key type and login method
+      description: For example Ed25519 key, RSA 2048 key, password, FIDO2 key, YubiKey PIV.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error messages or logs
+      description: Only what is needed, with secrets removed.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: secrets
+    attributes:
+      label: Before you send
+      options:
+        - label: I removed keys, passwords, tokens and private host names from everything I pasted.
+          required: true

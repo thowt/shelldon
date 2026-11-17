@@ -1,0 +1,166 @@
+name: Security
+
+# Two scans that need no build, so they also run for docs-only changes:
+#   secrets : gitleaks over the whole git history on every push and pull request
+#   osv     : OSV-Scanner looks for known vulnerabilities in two lists, also once a week, because new
+#             advisories appear for old dependencies without any change in this repository:
+#               shipped : the libraries on the release runtime classpath, i.e. what is inside the APK.
+#                         This fails the check; reviewed exceptions go in osv-scanner.toml with a reason
+#               tooling : everything in gradle/verification-metadata.xml, which also holds the Android
+#                         Gradle plugin, lint, test and formatting tools. Shown in the run summary and
+#                         as a warning, never fails the check, because those versions are chosen by
+#                         the tools and not by this repository
+# gitleaks and OSV-Scanner are downloaded as release binaries and checked against a SHA-256 written here, so a
+# replaced release asset fails the run instead of being executed. No third-party action runs, no
+# secret is read, the token is read-only. To update a tool: change the version and the checksum
+# (taken from the release's own checksum file) together.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  schedule:
+    - cron: '41 5 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scan (gitleaks)
+    # The weekly run is about new advisories, not new commits.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar xzf gitleaks.tar.gz gitleaks
+          ./gitleaks version
+
+      - name: Scan the history
+        # Findings are redacted in the log. Reviewed false positives are listed by exact fingerprint
+        # in .gitleaksignore.
+        run: '"$RUNNER_TEMP/gitleaks" git --no-banner --redact --verbose .'
+
+  osv:
+    name: Known vulnerabilities (OSV-Scanner)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OSV_VERSION: 2.5.1
+      OSV_SHA256: f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be
+    steps:
+      - name: Checkout (full history and tags, needed for the version code)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Fetch the upstream tag the version code is derived from
+        run: git fetch --no-tags https://github.com/connectbot/connectbot.git 'refs/tags/v1.12.0-alpha:refs/tags/v1.12.0-alpha'
+
+      - name: Install OSV-Scanner
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o osv-scanner "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SHA256}  osv-scanner" | sha256sum -c -
+          chmod +x osv-scanner
+          ./osv-scanner --version
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: zulu
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref_name != github.event.repository.default_branch }}
+
+      - name: Delete old Android SDK cmdline-tools
+        run: rm -rf "$ANDROID_HOME/cmdline-tools/latest"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: 'cmdline-tools;latest platform-tools'
+
+      - name: List the libraries that ship in the release APK
+        # Resolves the release runtime classpath only, nothing is compiled. The init script lives in
+        # .github/scripts and is not part of the build. Written in the format of a Gradle lockfile so
+        # OSV-Scanner reads it natively.
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/shipped"
+          SHIPPED_DEPS_OUT="$RUNNER_TEMP/shipped/libs.txt" ./gradlew --console=plain --max-workers=2 \
+            --no-configuration-cache \
+            --init-script .github/scripts/shipped-deps.init.gradle :app:shippedDependencies
+          {
+            echo "# Resolved from ossReleaseRuntimeClasspath by shipped-deps.init.gradle"
+            sed 's/$/=ossReleaseRuntimeClasspath/' "$RUNNER_TEMP/shipped/libs.txt"
+            echo "empty="
+          } > "$RUNNER_TEMP/shipped/gradle.lockfile"
+          echo "Shipped libraries: $(wc -l < "$RUNNER_TEMP/shipped/libs.txt")"
+          cat "$RUNNER_TEMP/shipped/libs.txt"
+          echo "::group::Who brings each library in (library <- libraries that ask for it)"
+          cat "$RUNNER_TEMP/shipped/libs.txt.parents"
+          echo "::endgroup::"
+
+      - name: Scan what ships (fails on findings)
+        # Exit status: 0 nothing found, 1 vulnerabilities found, anything else the scan itself failed.
+        # A finding that was reviewed and cannot be fixed yet is listed in osv-scanner.toml with a
+        # reason and an expiry date.
+        run: |
+          set -eu
+          "$RUNNER_TEMP/osv-scanner" scan source --config osv-scanner.toml -L "$RUNNER_TEMP/shipped/gradle.lockfile"
+
+      - name: Scan the build tooling too (report only)
+        # Same scan over gradle/verification-metadata.xml: everything the build downloads, including
+        # the tools that build, lint and test the app. Findings here are fixed by updating the tool
+        # (Gradle plugin, AGP, ...), so they are listed for review but do not fail the run.
+        if: always()
+        run: |
+          set -u
+          if [ ! -f gradle/verification-metadata.xml ]; then
+            echo "::error::gradle/verification-metadata.xml is missing. Run the Dependency metadata workflow."
+            exit 1
+          fi
+          code=0
+          "$RUNNER_TEMP/osv-scanner" scan source --config osv-scanner.toml --format markdown \
+            --output-file "$RUNNER_TEMP/tooling.md" -L gradle/verification-metadata.xml || code=$?
+          case "$code" in
+            0) echo "No known vulnerabilities in the build tooling." ;;
+            1)
+              {
+                echo "### Build tooling: known vulnerabilities (report only)"
+                echo
+                echo "These libraries are used by the build, lint or test tools and are not inside the APK. They are fixed by updating the tool that brings them in."
+                echo
+                cat "$RUNNER_TEMP/tooling.md"
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning::Known vulnerabilities in build tooling, see the run summary"
+              ;;
+            *) echo "::error::OSV-Scanner failed with exit code $code"; exit "$code" ;;
+          esac

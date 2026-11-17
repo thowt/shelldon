@@ -84,7 +84,7 @@ fun ConnectBotApp(
                         modifier = modifier,
                     )
                 } else {
-                    VaultGate(makingShortcut = makingShortcut, modifier = modifier) {
+                    VaultGate(makingShortcut = makingShortcut) {
                         CompositionLocalProvider(LocalTerminalManager provides appUiState.terminalManager) {
                             ShelldonShell(
                                 navController = navController,
@@ -96,7 +96,7 @@ fun ConnectBotApp(
                                     makingShortcut = makingShortcut,
                                     onSelectShortcut = onSelectShortcut,
                                     onNavigateToConsole = onNavigateToConsole,
-                                    modifier = modifier.then(shellModifier),
+                                    modifier = shellModifier,
                                 )
                             }
                         }

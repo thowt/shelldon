@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+@file:Suppress("NewApi") // JVM unit tests run on the desktop JDK, not on a device
+
 package org.connectbot.shelldon.container
 
 import kotlinx.coroutines.runBlocking

@@ -165,6 +165,7 @@ class HostEditorViewModel @Inject constructor(
                     _uiState.update { it.copy(tagIds = (it.tagIds + outcome.value.id).distinct(), hasUnsavedChanges = true) }
                     onResult(null)
                 }
+
                 is Outcome.Rejected -> onResult(outcome.reason)
             }
         }

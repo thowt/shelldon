@@ -180,11 +180,13 @@ private fun LoginPreview(
     val resolved = login.identity
     val identityLine = when (resolved.source) {
         IdentitySource.HOST -> stringResource(R.string.shelldon_login_preview_from_host, resolved.identity?.name.orEmpty())
+
         IdentitySource.GROUP -> stringResource(
             R.string.shelldon_login_preview_from_group,
             resolved.identity?.name.orEmpty(),
             resolved.group?.name.orEmpty(),
         )
+
         IdentitySource.NONE -> if (identityId == EntityIds.NONE || resolved.group != null) {
             stringResource(R.string.shelldon_login_preview_opted_out)
         } else {

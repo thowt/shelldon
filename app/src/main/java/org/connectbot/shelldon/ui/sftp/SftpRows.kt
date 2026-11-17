@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -160,6 +161,7 @@ internal fun TransferCard(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val active = transfer.status == TransferStatus.RUNNING || transfer.status == TransferStatus.QUEUED
     Surface(
         modifier = modifier
@@ -214,7 +216,7 @@ internal fun TransferCard(
 
                     TransferStatus.FAILED -> Text(
                         text = buildString {
-                            append(transfer.problem?.let { context.getString(it) } ?: context.getString(R.string.shelldon_sftp_problem_other))
+                            append(transfer.problem?.let { resources.getString(it) } ?: resources.getString(R.string.shelldon_sftp_problem_other))
                             if (transfer.problemDetail.isNotEmpty()) append(" (").append(transfer.problemDetail).append(')')
                         },
                         style = MaterialTheme.typography.labelSmall,

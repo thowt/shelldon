@@ -76,8 +76,12 @@ fun VaultGate(
 ) {
     val state by viewModel.vaultState.collectAsState()
     val ui by viewModel.uiState.collectAsState()
+    // One call site for [content]: a slot reused in several branches would lose its state when the
+    // branch changes.
+    val showContent = makingShortcut ||
+        (state != VaultState.NO_VAULT && state != VaultState.LOCKED && !ui.offerBiometric)
     when {
-        makingShortcut -> content()
+        showContent -> content()
 
         state == VaultState.NO_VAULT -> VaultSetupScreen(
             ui = ui,
@@ -94,14 +98,12 @@ fun VaultGate(
             modifier = modifier,
         )
 
-        ui.offerBiometric -> BiometricOfferScreen(
+        else -> BiometricOfferScreen(
             begin = viewModel::beginBiometricEnable,
             finish = viewModel::finishBiometricEnable,
             onSkip = viewModel::dismissBiometricOffer,
             modifier = modifier,
         )
-
-        else -> content()
     }
 }
 
@@ -283,7 +285,7 @@ internal fun ResetVaultDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 }
 
 @Composable
-private fun VaultScaffold(modifier: Modifier, content: @Composable () -> Unit) {
+private fun VaultScaffold(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box(modifier = Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.Center) {
             Column(
@@ -305,17 +307,22 @@ private fun VaultTitle(
     body: String?,
     icon: ImageVector = Icons.Default.Lock,
 ) {
-    Icon(icon, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
-    Text(text = title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
-    if (body != null) {
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+        Text(text = title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+        if (body != null) {
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
     }
-    Spacer(Modifier.height(8.dp))
 }
 
 @Composable

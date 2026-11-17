@@ -18,3 +18,8 @@ Third-party libraries keep their own licences. This includes the SSH library
 (sshlib/cbssh, Apache-2.0) and the terminal library (termlib), both from the
 ConnectBot organisation, plus the other dependencies listed in
 gradle/libs.versions.toml.
+
+The Mosh transport bundles prebuilt Mosh binaries (GPL-3.0-or-later with an
+OpenSSL exception) from https://github.com/connectbot/mosh4android. They sit in
+their own Gradle module. THIRD_PARTY.md describes them and the licensing
+question that is still open.

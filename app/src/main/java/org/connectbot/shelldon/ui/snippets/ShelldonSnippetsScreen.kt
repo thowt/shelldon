@@ -39,7 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -77,7 +77,7 @@ fun ShelldonSnippetsScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val terminalManager = LocalTerminalManager.current
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
 
@@ -95,7 +95,7 @@ fun ShelldonSnippetsScreen(
 
     fun send(snippet: Snippet, bridge: TerminalBridge) {
         bridge.sendKeyboardMacro(snippet.document)
-        say(context.getString(R.string.shelldon_snippet_sent, snippet.name, bridge.displayName()))
+        say(resources.getString(R.string.shelldon_snippet_sent, snippet.name, bridge.displayName()))
     }
 
     fun sendTo(snippet: Snippet, bridge: TerminalBridge) {
@@ -105,7 +105,7 @@ fun ShelldonSnippetsScreen(
     fun requestSend(snippet: Snippet) {
         val sessions = terminalManager?.bridgesFlow?.value.orEmpty().filter { it.isSessionOpen }
         when (sessions.size) {
-            0 -> say(context.getString(R.string.shelldon_snippet_no_session))
+            0 -> say(resources.getString(R.string.shelldon_snippet_no_session))
             1 -> sendTo(snippet, sessions.single())
             else -> pickingSession = snippet to sessions
         }
@@ -255,13 +255,13 @@ fun ShelldonSnippetsScreen(
                             when (result) {
                                 is SnippetResult.InUse -> say(
                                     if (result.users.isEmpty()) {
-                                        context.getString(R.string.shelldon_snippet_in_use_unknown)
+                                        resources.getString(R.string.shelldon_snippet_in_use_unknown)
                                     } else {
-                                        context.getString(R.string.shelldon_snippet_in_use, result.users.joinToString(", "))
+                                        resources.getString(R.string.shelldon_snippet_in_use, result.users.joinToString(", "))
                                     },
                                 )
 
-                                is SnippetResult.Rejected -> say(context.getString(result.reason.messageRes()))
+                                is SnippetResult.Rejected -> say(resources.getString(result.reason.messageRes()))
 
                                 is SnippetResult.Ok -> {
                                     creating = false

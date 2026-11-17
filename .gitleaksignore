@@ -1,0 +1,9 @@
+# Reviewed false positives of the "private-key" rule: each line is code that mentions the
+# "-----BEGIN ... PRIVATE KEY-----" marker as a string (a PEM parser), not a key.
+# Every entry is an exact commit:file:rule:line fingerprint, so a real key in the same files
+# would still be reported. Checked 2026-11-17 against the 5 findings of gitleaks 8.30.1.
+f0d1ad78253e5f40cc1d8bb25ea5356e380e241b:app/src/main/java/org/connectbot/ui/screens/pubkeylist/PubkeyListViewModel.kt:private-key:782
+68de19f2fb279799f5d82673969d4b46296506a2:app/src/main/java/org/connectbot/util/PubkeyUtils.kt:private-key:441
+d8e49ec3f297f9ba0991762eb2cddbc00ed634d2:src/com/trilead/ssh2/crypto/PEMDecoder.java:private-key:163
+dfa41d090260eed63f3d8510571a2f6236a5ff45:src/com/trilead/ssh2/Connection.java:private-key:399
+dfa41d090260eed63f3d8510571a2f6236a5ff45:src/com/trilead/ssh2/crypto/PEMDecoder.java:private-key:142
