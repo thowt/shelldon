@@ -32,8 +32,10 @@ import androidx.navigation.navArgument
 import org.connectbot.data.EntityIds
 import org.connectbot.data.entity.Host
 import org.connectbot.shelldon.ui.hostlist.ShelldonHostListScreen
-import org.connectbot.shelldon.ui.keychain.KnownHostsOverviewScreen
 import org.connectbot.shelldon.ui.keychain.ShelldonKeychainScreen
+import org.connectbot.shelldon.ui.sftp.SftpScreen
+import org.connectbot.shelldon.ui.snippets.ShelldonSnippetsScreen
+import org.connectbot.shelldon.ui.tunnels.ShelldonTunnelsScreen
 import org.connectbot.shelldon.ui.vault.SecurityScreen
 import org.connectbot.ui.screens.colors.ColorsScreen
 import org.connectbot.ui.screens.colors.PaletteEditorScreen
@@ -121,6 +123,9 @@ fun ConnectBotNavHost(
                     onNavigateToPortForwards = { hostIdForPortForwards ->
                         navController.navigateSafely("${NavDestinations.PORT_FORWARD_LIST}/$hostIdForPortForwards")
                     },
+                    onNavigateToFiles = { hostIdForFiles ->
+                        navController.navigateSafely("${NavDestinations.SFTP}/$hostIdForFiles")
+                    },
                     onNavigateToSettings = {
                         navController.navigateSafely(NavDestinations.SETTINGS_HIGHLIGHT_CONN_PERSIST)
                     },
@@ -161,14 +166,34 @@ fun ConnectBotNavHost(
 
             composable(NavDestinations.KEYCHAIN) {
                 ShelldonKeychainScreen(
-                    onNavigateToKeys = { navController.navigateSafely(NavDestinations.PUBKEY_LIST) },
+                    onNavigateToGenerateKey = { navController.navigateSafely(NavDestinations.GENERATE_PUBKEY) },
+                    onNavigateToImportFido2 = { navController.navigateSafely(NavDestinations.IMPORT_FIDO2) },
+                    onNavigateToManageKeys = { navController.navigateSafely(NavDestinations.PUBKEY_LIST) },
                     onNavigateToEditKey = { keyId -> navController.navigateSafely("${NavDestinations.PUBKEY_EDITOR}/$keyId") },
-                    onNavigateToKnownHosts = { navController.navigateSafely(NavDestinations.KEYCHAIN_KNOWN_HOSTS) },
                 )
             }
 
-            composable(NavDestinations.KEYCHAIN_KNOWN_HOSTS) {
-                KnownHostsOverviewScreen(onNavigateBack = { navController.safePopBackStack() })
+            composable(NavDestinations.TUNNELS) {
+                ShelldonTunnelsScreen(
+                    onConnect = onNavigateToConsole,
+                    onEditForward = { hostId, forwardId ->
+                        navController.navigateSafely("${NavDestinations.PORT_FORWARD_EDITOR}/$hostId/${forwardId ?: EntityIds.NONE}")
+                    },
+                    onManageHost = { hostId ->
+                        navController.navigateSafely("${NavDestinations.PORT_FORWARD_LIST}/$hostId")
+                    },
+                )
+            }
+
+            composable(NavDestinations.SNIPPETS) {
+                ShelldonSnippetsScreen()
+            }
+
+            composable(
+                route = "${NavDestinations.SFTP}/{${NavArgs.HOST_ID}}",
+                arguments = listOf(navArgument(NavArgs.HOST_ID) { type = NavType.StringType }),
+            ) {
+                SftpScreen(onNavigateBack = { navController.safePopBackStack() })
             }
 
             composable(NavDestinations.PUBKEY_LIST) {

@@ -90,6 +90,9 @@ class Mosh : SSH {
 
     override fun canForwardPorts(): Boolean = false
 
+    // After the bootstrap the SSH connection is gone; Mosh has no file channel.
+    override fun canOpenSftp(): Boolean = false
+
     override suspend fun finishConnection() {
         authenticated = true
     }

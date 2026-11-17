@@ -39,6 +39,12 @@ interface PortForwardDao {
     fun observeByHost(hostId: UUID): Flow<List<PortForward>>
 
     /**
+     * Observe every port forward of every host, for the Tunnels tab.
+     */
+    @Query("SELECT * FROM port_forwards ORDER BY host_id, nickname ASC")
+    fun observeAll(): Flow<List<PortForward>>
+
+    /**
      * Get all port forwards for a specific host (one-time query).
      */
     @Query("SELECT * FROM port_forwards WHERE host_id = :hostId ORDER BY nickname ASC")

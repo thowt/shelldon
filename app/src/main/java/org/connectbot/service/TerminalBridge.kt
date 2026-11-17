@@ -1402,6 +1402,9 @@ class TerminalBridge {
      */
     fun canFowardPorts(): Boolean = transport?.canForwardPorts() ?: false
 
+    /** Whether a file channel (SFTP) can be opened on this session right now. */
+    fun canOpenSftp(): Boolean = transport?.canOpenSftp() ?: false
+
     /**
      * Adds the [PortForward] to the list.
      * @param portForward the port forward bean to add

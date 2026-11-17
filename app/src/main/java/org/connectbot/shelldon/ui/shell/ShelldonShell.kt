@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -38,8 +40,11 @@ internal enum class ShellTab(
     @param:StringRes val label: Int,
     val icon: ImageVector,
 ) {
+    // The order of the design: what you connect to, what logs you in, what you send, what you forward.
     HOSTS(NavDestinations.HOST_LIST, R.string.shelldon_tab_hosts, Icons.Default.Dns),
     KEYCHAIN(NavDestinations.KEYCHAIN, R.string.shelldon_tab_keychain, Icons.Default.Key),
+    SNIPPETS(NavDestinations.SNIPPETS, R.string.shelldon_tab_snippets, Icons.Default.Code),
+    TUNNELS(NavDestinations.TUNNELS, R.string.shelldon_tab_tunnels, Icons.Default.SwapHoriz),
     SETTINGS(NavDestinations.SETTINGS, R.string.shelldon_tab_settings, Icons.Default.Settings),
     ;
 
