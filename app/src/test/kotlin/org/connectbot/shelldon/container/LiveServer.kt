@@ -87,7 +87,7 @@ internal object LiveServer {
  * Robolectric leaves Conscrypt first in the shared JVM, and these tests are about commands and files,
  * so they run on the JDK's own providers (see [OpenSshContainerTest]).
  */
-internal class JdkProvidersRule : ExternalResource() {
+class JdkProvidersRule : ExternalResource() {
     private var removed: List<Pair<Int, Provider>> = emptyList()
 
     override fun before() {
