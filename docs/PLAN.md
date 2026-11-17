@@ -558,11 +558,20 @@ Notes:
 - Gradle dependency bumps are **not** automated. They are done by hand in one monthly batch: change
   the version, run the `Dependency metadata` workflow on the branch, read the diff of
   `gradle/verification-metadata.xml`, commit it. That is why Dependabot is limited to GitHub Actions.
-- The dependency audit done on 2026-11-17 was partial (about 15 of 73 libraries, from third-party
-  sources because the build host cannot reach the vulnerability databases). The first OSV-Scanner run
-  replaces it: 15 advisories in 12 libraries across everything the build resolves (2 critical, 7 high),
-  most of them in build tooling. Which of them ship in the APK is decided by the *shipped* scan, not by
-  guessing. Done from the partial audit: Bouncy Castle 1.85.2 to 1.86. Open: `biometric-ktx` is on an alpha
+- First real audit, 2026-11-17 (OSV-Scanner over everything the build resolves: 821 components,
+  15 advisories in 12 libraries, 2 critical and 7 high). Split by what ships in the APK, which is the
+  release runtime classpath (239 libraries):
+  - Shipped: 1 finding, Guava 33.3.1-android (GHSA-xxph-c9ww-hj94 / CVE-2026-102554, denial of
+    service when deserializing a crafted Java stream). Not reachable in our code (no `ObjectInputStream`),
+    fixed anyway by raising exactly that version to 33.7.2-android on the debug and release runtime
+    classpaths (`app/build.gradle.kts`). Guava comes in through `androidx.media3:media3-common-ktx`,
+    which no source file uses; dropping it would remove Guava from the APK (to be checked, separate change).
+  - Build tooling only, not in the APK: the other 14 (Bouncy Castle 1.80.2, Guava jre variants,
+    freemarker, jdom2, jose4j, httpclient, logback, commons-lang3). They are not on the release runtime
+    classpath, so they belong to the build, lint or test tools (which tool brings which one is not traced
+    yet). They are listed in each run's summary as a warning and are fixed by updating the tool, in the
+    monthly batch. Bouncy Castle 1.86 (ours, Argon2id) is not flagged.
+  - Done from the earlier partial audit: Bouncy Castle 1.85.2 to 1.86. Open: `biometric-ktx` is on an alpha
   (`1.4.0-alpha02`) in the unlock path; beta or stable should be chosen before the first release.
 - Trap for later: `build.yml` and `checks.yml` skip docs-only changes with `paths-ignore`. A
   branch-protection rule or ruleset that *requires* `Build APK` would then wait forever on a
