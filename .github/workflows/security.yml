@@ -124,6 +124,9 @@ jobs:
           } > "$RUNNER_TEMP/shipped/gradle.lockfile"
           echo "Shipped libraries: $(wc -l < "$RUNNER_TEMP/shipped/libs.txt")"
           cat "$RUNNER_TEMP/shipped/libs.txt"
+          echo "::group::Who brings each library in (library <- libraries that ask for it)"
+          cat "$RUNNER_TEMP/shipped/libs.txt.parents"
+          echo "::endgroup::"
 
       - name: Scan what ships (fails on findings)
         # Exit status: 0 nothing found, 1 vulnerabilities found, anything else the scan itself failed.
