@@ -1,0 +1,12 @@
+# Reviewed exceptions for OSV-Scanner (.github/workflows/security.yml).
+#
+# The check fails on any known vulnerability in a library that ships in the release APK. A finding
+# that is not exploitable here and cannot be fixed yet may be listed below, and only with a reason
+# and an expiry date, so it comes back for review instead of being forgotten:
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# ignoreUntil = 2027-03-01
+# reason = "Why it does not apply, and what we wait for."
+#
+# Nothing is ignored at the moment.

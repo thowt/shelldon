@@ -546,7 +546,7 @@ exists; whether it is green is shown by the CI run, not by this file.
 | Spotless and ktlint | `checks.yml` job `style` | PR, push to `main`, manual (not docs-only) | ktlint 1.8.0 with the Compose rules over all Kotlin including `org.connectbot.shelldon`, licence headers, whitespace. CI passes `-PspotlessFull`, so it checks every file, not only those changed since `main` |
 | Android lint | `checks.yml` job `lint` | PR and manual (not docs-only) | `:app:lintOssDebug`; the findings are printed in the log and attached |
 | Secret scan | `security.yml` job `secrets` | every push and PR, also docs-only | gitleaks 8.30.1 over the full history; reviewed false positives are listed by fingerprint in `.gitleaksignore` |
-| Known vulnerabilities | `security.yml` job `osv` | every push and PR, weekly | OSV-Scanner 2.5.1 reads `gradle/verification-metadata.xml` |
+| Known vulnerabilities | `security.yml` job `osv` | every push and PR, weekly | OSV-Scanner 2.5.1 over two lists. *Shipped*: the resolved release runtime classpath (what is inside the APK); fails the check, reviewed exceptions go in `osv-scanner.toml` with a reason and an expiry date. *Tooling*: everything in `gradle/verification-metadata.xml`, which also holds the Android Gradle plugin, lint, test and formatting tools; shown in the run summary as a warning, does not fail |
 | Dependency checksums | Gradle itself | every build | Once `gradle/verification-metadata.xml` exists, Gradle refuses any library whose SHA-256 differs |
 | Action updates | `.github/dependabot.yml` | weekly | Pull requests that bump the SHA-pinned actions, grouped into one |
 
@@ -560,7 +560,9 @@ Notes:
   `gradle/verification-metadata.xml`, commit it. That is why Dependabot is limited to GitHub Actions.
 - The dependency audit done on 2026-11-17 was partial (about 15 of 73 libraries, from third-party
   sources because the build host cannot reach the vulnerability databases). The first OSV-Scanner run
-  replaces it. Done from the partial audit: Bouncy Castle 1.85.2 to 1.86. Open: `biometric-ktx` is on an alpha
+  replaces it: 15 advisories in 12 libraries across everything the build resolves (2 critical, 7 high),
+  most of them in build tooling. Which of them ship in the APK is decided by the *shipped* scan, not by
+  guessing. Done from the partial audit: Bouncy Castle 1.85.2 to 1.86. Open: `biometric-ktx` is on an alpha
   (`1.4.0-alpha02`) in the unlock path; beta or stable should be chosen before the first release.
 - Trap for later: `build.yml` and `checks.yml` skip docs-only changes with `paths-ignore`. A
   branch-protection rule or ruleset that *requires* `Build APK` would then wait forever on a
