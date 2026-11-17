@@ -13,7 +13,8 @@
 gradle.projectsEvaluated {
     def app = gradle.rootProject.findProject(':app')
     if (app == null) {
-        throw new GradleException('Project :app not found')
+        // The init script also runs for buildSrc and included builds, which have no :app.
+        return
     }
     app.tasks.register('shippedDependencies') {
         group = 'verification'
