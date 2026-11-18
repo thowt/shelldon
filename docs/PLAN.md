@@ -586,6 +586,29 @@ signals, output limits, timeouts, concurrency, permissions, idempotence, a hosti
 without a trailing newline; Compose tests for both dialogs and the new menu items. Not verified: the
 console menu entry has no UI test, and none of it has been tried on a phone.
 
+### UX fixes from the owner's phone test (2026-11-17, branch `m11-ux-round`)
+
+Found by using the merged round-3 build and key install on the phone:
+
+- **Key install did not survive the login.** Tapping Connect on a server that was not connected closed the
+  dialog and the request was forgotten, so after logging in nothing was installed. Now the key and server ids
+  are remembered (`PendingKeyInstall`, ids only, runs out after 15 minutes) and the console, once the login is
+  through, asks "Install this key?" with the fingerprint and reports the result. The confirmation stays: it is
+  the only point where the user sees which key is about to be allowed to log in.
+- **Hosts: New** now asks "New host" or "New folder" instead of always opening the host editor, and the
+  "+ Folder" chip under the search field is gone (it was easy to hit by accident and sat in the wrong place).
+- **Hosts: search hint** says "Search, or quick connect user@host", which is what typing an address does.
+- **Saving a session** (an active quick-connect session or an entry under Last sessions) used to store it at
+  once. It now asks for the folder in a small dialog that starts on "No folder", lists the existing folders by
+  full path and can create a new top-level folder in the same step. A refused folder name (taken, too long)
+  keeps the dialog open and says why; nothing is stored until Save.
+- **Keychain > Known hosts** has the same pill search as Hosts, with a clear button. It matches host and port,
+  key fingerprint (paste a `SHA256:` value to find the host that presented it) and key type. A real
+  `known_hosts` file can hold a thousand entries, which was unusable without it.
+
+Not done: the console and the save dialog are covered by Compose tests, but nothing here has been tried on the
+phone yet.
+
 ## Security rules and features to drop
 
 - No accept-all host-key mode. A changed host key blocks the connection.

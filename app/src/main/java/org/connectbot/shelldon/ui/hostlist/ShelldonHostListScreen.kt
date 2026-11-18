@@ -31,12 +31,15 @@ import org.connectbot.data.JsonImportReader
 import org.connectbot.data.JsonImportTooLargeException
 import org.connectbot.data.entity.Host
 import org.connectbot.service.TerminalBridge
+import org.connectbot.shelldon.data.groups.Outcome
+import org.connectbot.shelldon.data.groups.Rejection
 import org.connectbot.ui.LocalTerminalManager
 import org.connectbot.ui.components.ShortcutCustomizationDialog
 import org.connectbot.ui.screens.hostlist.HostListViewModel
 import org.connectbot.ui.screens.hostlist.StartupKeyPasswordDialog
 import org.connectbot.util.IconStyle
 import java.io.IOException
+import java.util.UUID
 
 /**
  * Stateful Hosts screen: wires [HostListViewModel] to [ShelldonHostListContent] and handles the
@@ -107,11 +110,33 @@ fun ShelldonHostListScreen(
         }
     }
 
-    fun save(block: suspend () -> Host) {
+    /**
+     * Saves a session as a host in the folder the user chose, creating the folder first when asked.
+     * [onResult] gets null when it is done (or failed with a message of its own, shown as a toast), or the
+     * reason a new folder's name was refused, so the dialog can stay open and say why.
+     */
+    fun save(folder: SaveFolder, onResult: (Rejection?) -> Unit, block: suspend () -> Host) {
         scope.launch {
             try {
+                val groupId: UUID? = when (folder) {
+                    SaveFolder.None -> null
+
+                    is SaveFolder.Existing -> folder.id
+
+                    is SaveFolder.New -> when (val created = groupsViewModel.createTopLevelGroup(folder.name)) {
+                        is Outcome.Rejected -> {
+                            onResult(created.reason)
+                            return@launch
+                        }
+
+                        is Outcome.Ok -> created.value.id
+                    }
+                }
                 val saved = block()
+                // If the folder was deleted in the meantime the host simply stays at the top level.
+                if (groupId != null) groupsViewModel.placeHost(saved.id, groupId)
                 Toast.makeText(context, resources.getString(R.string.shelldon_saved_toast, saved.nickname), Toast.LENGTH_SHORT).show()
+                onResult(null)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -120,6 +145,7 @@ fun ShelldonHostListScreen(
                     resources.getString(R.string.shelldon_save_failed, e.message ?: e.javaClass.simpleName),
                     Toast.LENGTH_LONG,
                 ).show()
+                onResult(null)
             }
         }
     }
@@ -256,14 +282,14 @@ fun ShelldonHostListScreen(
         onQuickConnect = ::connectQuick,
         unsavedSessions = unsavedSessions,
         lastSessions = lastSessions,
-        onSaveActiveSession = { host -> save { recentsViewModel.saveActive(host) } },
+        onSaveActiveSession = { host, folder, onResult -> save(folder, onResult) { recentsViewModel.saveActive(host) } },
         onOpenLastSession = { session ->
             when (session) {
                 is LastSession.Saved -> onNavigateToConsole(session.host)
                 is LastSession.Unsaved -> connectQuick(session.target)
             }
         },
-        onSaveLastSession = { session -> save { recentsViewModel.saveRecent(session) } },
+        onSaveLastSession = { session, folder, onResult -> save(folder, onResult) { recentsViewModel.saveRecent(session) } },
         groupSnapshot = groupSnapshot,
         groupActions = groupActions,
         modifier = modifier,

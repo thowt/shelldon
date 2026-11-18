@@ -71,6 +71,7 @@ import org.connectbot.shelldon.ui.components.ShelldonEmptyState
 import org.connectbot.shelldon.ui.components.ShelldonNewButton
 import org.connectbot.shelldon.ui.components.ShelldonQuietTile
 import org.connectbot.shelldon.ui.components.ShelldonRowCard
+import org.connectbot.shelldon.ui.components.ShelldonSearchField
 import org.connectbot.shelldon.ui.components.ShelldonSectionLabel
 import org.connectbot.shelldon.ui.components.ShelldonSegmentedTabs
 import org.connectbot.shelldon.ui.components.ShelldonTile
@@ -245,6 +246,7 @@ internal fun ShelldonKeychainContent(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    var knownHostQuery by rememberSaveable { mutableStateOf("") }
     val tabLabels = listOf(
         stringResource(R.string.shelldon_identities_title),
         stringResource(R.string.shelldon_keys_title),
@@ -336,7 +338,12 @@ internal fun ShelldonKeychainContent(
                         onInstall = onInstallKey,
                     )
 
-                    else -> knownHostItems(rows = knownHosts, onForget = onForgetKnownHost)
+                    else -> knownHostItems(
+                        rows = knownHosts,
+                        query = knownHostQuery,
+                        onQueryChange = { knownHostQuery = it },
+                        onForget = onForgetKnownHost,
+                    )
                 }
             }
         }
@@ -441,6 +448,8 @@ private fun LazyListScope.keyItems(
 
 private fun LazyListScope.knownHostItems(
     rows: List<KnownHostRow>?,
+    query: String,
+    onQueryChange: (String) -> Unit,
     onForget: (KnownHostRow) -> Unit,
 ) {
     when {
@@ -464,14 +473,40 @@ private fun LazyListScope.knownHostItems(
         }
 
         else -> {
+            // A known_hosts file easily holds hundreds or thousands of entries, so the list is searchable.
+            val shown = rows.filter { it.matchesQuery(query) }
+            item(key = "known_hosts_search") {
+                ShelldonSearchField(
+                    query = query,
+                    onQueryChange = onQueryChange,
+                    placeholder = stringResource(R.string.shelldon_known_hosts_search),
+                    clearDescription = stringResource(R.string.shelldon_clear_search),
+                    modifier = Modifier
+                        .padding(top = 6.dp)
+                        .testTag("known_hosts_search"),
+                    clearModifier = Modifier.testTag("known_hosts_search_clear"),
+                )
+            }
             item(key = "known_hosts_header") {
                 ShelldonSectionLabel(
                     title = stringResource(R.string.shelldon_known_hosts_title),
-                    count = rows.size,
+                    count = shown.size,
                     modifier = Modifier.padding(top = 10.dp),
                 )
             }
-            items(items = rows, key = { "known_host_${it.knownHost.id}" }) { row ->
+            if (shown.isEmpty()) {
+                item(key = "known_hosts_no_matches") {
+                    Text(
+                        text = stringResource(R.string.shelldon_known_hosts_no_matches, query.trim()),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(vertical = 8.dp)
+                            .testTag("known_hosts_no_matches"),
+                    )
+                }
+            }
+            items(items = shown, key = { "known_host_${it.knownHost.id}" }) { row ->
                 KnownHostCard(row = row, onForget = { onForget(row) })
             }
         }

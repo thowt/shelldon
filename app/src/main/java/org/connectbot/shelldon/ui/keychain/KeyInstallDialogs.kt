@@ -27,6 +27,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,11 +37,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import kotlinx.coroutines.flow.StateFlow
 import org.connectbot.R
 import org.connectbot.data.entity.Host
 import org.connectbot.data.entity.Pubkey
+import org.connectbot.service.TerminalManager
 import org.connectbot.shelldon.keyinstall.AuthorizedKeyLine
 import org.connectbot.shelldon.keyinstall.KeyInstallResult
+import org.connectbot.shelldon.keyinstall.forHost
 import org.connectbot.shelldon.keyinstall.toAuthorizedKeyLine
 import org.connectbot.ui.LocalTerminalManager
 import java.util.UUID
@@ -196,7 +200,14 @@ internal fun KeyInstallDialog(
                                         onAction = { confirming = item },
                                     )
                                 } else {
-                                    TextButton(onClick = { onConnect(item.host) }, modifier = Modifier.testTag("key_install_connect_${item.name}")) {
+                                    TextButton(
+                                        onClick = {
+                                            // The login happens in the console; it asks to install this key when it is through.
+                                            viewModel.installAfterLogin(key.id, item.host.id)
+                                            onConnect(item.host)
+                                        },
+                                        modifier = Modifier.testTag("key_install_connect_${item.name}"),
+                                    ) {
                                         Text(stringResource(R.string.shelldon_tunnels_connect))
                                     }
                                 }
@@ -312,6 +323,91 @@ internal fun KeyPickerInstallDialog(
                 viewModel.install(chosen.id, line, hostId)
             },
             onDismiss = { confirming = null },
+        )
+    }
+}
+
+/**
+ * Console: when the user came here from "Install on server" and tapped Connect, this waits for the login to
+ * finish, then asks to install that key (fingerprint and all) and shows how it went. It draws nothing at all
+ * when there is no such request for this server, which is almost always.
+ */
+@Composable
+internal fun AfterLoginKeyInstall(
+    hostId: UUID,
+    hostName: String,
+    viewModel: KeyInstallViewModel = hiltViewModel(),
+) {
+    val pending by viewModel.pending.collectAsState()
+    val request = pending.forHost(hostId)
+    if (request != null) {
+        AfterLoginKeyInstallDialogs(
+            keyId = request.keyId,
+            hostId = hostId,
+            hostName = hostName,
+            uiState = viewModel.uiState,
+            onTerminalManager = viewModel::setTerminalManager,
+            onInstall = viewModel::install,
+            onClear = viewModel::clearPending,
+        )
+    }
+}
+
+@Composable
+private fun AfterLoginKeyInstallDialogs(
+    keyId: UUID,
+    hostId: UUID,
+    hostName: String,
+    uiState: StateFlow<KeyInstallUiState>,
+    onTerminalManager: (TerminalManager) -> Unit,
+    onInstall: (keyId: UUID, line: AuthorizedKeyLine, hostId: UUID) -> Unit,
+    onClear: () -> Unit,
+) {
+    val state by uiState.collectAsState()
+    val terminalManager = LocalTerminalManager.current
+    val currentOnTerminalManager by rememberUpdatedState(onTerminalManager)
+    val currentOnClear by rememberUpdatedState(onClear)
+    LaunchedEffect(terminalManager) {
+        terminalManager?.let(currentOnTerminalManager)
+    }
+
+    val key = state.keys.firstOrNull { it.id == keyId }
+    val line = remember(key) { key?.toAuthorizedKeyLine() }
+    val connected = state.hosts.firstOrNull { it.host.id == hostId }?.connected == true
+    val status = state.statuses[InstallTarget(keyId, hostId)]
+
+    when {
+        // Keys are still loading: say nothing yet. A key that is gone or unusable ends the request.
+        state.isLoading -> Unit
+
+        key == null || line == null -> LaunchedEffect(Unit) { currentOnClear() }
+
+        status == InstallStatus.Running -> AlertDialog(
+            onDismissRequest = {},
+            modifier = Modifier.testTag("key_after_login_running"),
+            text = { Text(stringResource(R.string.shelldon_key_install_running)) },
+            confirmButton = {},
+        )
+
+        status is InstallStatus.Done -> AlertDialog(
+            onDismissRequest = onClear,
+            modifier = Modifier.testTag("key_after_login_result"),
+            title = { Text(stringResource(R.string.shelldon_key_install_title)) },
+            text = { Text(installResultText(status.result)) },
+            confirmButton = {
+                TextButton(onClick = onClear, modifier = Modifier.testTag("key_after_login_done")) {
+                    Text(stringResource(R.string.shelldon_key_install_done))
+                }
+            },
+        )
+
+        // Only once the server is logged in: until then the console shows its own login prompts.
+        connected -> InstallConfirmDialog(
+            keyName = key.nickname,
+            fingerprint = line.fingerprint,
+            hostName = hostName,
+            onConfirm = { onInstall(keyId, line, hostId) },
+            onDismiss = onClear,
         )
     }
 }

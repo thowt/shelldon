@@ -31,6 +31,7 @@ import org.connectbot.shelldon.exec.ExecOutcome
 import org.connectbot.shelldon.keyinstall.AuthorizedKeyLine
 import org.connectbot.shelldon.keyinstall.KeyInstallResult
 import org.connectbot.shelldon.keyinstall.KeyInstaller
+import org.connectbot.shelldon.keyinstall.PendingKeyInstall
 import org.connectbot.shelldon.tunnels.TunnelBoard
 import java.util.UUID
 import javax.inject.Inject
@@ -64,6 +65,7 @@ class KeyInstallViewModel @Inject constructor(
     hostRepository: HostRepository,
     pubkeyRepository: PubkeyRepository,
     private val dispatchers: CoroutineDispatchers,
+    private val pendingInstall: PendingKeyInstall,
 ) : ViewModel() {
     private val manager = MutableStateFlow<TerminalManager?>(null)
     private val refresh = MutableStateFlow(0)
@@ -96,6 +98,14 @@ class KeyInstallViewModel @Inject constructor(
             manager.flatMapLatest { it?.hostStatusChangedFlow ?: emptyFlow() }.collect { refresh.value += 1 }
         }
     }
+
+    /** An install that is waiting for its server's login to finish, see [PendingKeyInstall]. */
+    val pending: StateFlow<PendingKeyInstall.Request?> = pendingInstall.request
+
+    /** Called when the user taps Connect: ask to install [keyId] on [hostId] once the login is done. */
+    fun installAfterLogin(keyId: UUID, hostId: UUID) = pendingInstall.set(hostId, keyId)
+
+    fun clearPending() = pendingInstall.clear()
 
     fun setTerminalManager(terminalManager: TerminalManager) {
         manager.value = terminalManager

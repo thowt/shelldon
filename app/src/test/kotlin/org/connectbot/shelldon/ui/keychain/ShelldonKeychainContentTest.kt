@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.connectbot.R
@@ -74,17 +75,21 @@ class ShelldonKeychainContentTest {
         createdDate = 0,
     )
 
-    private fun knownHostRow() = KnownHostRow(
+    private fun knownHostRow(
+        hostname: String = "files.example.com",
+        fingerprint: String = "SHA256:abcdef",
+        n: Long = 1,
+    ) = KnownHostRow(
         knownHost = KnownHost(
-            id = UUID(2, 1),
+            id = UUID(2, n),
             hostId = null,
-            hostname = "files.example.com",
+            hostname = hostname,
             port = 22,
             hostKeyAlgo = "ssh-ed25519",
             hostKey = ByteArray(32),
         ),
-        fingerprint = "SHA256:abcdef",
-        endpoint = "files.example.com:22",
+        fingerprint = fingerprint,
+        endpoint = "$hostname:22",
     )
 
     private fun setContent(
@@ -264,6 +269,68 @@ class ShelldonKeychainContentTest {
         composeTestRule.onNodeWithContentDescription(string(R.string.shelldon_known_hosts_forget)).performClick()
 
         assertEquals(row, calls.forgottenHost)
+    }
+
+    @Test
+    fun knownHosts_searchNarrowsTheListAndTheCrossClearsIt() {
+        val files = knownHostRow("files.example.com", n = 1)
+        val db = knownHostRow("db.internal", n = 2)
+        val web = knownHostRow("web.example.com", n = 3)
+        setContent(KeychainUiState(isLoading = false), knownHosts = listOf(files, db, web), startTab = 2)
+        composeTestRule.onNodeWithTag("known_hosts_search_clear").assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("known_hosts_search").performTextInput("db.")
+
+        composeTestRule.onNodeWithTag("known_host_${db.knownHost.id}").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("known_host_${files.knownHost.id}").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("known_host_${web.knownHost.id}").assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag("known_hosts_search_clear").performClick()
+
+        composeTestRule.onNodeWithTag("known_host_${files.knownHost.id}").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("known_host_${web.knownHost.id}").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("known_hosts_search_clear").assertDoesNotExist()
+    }
+
+    @Test
+    fun knownHosts_searchFindsTheHostThatPresentedAPastedFingerprint() {
+        val files = knownHostRow("files.example.com", fingerprint = "SHA256:AAAA1111", n = 1)
+        val db = knownHostRow("db.internal", fingerprint = "SHA256:BBBB2222", n = 2)
+        setContent(KeychainUiState(isLoading = false), knownHosts = listOf(files, db), startTab = 2)
+
+        composeTestRule.onNodeWithTag("known_hosts_search").performTextInput("sha256:bbbb2222")
+
+        composeTestRule.onNodeWithTag("known_host_${db.knownHost.id}").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("known_host_${files.knownHost.id}").assertDoesNotExist()
+    }
+
+    @Test
+    fun knownHosts_searchWithNoMatchSaysSo() {
+        setContent(KeychainUiState(isLoading = false), knownHosts = listOf(knownHostRow()), startTab = 2)
+
+        composeTestRule.onNodeWithTag("known_hosts_search").performTextInput("nothing-like-this")
+
+        composeTestRule.onNodeWithTag("known_hosts_no_matches").assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.shelldon_known_hosts_no_matches, "nothing-like-this")).assertIsDisplayed()
+    }
+
+    @Test
+    fun knownHosts_noSearchFieldWhenThereIsNothingToSearch() {
+        setContent(KeychainUiState(isLoading = false), knownHosts = emptyList(), startTab = 2)
+
+        composeTestRule.onNodeWithTag("known_hosts_search").assertDoesNotExist()
+    }
+
+    @Test
+    fun knownHosts_aThousandEntriesCanBeNarrowedToOne() {
+        // A real known_hosts file is easily this long.
+        val rows = (1L..1056L).map { n -> knownHostRow("host-$n.example.com", fingerprint = "SHA256:fp$n", n = n) }
+        setContent(KeychainUiState(isLoading = false), knownHosts = rows, startTab = 2)
+
+        composeTestRule.onNodeWithTag("known_hosts_search").performTextInput("host-777.example")
+
+        composeTestRule.onNodeWithTag("known_host_${rows[776].knownHost.id}").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("known_host_${rows[0].knownHost.id}").assertDoesNotExist()
     }
 
     @Test
