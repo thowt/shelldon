@@ -576,9 +576,9 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.appcompat.resources)
     implementation(libs.androidx.preference)
-    // Nothing in this app uses the Material View library, but without this line some other dependency's
-    // request for 1.2.0-rc01 wins and an old release candidate ends up in the APK. Find out who asks
-    // (dependencyInsight) and remove this line together with the library entry.
+    // Nothing in this app uses the Material View library, but termlib 0.3.15 asks for 1.2.0-rc01 and,
+    // without this line, that old release candidate would end up in the APK. Remove this line together
+    // with the library entry once termlib no longer asks for it.
     implementation(libs.material)
     implementation(libs.timber)
     implementation(libs.slf4j.api)
