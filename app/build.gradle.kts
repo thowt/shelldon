@@ -586,8 +586,6 @@ dependencies {
     implementation(libs.termlib)
     implementation(libs.telnetlib)
     implementation(libs.telnetlib.ktor)
-    implementation(libs.androidx.media3.common.ktx)
-    implementation(libs.androidx.navigation.testing)
     implementation(libs.androidx.ui)
     implementation(libs.reorderable)
     "googleImplementation"(libs.play.services.basement)
@@ -599,11 +597,13 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.appcompat.resources)
     implementation(libs.androidx.preference)
+    // Nothing in this app uses the Material View library, but without this line some other dependency's
+    // request for 1.2.0-rc01 wins and an old release candidate ends up in the APK. Find out who asks
+    // (dependencyInsight) and remove this line together with the library entry.
     implementation(libs.material)
     implementation(libs.timber)
     implementation(libs.slf4j.api)
     implementation(libs.re2j)
-    implementation(libs.reorderable)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
@@ -635,6 +635,7 @@ dependencies {
     kspTest(libs.hilt.android.compiler)
     testImplementation(libs.androidx.compose.ui.test)
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.navigation.testing)
 
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.core)
