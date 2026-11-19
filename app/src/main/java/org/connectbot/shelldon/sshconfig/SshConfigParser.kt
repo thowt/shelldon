@@ -6,6 +6,8 @@
 
 package org.connectbot.shelldon.sshconfig
 
+import org.connectbot.sshlib.AlgorithmCategory
+
 /** One concrete `Host` alias from an OpenSSH config, with the settings that apply to it after inheritance. */
 data class SshConfigHost(
     val alias: String,
@@ -16,6 +18,19 @@ data class SshConfigHost(
     val proxyJump: String?,
     /** Lower-case option names that apply to this host and are not imported (for the summary). */
     val unsupported: Set<String>,
+    /** Algorithm lists as written in the file (`+aes128-cbc`, `a,b,c`), by category. */
+    val algorithms: Map<AlgorithmCategory, String> = emptyMap(),
+    /** Categories in [algorithms] whose value came from a wildcard block such as `Host *`, not from a block naming this host. */
+    val algorithmsFromWildcard: Set<AlgorithmCategory> = emptySet(),
+    /** Every `IdentityFile` that applies, in file order, as written. */
+    val identityFiles: List<String> = emptyList(),
+    /** False when `PubkeyAuthentication no` applies; null when the file says nothing. */
+    val pubkeyAuthentication: Boolean? = null,
+    /**
+     * Options this app refuses on purpose, as `option to value`: host key checking turned off, or a
+     * `known_hosts` file that is `/dev/null`. They are never imported.
+     */
+    val refused: Map<String, String> = emptyMap(),
 )
 
 data class SshConfigParseResult(
@@ -29,12 +44,23 @@ data class SshConfigParseResult(
 )
 
 /**
- * Reads the subset of `ssh_config(5)` that describes hosts: `Host`, `HostName`, `User`, `Port` and
- * `ProxyJump`. Wildcard blocks such as `Host *` act as defaults the way OpenSSH applies them: the
- * first value found, in file order, wins. Everything else is reported rather than guessed at.
+ * Reads the subset of `ssh_config(5)` that describes hosts: `Host`, `HostName`, `User`, `Port`,
+ * `ProxyJump`, the algorithm lists, `IdentityFile` and `PubkeyAuthentication`. Wildcard blocks such as
+ * `Host *` act as defaults the way OpenSSH applies them: the first value found, in file order, wins
+ * (`IdentityFile` is the exception: every value applies). Everything else is reported rather than guessed at.
  */
 object SshConfigParser {
-    private val IMPORTED = setOf("hostname", "user", "port", "proxyjump")
+    private val ALGORITHM_KEYWORDS = mapOf(
+        "kexalgorithms" to AlgorithmCategory.KEX,
+        "ciphers" to AlgorithmCategory.CIPHER,
+        "macs" to AlgorithmCategory.MAC,
+        "hostkeyalgorithms" to AlgorithmCategory.HOST_KEY,
+        "pubkeyacceptedalgorithms" to AlgorithmCategory.PUBKEY,
+        // The name OpenSSH used before 8.5.
+        "pubkeyacceptedkeytypes" to AlgorithmCategory.PUBKEY,
+    )
+    private val IMPORTED = setOf("hostname", "user", "port", "proxyjump", "identityfile", "pubkeyauthentication") + ALGORITHM_KEYWORDS.keys
+    private val HOST_KEY_CHECKING_OFF = setOf("no", "off", "false", "accept-new")
 
     private class Block(val patterns: List<String>) {
         val options = mutableListOf<Pair<String, String>>()
@@ -76,10 +102,30 @@ object SshConfigParser {
 
         val hosts = aliases.map { alias ->
             val effective = LinkedHashMap<String, String>()
+            val fromWildcard = mutableSetOf<String>()
+            val identityFiles = mutableListOf<String>()
             for (block in blocks) {
                 if (!applies(block, alias)) continue
-                for ((key, value) in block.options) effective.putIfAbsent(key, value)
+                val names = block.patterns.any { !it.startsWith("!") && !it.isWildcard() && it == alias }
+                for ((key, value) in block.options) {
+                    if (key == "identityfile") {
+                        if (value.isNotBlank() && !value.equals("none", ignoreCase = true)) identityFiles.add(value)
+                    } else if (effective.putIfAbsent(key, value) == null && !names) {
+                        fromWildcard.add(key)
+                    }
+                }
             }
+            val algorithms = LinkedHashMap<AlgorithmCategory, String>()
+            val algorithmsFromWildcard = mutableSetOf<AlgorithmCategory>()
+            for ((keyword, category) in ALGORITHM_KEYWORDS) {
+                val value = effective[keyword]?.takeIf { it.isNotBlank() } ?: continue
+                if (category in algorithms) continue
+                algorithms[category] = value
+                if (keyword in fromWildcard) algorithmsFromWildcard.add(category)
+            }
+            val refused = LinkedHashMap<String, String>()
+            effective["stricthostkeychecking"]?.takeIf { it.lowercase() in HOST_KEY_CHECKING_OFF }?.let { refused["StrictHostKeyChecking"] = it }
+            effective["userknownhostsfile"]?.takeIf { it.trim() == "/dev/null" }?.let { refused["UserKnownHostsFile"] = it }
             SshConfigHost(
                 alias = alias,
                 hostName = (effective["hostname"] ?: alias).replace("%h", alias),
@@ -87,9 +133,27 @@ object SshConfigParser {
                 port = effective["port"]?.toIntOrNull()?.takeIf { it in 1..65535 } ?: 22,
                 proxyJump = effective["proxyjump"]?.takeIf { it.isNotBlank() && !it.equals("none", ignoreCase = true) },
                 unsupported = effective.keys.filterNot { it in IMPORTED }.toSet(),
+                algorithms = algorithms,
+                algorithmsFromWildcard = algorithmsFromWildcard,
+                identityFiles = identityFiles,
+                pubkeyAuthentication = if (effective["pubkeyauthentication"]?.lowercase() in setOf("no", "false")) false else null,
+                refused = refused,
             )
         }
         return SshConfigParseResult(hosts, wildcardPatterns, matchBlocks, includes)
+    }
+
+    /**
+     * OpenSSH writes `+a,b` for "append a and b" and `a,b` for "exactly these". The app's policy syntax
+     * carries the operation on every entry (`+a,+b`), which is also what its editor produces.
+     * Returns null for an empty list.
+     */
+    fun toPolicyExpression(openSshValue: String): String? {
+        val value = openSshValue.trim()
+        val operation = value.firstOrNull()?.takeIf { it == '+' || it == '-' || it == '^' }
+        val names = (if (operation == null) value else value.substring(1)).split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        if (names.isEmpty()) return null
+        return names.joinToString(",") { if (operation == null) it else "$operation$it" }
     }
 
     private fun applies(block: Block, alias: String): Boolean {
