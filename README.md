@@ -21,9 +21,10 @@ rough edges, and do not rely on it for anything you cannot afford to lose.
 | Hosts, nested groups, tags, quick connect, search | Built |
 | Identities and a keychain (keys, known hosts) | Built |
 | Vault: master password (Argon2id), biometric unlock, auto-lock | Built |
-| Encrypted backup, export and import, `~/.ssh/config` import | Built |
+| Encrypted backup, export and import | Built |
+| Import from `~/.ssh` (`config`, `known_hosts`, keys) with a preview; algorithm lists become per-host crypto settings | In review |
 | SFTP browser, snippets, port forwarding (`-L`, `-R`, `-D`) with a Tunnels tab | Built |
-| Install a public key on a server (`ssh-copy-id`) from the keychain or the console | In review |
+| Install a public key on a server (`ssh-copy-id`) from the keychain or the console | Built |
 | Legacy servers (old Cisco IOS, old Debian, BSD, Telnet) through explicit per-host or per-group choices | Built, tested against OpenSSH containers; real old devices are untested |
 | Post-quantum key exchange (ML-KEM and sntrup hybrids) where the server supports it | In the SSH engine; not yet verified against a real server on a phone |
 | Sync through your own storage (WebDAV first), end-to-end encrypted | Planned |
