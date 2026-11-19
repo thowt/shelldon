@@ -324,6 +324,13 @@ class SshImportPlannerTest {
     }
 
     @Test
+    fun aKnownHostsFileMostlyOfCertificateAuthorityLinesIsStillKnownHosts() {
+        val text = "@cert-authority *.example.com ssh-ed25519 $ED1\n@cert-authority *.example.org ssh-ed25519 $ED2\n@revoked bad.example.com ssh-ed25519 $ED3"
+
+        assertThat(PickedFiles.kindOf(file("known_hosts", text))).isEqualTo(PickedFileKind.KNOWN_HOSTS)
+    }
+
+    @Test
     fun hashedEntriesAreMatchedAndCertificateAuthoritiesAreOnlyCounted() {
         val text = "$HASHED_PLAIN ssh-ed25519 $ED1\n@cert-authority *.example.com ssh-ed25519 $ED2\n@revoked bad.example.com ssh-ed25519 $ED3"
         val plan = plan(input(listOf(file("config", "Host ex\n  HostName example.com"), file("known_hosts", text))))

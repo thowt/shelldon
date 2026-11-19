@@ -33,7 +33,9 @@ object PickedFiles {
         if (file.name.endsWith(".pub") || (lines.size == 1 && publicKeyLine.containsMatchIn(lines[0]))) return PickedFileKind.PUBLIC_KEY
         if (lines.any { configLine.containsMatchIn(it) && KnownHostsFile.parse(it).entries.isEmpty() }) return PickedFileKind.CONFIG
         val knownHosts = KnownHostsFile.parse(text)
-        if (knownHosts.entries.isNotEmpty() && knownHosts.entries.size * 2 >= lines.size) return PickedFileKind.KNOWN_HOSTS
+        // @cert-authority and @revoked lines belong in a known_hosts file even though none is imported.
+        val recognised = knownHosts.entries.size + knownHosts.certAuthorityLines + knownHosts.revokedLines
+        if (recognised > 0 && recognised * 2 >= lines.size) return PickedFileKind.KNOWN_HOSTS
         return PickedFileKind.UNKNOWN
     }
 }
