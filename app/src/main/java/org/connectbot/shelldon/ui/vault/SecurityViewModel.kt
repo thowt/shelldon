@@ -26,8 +26,6 @@ import org.connectbot.shelldon.backup.BackupImportResult
 import org.connectbot.shelldon.backup.BackupOptions
 import org.connectbot.shelldon.backup.BackupProblem
 import org.connectbot.shelldon.backup.ShelldonBackup
-import org.connectbot.shelldon.sshconfig.SshConfigImportResult
-import org.connectbot.shelldon.sshconfig.SshConfigImporter
 import org.connectbot.shelldon.vault.VaultController
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
@@ -44,8 +42,6 @@ sealed interface SecurityMessage {
 
     /** [problem] is null for failures that are not about the file or password (I/O, vault locked, ...). */
     data class BackupFailed(val problem: BackupProblem?) : SecurityMessage
-    data class ConfigImported(val result: SshConfigImportResult) : SecurityMessage
-    data object ConfigFailed : SecurityMessage
 }
 
 data class SecurityUiState(
@@ -61,7 +57,6 @@ class SecurityViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val controller: VaultController,
     private val backup: ShelldonBackup,
-    private val sshConfig: SshConfigImporter,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(
         SecurityUiState(
@@ -130,18 +125,6 @@ class SecurityViewModel @Inject constructor(
         }
     }
 
-    fun importSshConfig(uri: Uri) = runBusy {
-        try {
-            val bytes = withContext(Dispatchers.IO) { readLimited(uri, MAX_CONFIG_BYTES) }
-            SecurityMessage.ConfigImported(sshConfig.import(String(bytes, Charsets.UTF_8)))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Timber.e(e, "ssh_config import failed")
-            SecurityMessage.ConfigFailed
-        }
-    }
-
     /** Forgotten master password: removes the vault and what was sealed in it. The gate then asks for a new one. */
     fun reset() {
         viewModelScope.launch { controller.reset() }
@@ -173,9 +156,5 @@ class SecurityViewModel @Inject constructor(
             }
             return out.toByteArray()
         }
-    }
-
-    private companion object {
-        const val MAX_CONFIG_BYTES = 1024 * 1024
     }
 }
