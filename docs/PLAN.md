@@ -670,9 +670,12 @@ longer replaces it). The `Dependency metadata` workflow was run on the branch an
 after reading the diff: only additions, all from Google Maven and Maven Central. The Material View
 library (`com.google.android.material`) is not used by any source or layout, but it could **not** be
 removed: without the explicit pin some other dependency's request for `material:1.2.0-rc01` wins and an old
-release candidate (with `transition`, `customview`, `drawerlayout`) would ship instead. The pin stays, with a
-comment, until `./gradlew :app:dependencyInsight --configuration ossReleaseRuntimeClasspath --dependency
-material` shows who asks. The checksums for that old chain were left out of the file on purpose. Version
+release candidate (with `transition`, `customview`, `drawerlayout`) would ship instead. The security job's
+"who brings each library in" listing shows who asks: `org.connectbot:termlib` 0.3.15, ConnectBot's terminal
+library. So the pin stays, with a comment, until termlib stops asking (a newer termlib, or a change
+upstream). The checksums for that old chain were left out of the file on purpose. With media3 gone, the
+scan shows 231 shipped libraries (239 before) and no Guava, only the empty `listenablefuture` 1.0 marker, so
+the Guava floor in `app/build.gradle.kts` and its version entry were deleted. Version
 bumps were not done: each one needs the same workflow run, and a monthly batch is the plan.
 
 **Not built yet (next onboarding steps):** CSV import with a column mapping, then PuTTY, MobaXterm,
@@ -680,8 +683,14 @@ SecureCRT and mRemoteNG; export to `ssh_config` and CSV; per-host checkboxes in 
 following; port forwards from `LocalForward` and friends; the old Keychain keys screen still exists for key
 export, YubiKey and FIDO2.
 
-Verification: see the pull request. This paragraph is filled in once CI has run; until then the code is
-written but has not been built.
+**Verified.** In CI (pull request #14): compile, 1931 unit tests including the new parser, `known_hosts`,
+planner, importer (Room under Robolectric), real policy validation and key decoding, and the Compose tests
+for the import screen and the host list; Spotless/ktlint; Android lint; gitleaks; OSV. CI found two real
+problems on the way, both fixed: a `known_hosts` file made mostly of `@cert-authority` or `@revoked` lines
+was not recognised, and test fixtures that spelled out a key header tripped the secret scan (the markers are
+built at run time now, in `TestPem`). **Not verified:** nothing has been tried on a phone, and the import
+has not been run against the owner's real files. No OpenSSH container test is involved, because nothing in
+`transport/` or the crypto code changed; the algorithm lists go through the existing policy validator.
 
 ## Security rules and features to drop
 
@@ -725,10 +734,9 @@ Notes:
   - Shipped: 1 finding, Guava 33.3.1-android (GHSA-xxph-c9ww-hj94 / CVE-2026-102554, denial of
     service when deserializing a crafted Java stream). Not reachable in our code (no `ObjectInputStream`),
     fixed anyway by raising exactly that version to 33.7.2-android on the debug and release runtime
-    classpaths (`app/build.gradle.kts`). Guava came in through `androidx.media3:media3-common-ktx`,
-    which no source file used. That dependency was removed on 2026-11-19 (branch `m12-ssh-import`), so
-    Guava should be gone from the APK. Not checked yet: read the next OSV scan; if Guava no longer shows
-    up in the shipped classpath, delete the `guavaAndroidFloor` block and its version entry.
+    classpaths. Guava came in through `androidx.media3:media3-common-ktx`, which no source file used. That
+    dependency was removed on 2026-11-19 (branch `m12-ssh-import`) and the next OSV scan showed no Guava in
+    the shipped libraries, so the floor was deleted. Fixed by removal.
   - Build tooling only, not in the APK: the other 14 (Bouncy Castle 1.80.2, Guava jre variants,
     freemarker, jdom2, jose4j, httpclient, logback, commons-lang3). They are not on the release runtime
     classpath, so they belong to the build, lint or test tools (which tool brings which one is not traced

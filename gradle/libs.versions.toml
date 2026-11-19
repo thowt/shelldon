@@ -30,8 +30,6 @@ zmodemlib = "0.1.1"
 telnetlib = "0.1.1"
 sshlib = "0.6.9"
 bouncycastle = "1.86"
-# Floor for the Guava that other libraries bring in (GHSA-xxph-c9ww-hj94), see app/build.gradle.kts
-guavaAndroidFloor = "33.7.2-android"
 termlib = "0.3.15"
 
 yubikit = "3.3.0"
