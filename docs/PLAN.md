@@ -692,6 +692,55 @@ built at run time now, in `TestPem`). **Not verified:** nothing has been tried o
 has not been run against the owner's real files. No OpenSSH container test is involved, because nothing in
 `transport/` or the crypto code changed; the algorithm lists go through the existing policy validator.
 
+### Tools section (noted 2026-11-20, not built)
+
+Owner request: a Tools section in the app, with **ping** and **nslookup** as the first tools. This is a note
+for later, not a design that was decided; nothing here exists yet.
+
+**Existing apps, read first (not tried).** HostLookup (F-Droid) queries 25 record types, compares public
+resolvers over UDP, TCP, DNS-over-TLS and DNS-over-HTTPS, and adds WHOIS and network info; its resolver list
+is fixed. Vernet has ping and a host and port scanner. Android Ping Utils has ping and dig. The
+`android-network-tools` library behind the "Network Tools Library" app (Apache-2.0) has ping, port scan and
+Wake-on-LAN. Two lessons: OG Network Tools does its DNS lookups through a Google web API, which F-Droid flags
+as a non-free network dependency, and NextTraceroute needs the NextTrace web API. We send lookups to no
+third-party service. The licences of HostLookup, Vernet and Ping Utils were not checked, so no code is taken
+from them.
+
+**First slice.**
+- *Ping.* Apps cannot open raw ICMP sockets. Plan: run the system `ping` binary as a child process (no root
+  needed on stock Android; its output has to be parsed, and it must be checked on the Pixel and on Android
+  17), with a TCP connect to a chosen port as the fallback, which also tells open, refused and timed out
+  apart. Shows each reply, min/avg/max and loss. Count and interval are capped, so it cannot be used as a
+  flood tool.
+- *nslookup.* Android has no `nslookup` binary. Plan: the system resolver through `DnsResolver` (API 29 and
+  newer; A, AAAA and other record types, follows Private DNS), and plain `InetAddress` (A and AAAA only) on
+  older devices. Asking a chosen server (`nslookup name 1.1.1.1`) or using DoT/DoH needs a DNS client of our
+  own: a small hand-written one for plain UDP/TCP queries, or a library (dnsjava is a candidate, BSD-licensed,
+  to be checked). That is a dependency, so the owner is asked first. The default is always the system
+  resolver, and the result says which server answered.
+
+**How it ties in.** A host card gets Ping and Resolve with the address prefilled. Later, "check this group":
+a plain TCP connect to each host's SSH port, run in parallel with the existing `FanOut`, shows who is
+reachable. It never logs in, so the decision on unattended logins (saved key only) is not involved.
+
+**Later candidates, not committed:** TCP port check, Wake-on-LAN (one UDP packet), TLS certificate expiry and
+fingerprint check, SSH host key fingerprint of a server (like `ssh-keyscan`, using the existing SSH code),
+WHOIS (port 43, the query goes out unencrypted), own addresses and DNS servers. Traceroute is hard without
+raw sockets (the "time exceeded" replies cannot be read), so it probably stays out.
+
+**Rules that apply:** no new permission (`INTERNET` and `ACCESS_NETWORK_STATE` are declared; asking before
+any other); no telemetry; no history saved by default, results live on the screen with a copy button; host
+names and addresses are validated before they reach a process or a socket; the screen says when a query
+travels unencrypted (plain DNS, WHOIS).
+
+**Where it would live:** a Tools destination next to Tunnels and Snippets (placement is open), code in
+`org.connectbot.shelldon.tools`, each tool a small unit with a pure Kotlin core (the `ping` output parser, DNS
+message encode and decode) covered by unit tests. If a DNS client of our own is written, it also gets a test
+against a real DNS server in a container.
+
+**Open questions for the owner:** where the Tools entry sits in the navigation; whether the first slice may
+be system resolver only, with a chosen server, DoT and DoH as a second step.
+
 ## Security rules and features to drop
 
 - No accept-all host-key mode. A changed host key blocks the connection.
@@ -845,7 +894,9 @@ Each milestone is a branch and a pull request into `main`. The user merges after
   decision on unattended runs above, decided 2026-11-19: opt-in, saved key only).
 - **M11: UX round** (PR #13, merged and phone-tested 2026-11-19).
 - **M12: onboarding and cleanup** (branch `m12-ssh-import`). Import from `~/.ssh` (config, known_hosts,
-  keys), Files action on the host card, dependency clean-up. Next: CSV and other apps' exports, then export.
+  keys), Files action on the host card, dependency clean-up (merged, PR #14). Next: CSV and other apps'
+  exports, then export.
+- **M13: Tools section** (noted 2026-11-20, not started). Ping and nslookup first, see "Tools section".
 
 ## Open items
 
@@ -876,3 +927,7 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - https://cicdcalculator.com/gitlab-ci-free-tier (GitLab Free vs GitHub Actions minutes)
 - https://docs.termius.com/llms-full.txt (Termius concepts: vaults, groups, hosts, keychain)
 - https://termai.sh/blog/juicessh-alternatives
+- https://f-droid.org/packages/de.obsp.hostlookup/ (HostLookup: DNS record types, resolver comparison)
+- https://f-droid.org/en/packages/com.stealthcotper.networktools/ (Network Tools Library: ping, port scan)
+- https://f-droid.org/en/packages/org.fsociety.vernet/ (Vernet: ping, host and port scanner)
+- https://f-droid.org/en/packages/xyz.pisoj.og.nettools/ (OG Network Tools: DNS through a Google API)
