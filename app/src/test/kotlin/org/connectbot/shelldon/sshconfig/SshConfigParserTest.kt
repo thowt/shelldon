@@ -7,6 +7,7 @@
 package org.connectbot.shelldon.sshconfig
 
 import org.assertj.core.api.Assertions.assertThat
+import org.connectbot.sshlib.AlgorithmCategory
 import org.junit.Test
 
 class SshConfigParserTest {
@@ -145,7 +146,117 @@ class SshConfigParserTest {
     @Test
     fun unsupportedOptionsAreListedPerHost() {
         val host = hosts("Host old\n  HostName 1.2.3.4\n  KexAlgorithms +diffie-hellman-group1-sha1\n  IdentityFile ~/.ssh/id\n  ProxyCommand nc %h %p").getValue("old")
-        assertThat(host.unsupported).containsExactlyInAnyOrder("kexalgorithms", "identityfile", "proxycommand")
+        assertThat(host.unsupported).containsExactly("proxycommand")
+    }
+
+    @Test
+    fun algorithmListsAreReadPerCategoryAsWritten() {
+        val host = hosts(
+            """
+            Host old
+              KexAlgorithms +diffie-hellman-group1-sha1
+              Ciphers aes128-cbc,aes256-cbc
+              MACs hmac-sha1
+              HostKeyAlgorithms +ssh-rsa
+              PubkeyAcceptedAlgorithms +ssh-rsa
+            """.trimIndent(),
+        ).getValue("old")
+        assertThat(host.algorithms).containsEntry(AlgorithmCategory.KEX, "+diffie-hellman-group1-sha1")
+        assertThat(host.algorithms).containsEntry(AlgorithmCategory.CIPHER, "aes128-cbc,aes256-cbc")
+        assertThat(host.algorithms).containsEntry(AlgorithmCategory.MAC, "hmac-sha1")
+        assertThat(host.algorithms).containsEntry(AlgorithmCategory.HOST_KEY, "+ssh-rsa")
+        assertThat(host.algorithms).containsEntry(AlgorithmCategory.PUBKEY, "+ssh-rsa")
+        assertThat(host.algorithmsFromWildcard).isEmpty()
+        assertThat(host.unsupported).isEmpty()
+    }
+
+    @Test
+    fun theOlderNameForPubkeyAlgorithmsIsRead() {
+        val host = hosts("Host old\n  PubkeyAcceptedKeyTypes +ssh-rsa").getValue("old")
+        assertThat(host.algorithms).containsEntry(AlgorithmCategory.PUBKEY, "+ssh-rsa")
+    }
+
+    @Test
+    fun algorithmListsThatOnlyComeFromWildcardBlocksAreMarked() {
+        val parsed = hosts(
+            """
+            Host named
+              Ciphers aes128-cbc
+            Host *
+              KexAlgorithms +diffie-hellman-group1-sha1
+              Ciphers aes256-cbc
+            """.trimIndent(),
+        )
+        val named = parsed.getValue("named")
+        // Ciphers was set for this host by name; the first value wins, so the wildcard one is not used.
+        assertThat(named.algorithms).containsEntry(AlgorithmCategory.CIPHER, "aes128-cbc")
+        assertThat(named.algorithmsFromWildcard).containsExactly(AlgorithmCategory.KEX)
+    }
+
+    @Test
+    fun aWildcardBlockBeforeTheHostBlockWinsLikeInOpenSsh() {
+        val host = hosts("Host *\n  Ciphers aes256-cbc\nHost a\n  Ciphers aes128-cbc").getValue("a")
+        assertThat(host.algorithms).containsEntry(AlgorithmCategory.CIPHER, "aes256-cbc")
+        assertThat(host.algorithmsFromWildcard).containsExactly(AlgorithmCategory.CIPHER)
+    }
+
+    @Test
+    fun everyIdentityFileAppliesInOrderAndNoneIsIgnored() {
+        val host = hosts(
+            """
+            Host a
+              IdentityFile ~/.ssh/id_a
+              IdentityFile none
+            Host *
+              IdentityFile ~/.ssh/id_default
+            """.trimIndent(),
+        ).getValue("a")
+        assertThat(host.identityFiles).containsExactly("~/.ssh/id_a", "~/.ssh/id_default")
+    }
+
+    @Test
+    fun turningHostKeyCheckingOffIsRefusedAndRecordedNotImported() {
+        val parsed = hosts(
+            """
+            Host lab
+              StrictHostKeyChecking no
+            Host eager
+              StrictHostKeyChecking accept-new
+            Host fine
+              StrictHostKeyChecking yes
+            Host asking
+              StrictHostKeyChecking ask
+            Host volatile
+              UserKnownHostsFile /dev/null
+            Host elsewhere
+              UserKnownHostsFile ~/.ssh/other_hosts
+            """.trimIndent(),
+        )
+        assertThat(parsed.getValue("lab").refused).containsEntry("StrictHostKeyChecking", "no")
+        assertThat(parsed.getValue("eager").refused).containsKey("StrictHostKeyChecking")
+        assertThat(parsed.getValue("fine").refused).isEmpty()
+        assertThat(parsed.getValue("asking").refused).isEmpty()
+        assertThat(parsed.getValue("volatile").refused).containsEntry("UserKnownHostsFile", "/dev/null")
+        assertThat(parsed.getValue("elsewhere").refused).isEmpty()
+    }
+
+    @Test
+    fun pubkeyAuthenticationNoIsRead() {
+        assertThat(hosts("Host a\n  PubkeyAuthentication no").getValue("a").pubkeyAuthentication).isFalse()
+        assertThat(hosts("Host a\n  PubkeyAuthentication yes").getValue("a").pubkeyAuthentication).isNull()
+        assertThat(hosts("Host a").getValue("a").pubkeyAuthentication).isNull()
+    }
+
+    @Test
+    fun opensshAlgorithmListsBecomePolicyExpressions() {
+        assertThat(SshConfigParser.toPolicyExpression("+a,b")).isEqualTo("+a,+b")
+        assertThat(SshConfigParser.toPolicyExpression("-a")).isEqualTo("-a")
+        assertThat(SshConfigParser.toPolicyExpression("^a, b")).isEqualTo("^a,^b")
+        assertThat(SshConfigParser.toPolicyExpression("a,b")).isEqualTo("a,b")
+        assertThat(SshConfigParser.toPolicyExpression("  +a  ")).isEqualTo("+a")
+        assertThat(SshConfigParser.toPolicyExpression("")).isNull()
+        assertThat(SshConfigParser.toPolicyExpression("+")).isNull()
+        assertThat(SshConfigParser.toPolicyExpression("+,")).isNull()
     }
 
     @Test

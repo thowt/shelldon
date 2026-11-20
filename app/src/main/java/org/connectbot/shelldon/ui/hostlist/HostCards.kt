@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LinkOff
@@ -287,6 +288,7 @@ internal fun HostCard(
     disconnectReason: DisconnectReason? = null,
     caption: String? = null,
     onMoveToGroup: (() -> Unit)? = null,
+    onFiles: (() -> Unit)? = null,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -404,6 +406,7 @@ internal fun HostCard(
                             onDisconnect = { showDisconnectDialog = true },
                             onDelete = { showDeleteDialog = true },
                             onMoveToGroup = onMoveToGroup,
+                            onFiles = onFiles,
                         )
                     }
                 }
@@ -508,6 +511,7 @@ private fun HostMenuItems(
     onDisconnect: () -> Unit,
     onDelete: () -> Unit,
     onMoveToGroup: (() -> Unit)?,
+    onFiles: (() -> Unit)?,
 ) {
     Column {
         DropdownMenuItem(
@@ -526,6 +530,24 @@ private fun HostMenuItems(
                     onPortForwards()
                 },
                 leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) },
+            )
+        }
+        if (host.protocol == "ssh" && onFiles != null) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(
+                            if (connectionState == ConnectionState.CONNECTED) R.string.shelldon_host_files else R.string.shelldon_host_files_connect_first,
+                        ),
+                    )
+                },
+                onClick = {
+                    onDismiss()
+                    onFiles()
+                },
+                enabled = connectionState == ConnectionState.CONNECTED,
+                leadingIcon = { Icon(Icons.Default.FolderOpen, contentDescription = null) },
+                modifier = Modifier.testTag("host_files_${host.id}"),
             )
         }
         if (onMoveToGroup != null) {

@@ -553,27 +553,6 @@ tasks
         dependsOn("ksp${componentName}Kotlin")
     }
 
-// Guava 33.3.1-android reaches the APK through another library and is affected by GHSA-xxph-c9ww-hj94
-// (CVE-2026-102554, denial of service when deserializing a crafted Java stream; fixed in 33.7.2). The
-// app does not deserialize Java objects, but there is no reason to ship the flagged version. Only the
-// version that was found is replaced, so a newer version asked for by any library is left alone, and
-// only the classpaths that end up in the APK are touched. Remove this once the library that brings
-// Guava in asks for 33.7.2 or newer; the OSV scan in .github/workflows/security.yml shows the result.
-val guavaAndroidFloor = libs.versions.guavaAndroidFloor.get()
-listOf("ossDebugRuntimeClasspath", "ossReleaseRuntimeClasspath").forEach { configurationName ->
-    configurations.matching { it.name == configurationName }.configureEach {
-        resolutionStrategy.eachDependency {
-            if (requested.group == "com.google.guava" &&
-                requested.name == "guava" &&
-                requested.version == "33.3.1-android"
-            ) {
-                useVersion(guavaAndroidFloor)
-                because("GHSA-xxph-c9ww-hj94")
-            }
-        }
-    }
-}
-
 dependencies {
     implementation(libs.zmodemlib)
     coreLibraryDesugaring(libs.desugar)
@@ -586,8 +565,6 @@ dependencies {
     implementation(libs.termlib)
     implementation(libs.telnetlib)
     implementation(libs.telnetlib.ktor)
-    implementation(libs.androidx.media3.common.ktx)
-    implementation(libs.androidx.navigation.testing)
     implementation(libs.androidx.ui)
     implementation(libs.reorderable)
     "googleImplementation"(libs.play.services.basement)
@@ -599,11 +576,13 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.appcompat.resources)
     implementation(libs.androidx.preference)
+    // Nothing in this app uses the Material View library, but termlib 0.3.15 asks for 1.2.0-rc01 and,
+    // without this line, that old release candidate would end up in the APK. Remove this line together
+    // with the library entry once termlib no longer asks for it.
     implementation(libs.material)
     implementation(libs.timber)
     implementation(libs.slf4j.api)
     implementation(libs.re2j)
-    implementation(libs.reorderable)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
@@ -635,6 +614,7 @@ dependencies {
     kspTest(libs.hilt.android.compiler)
     testImplementation(libs.androidx.compose.ui.test)
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.navigation.testing)
 
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.core)

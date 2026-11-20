@@ -134,6 +134,8 @@ fun ShelldonHostListContent(
     onSelectShortcut: (Host) -> Unit = {},
     onExportHosts: () -> Unit = {},
     onImportHosts: () -> Unit = {},
+    onImportSsh: () -> Unit = {},
+    onNavigateToFiles: (Host) -> Unit = {},
     onQuickConnect: (QuickConnectTarget) -> Unit = {},
     unsavedSessions: List<Host> = emptyList(),
     lastSessions: List<LastSession> = emptyList(),
@@ -287,6 +289,14 @@ fun ShelldonHostListContent(
                                             showMenu = false
                                             onExportHosts()
                                         },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.shelldon_sshimport_title)) },
+                                        onClick = {
+                                            showMenu = false
+                                            onImportSsh()
+                                        },
+                                        modifier = Modifier.testTag("host_menu_import_ssh"),
                                     )
                                     DropdownMenuItem(
                                         text = { Text(stringResource(R.string.list_menu_import_hosts)) },
@@ -467,6 +477,7 @@ fun ShelldonHostListContent(
                         EmptyHosts(
                             onAdd = { onNavigateToEditHost(null) },
                             onImport = onImportHosts,
+                            onImportSsh = onImportSsh,
                         )
                     }
                 } else {
@@ -512,6 +523,7 @@ fun ShelldonHostListContent(
                             onForgetHostKeys = { onForgetHostKeys(host) },
                             onDisconnect = { onDisconnectHost(host) },
                             onDelete = { onDeleteHost(host) },
+                            onFiles = { onNavigateToFiles(host) },
                             caption = hostCaption(host, groupSnapshot, showPath = browse.isFlat),
                             onMoveToGroup = if (hasGroups) {
                                 { movingHost = host }
@@ -759,6 +771,7 @@ private fun QuickConnectRow(
 private fun EmptyHosts(
     onAdd: () -> Unit,
     onImport: () -> Unit,
+    onImportSsh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -809,6 +822,15 @@ private fun EmptyHosts(
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.shelldon_empty_add))
+            }
+            FilledTonalButton(
+                onClick = onImportSsh,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp)
+                    .testTag("empty_import_ssh"),
+            ) {
+                Text(stringResource(R.string.shelldon_sshimport_title))
             }
             FilledTonalButton(
                 onClick = onImport,

@@ -574,11 +574,16 @@ install on an open session is unaffected, but a background connection that runs 
 monitoring refresh) must set it off on purpose and close the connection itself. The container tests missed
 this at first: every second command on a test connection found it gone.
 
-**Open decision for the owner: unattended runs.** Installing a key or running a command on a server that is
-not connected, and anything on a whole group (monitoring, collection), needs logins without prompts: a
-saved key or a vault password, host key already known, and a hard failure (no prompt) if the key is
-unknown or changed. That also makes vault passwords usable in the background, so it is a security
-decision as much as a feature. Until decided, everything above runs on live sessions only.
+**Decided by the owner (2026-11-19): unattended runs are opt-in, saved key only.** Installing a key or
+running a command on a server that is not connected, and anything on a whole group (monitoring,
+collection), needs logins without prompts. The rules:
+
+- Off by default. Switched on per host or per group, visibly.
+- Only a saved key from the keychain is used. Vault passwords are never used in the background, so a
+  stolen unlocked phone gives no more than the keys already on it.
+- The host key must already be known. An unknown or a changed key is a hard failure with no prompt, and
+  the failure is shown; there is no accept-and-continue path (same rule as everywhere else).
+- Not built yet. Until it is, everything above runs on live sessions only.
 
 Verified in CI: unit tests for the line, the script and its parser, the mapping from stored keys, and the
 fan-out; OpenSSH container tests (`ExecContainerTest`, `KeyInstallContainerTest`) for exit codes, stderr,
@@ -606,8 +611,86 @@ Found by using the merged round-3 build and key install on the phone:
   key fingerprint (paste a `SHA256:` value to find the host that presented it) and key type. A real
   `known_hosts` file can hold a thousand entries, which was unusable without it.
 
-Not done: the console and the save dialog are covered by Compose tests, but nothing here has been tried on the
-phone yet.
+Phone-tested by the owner on 2026-11-19 (merged as PR #13): works, and the "another bugs" items he had
+noticed were already fixed by it. The console and the save dialog are also covered by Compose tests.
+
+### Onboarding: import from `~/.ssh` (2026-11-19, branch `m12-ssh-import`)
+
+Owner request: moving in from other tools must be easy ("call it onboarding"). His own set-up is an
+`ssh_config`, `known_hosts` and key files on a PC, so that comes first; other apps that export CSV and
+the like come after. A real profile of his (counts only, no content was shared) shaped the design: 57 `Host`
+blocks, 12 `IdentityFile`, 18 `KexAlgorithms`, 13 `HostKeyAlgorithms`, 11 `Ciphers`, 4 `StrictHostKeyChecking`,
+1 `UserKnownHostsFile`; no `Include`, `ProxyJump`, forwards or `Match`. `known_hosts` has 1060 lines, none
+hashed. The files themselves were not sent, and should never be: they hold private keys and a map of his
+network.
+
+**Flow.** One screen, "Import from ~/.ssh", reached from Security, the Hosts overflow menu and the empty Hosts
+screen. Pick any mix of files with the system picker (config, known_hosts, private and public keys). The app
+recognises each file by its content, not its name, shows a preview, and writes nothing until Import. The
+write is one database transaction, so a failure leaves nothing half done. Files stay in memory only and are
+dropped, with any passphrases typed, when the screen is left.
+
+**What is taken from `ssh_config`:** host blocks (first value wins, as in OpenSSH), `HostName`, `User`, `Port`,
+`IdentityFile` (collected across blocks), `PubkeyAuthentication`, a single-hop `ProxyJump` (by alias or
+address), and the algorithm lists. Not followed: `Include` (import the included file on its own) and `Match`.
+Everything else is listed as "read but not imported".
+
+**Algorithm lists become the per-host crypto policy**, the same visible per-host setting as the editor, never
+a global change. `+a,b` is rewritten to the editor's `+a,+b`. A name the crypto policy does not know is
+dropped and named in the preview instead of failing the whole host. Lists that only came from a `Host *`
+block are off by default, so one weak default cannot spread to every server; an option turns them on.
+Entries that are older algorithms (SHA-1, CBC, 3DES, ssh-rsa and so on) are marked as older. The Diffie-Hellman
+minimum is lowered to 1024 bits only on a host whose list actually names group1 or group-exchange-sha1.
+
+**Refused on purpose.** `StrictHostKeyChecking no/off/accept-new` and `UserKnownHostsFile /dev/null` are not
+imported. The host is, the setting is not, and the preview says so: host keys are always checked and a
+changed key blocks the connection, legacy hosts included.
+
+**Keys.** Private keys are decoded (a passphrase field appears for encrypted ones, wrong passphrases are told
+apart from unreadable files), compared with the keychain by public key so nothing is added twice, stored
+through the vault (so it must be unlocked to import them), and linked to the hosts that name them in
+`IdentityFile`. A host whose key file was not picked is shown as "key missing".
+
+**`known_hosts`.** Entries are matched to hosts by name and port, including `[host]:port`, wildcards, `!`
+negation and hashed `|1|` entries. Because a known key belongs to a saved host here, a line is imported only
+if it matches a saved or newly imported host; the rest is counted as "no matching host", and importing again
+after adding the host picks it up. An entry that differs from a key already stored is a conflict and is never
+overwritten (a changed key is the warning, not something an import may fix). Two different keys for one host
+and key type are reported as ambiguous and skipped. `@cert-authority` and `@revoked` lines are counted and
+not imported.
+
+**Smaller things in the same branch:** a Files action in the host card menu (enabled while that host is
+connected, it opens the SFTP browser).
+
+**Dependency clean-up.** Removed `media3-common-ktx` (no source used it; it was also what brought Guava into
+the APK) and a duplicated `reorderable` line; `navigation-testing` moved from the app to the test classpath,
+where it belongs. Removing them changes what Gradle resolves, so the first CI run failed dependency
+verification on six artifacts (newer `savedstate` versions, and `listenablefuture` 1.0 now that Guava no
+longer replaces it). The `Dependency metadata` workflow was run on the branch and its output committed
+after reading the diff: only additions, all from Google Maven and Maven Central. The Material View
+library (`com.google.android.material`) is not used by any source or layout, but it could **not** be
+removed: without the explicit pin some other dependency's request for `material:1.2.0-rc01` wins and an old
+release candidate (with `transition`, `customview`, `drawerlayout`) would ship instead. The security job's
+"who brings each library in" listing shows who asks: `org.connectbot:termlib` 0.3.15, ConnectBot's terminal
+library. So the pin stays, with a comment, until termlib stops asking (a newer termlib, or a change
+upstream). The checksums for that old chain were left out of the file on purpose. With media3 gone, the
+scan shows 231 shipped libraries (239 before) and no Guava, only the empty `listenablefuture` 1.0 marker, so
+the Guava floor in `app/build.gradle.kts` and its version entry were deleted. Version
+bumps were not done: each one needs the same workflow run, and a monthly batch is the plan.
+
+**Not built yet (next onboarding steps):** CSV import with a column mapping, then PuTTY, MobaXterm,
+SecureCRT and mRemoteNG; export to `ssh_config` and CSV; per-host checkboxes in the preview; `Include`
+following; port forwards from `LocalForward` and friends; the old Keychain keys screen still exists for key
+export, YubiKey and FIDO2.
+
+**Verified.** In CI (pull request #14): compile, 1931 unit tests including the new parser, `known_hosts`,
+planner, importer (Room under Robolectric), real policy validation and key decoding, and the Compose tests
+for the import screen and the host list; Spotless/ktlint; Android lint; gitleaks; OSV. CI found two real
+problems on the way, both fixed: a `known_hosts` file made mostly of `@cert-authority` or `@revoked` lines
+was not recognised, and test fixtures that spelled out a key header tripped the secret scan (the markers are
+built at run time now, in `TestPem`). **Not verified:** nothing has been tried on a phone, and the import
+has not been run against the owner's real files. No OpenSSH container test is involved, because nothing in
+`transport/` or the crypto code changed; the algorithm lists go through the existing policy validator.
 
 ## Security rules and features to drop
 
@@ -651,8 +734,9 @@ Notes:
   - Shipped: 1 finding, Guava 33.3.1-android (GHSA-xxph-c9ww-hj94 / CVE-2026-102554, denial of
     service when deserializing a crafted Java stream). Not reachable in our code (no `ObjectInputStream`),
     fixed anyway by raising exactly that version to 33.7.2-android on the debug and release runtime
-    classpaths (`app/build.gradle.kts`). Guava comes in through `androidx.media3:media3-common-ktx`,
-    which no source file uses; dropping it would remove Guava from the APK (to be checked, separate change).
+    classpaths. Guava came in through `androidx.media3:media3-common-ktx`, which no source file used. That
+    dependency was removed on 2026-11-19 (branch `m12-ssh-import`) and the next OSV scan showed no Guava in
+    the shipped libraries, so the floor was deleted. Fixed by removal.
   - Build tooling only, not in the APK: the other 14 (Bouncy Castle 1.80.2, Guava jre variants,
     freemarker, jdom2, jose4j, httpclient, logback, commons-lang3). They are not on the release runtime
     classpath, so they belong to the build, lint or test tools (which tool brings which one is not traced
@@ -753,18 +837,25 @@ Each milestone is a branch and a pull request into `main`. The user merges after
   crypto-policy inheritance. Room migrations with tests.
 - **M6: host-list UX.** Search, group tree, tag filters, quick connect, legacy and PQ badges.
 - **M7: snippets and SFTP browser.** Built in round 3 (PR `m8-sftp-snippets-tunnels`), with the Tunnels tab.
-- **M8: export/import** (encrypted file, plus `~/.ssh/config` import).
+- **M8: export/import** (encrypted file, plus `~/.ssh/config` import). Encrypted backup is in round 2; the
+  `~/.ssh` import is rebuilt as onboarding in M12.
 - **M9: sync.** Backend interface, then WebDAV, then optional server.
-- **M10: run commands, install key on server.** Exec layer, key install (this branch). Next on it: snippet
+- **M10: run commands, install key on server.** Exec layer, key install (merged, PR #12). Next on it: snippet
   "run on server or group and show the output", simple monitoring and data collection (see the open
-  decision on unattended runs above).
+  decision on unattended runs above, decided 2026-11-19: opt-in, saved key only).
+- **M11: UX round** (PR #13, merged and phone-tested 2026-11-19).
+- **M12: onboarding and cleanup** (branch `m12-ssh-import`). Import from `~/.ssh` (config, known_hosts,
+  keys), Files action on the host card, dependency clean-up. Next: CSV and other apps' exports, then export.
 
 ## Open items
 
 - User may find an old Cisco 2960/3750 for real-device legacy testing.
 - ShellDroid is worth a second look if its licence is permissive.
-- Fine-tuning candidates after round 3: Files entry on the Hosts screen (today only from an open console),
-  background and resumable transfers, folder download, chmod editor, editing remote files in place.
+- Fine-tuning candidates after round 3: background and resumable transfers, folder download, chmod editor,
+  editing remote files in place. (The Files entry on the Hosts screen is done in M12.)
+- Per-forward LAN bind: `-L` and `-D` always bind loopback, the editor offers a bind address only for `-R`.
+  Needs a change in `transport/`, so it comes with container tests.
+- Identity passwords in the vault (needs a database migration).
 - Name and trademark check before any public release.
 - Icon provenance: AI-generated artwork. Check the tool's terms and the copyright position before release.
 - Decide where new code lives: new Gradle modules (for example `:vault`, `:sync`, pure Kotlin where

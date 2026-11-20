@@ -59,13 +59,14 @@ import org.connectbot.ui.components.rememberBiometricPromptState
 private class PendingExport(val password: String, val options: BackupOptions)
 
 /**
- * Master password, auto-lock, biometric unlock, encrypted backup and restore, ssh_config import and
+ * Master password, auto-lock, biometric unlock, encrypted backup and restore, ssh import and
  * vault reset, all in one place.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToSshImport: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SecurityViewModel = hiltViewModel(),
 ) {
@@ -84,9 +85,6 @@ fun SecurityScreen(
         if (uri != null && pending != null) viewModel.exportBackup(uri, pending.password, pending.options)
     }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> pendingImport = uri }
-    val sshConfigLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) viewModel.importSshConfig(uri)
-    }
 
     val promptTitle = stringResource(R.string.shelldon_vault_bio_prompt_title)
     val promptSubtitle = stringResource(R.string.shelldon_vault_bio_prompt_enable_subtitle)
@@ -172,9 +170,9 @@ fun SecurityScreen(
 
             SectionHeader(stringResource(R.string.shelldon_security_section_import))
             ActionRow(
-                title = stringResource(R.string.shelldon_sshconfig_import),
-                summary = stringResource(R.string.shelldon_sshconfig_import_summary),
-                onClick = { sshConfigLauncher.launch(arrayOf("*/*")) },
+                title = stringResource(R.string.shelldon_sshimport_title),
+                summary = stringResource(R.string.shelldon_sshimport_summary),
+                onClick = onNavigateToSshImport,
                 enabled = !ui.busy,
                 testTag = "security_sshconfig",
             )
@@ -474,18 +472,5 @@ private fun messageText(message: SecurityMessage): Pair<String, String> {
                 null -> R.string.shelldon_backup_failed_other
             },
         )
-
-        is SecurityMessage.ConfigImported -> {
-            val r = message.result
-            val lines = mutableListOf(stringResource(R.string.shelldon_sshconfig_result_body, r.added, r.skipped, r.jumpHostsLinked))
-            if (r.jumpHostsUnresolved.isNotEmpty()) lines.add(stringResource(R.string.shelldon_sshconfig_result_unresolved, r.jumpHostsUnresolved.joinToString(", ")))
-            if (r.unsupportedOptions.isNotEmpty()) lines.add(stringResource(R.string.shelldon_sshconfig_result_unsupported, r.unsupportedOptions.take(MAX_LISTED_OPTIONS).joinToString(", ")))
-            if (r.matchBlocks > 0 || r.includes.isNotEmpty()) lines.add(stringResource(R.string.shelldon_sshconfig_result_skipped_blocks))
-            stringResource(R.string.shelldon_sshconfig_result_title) to lines.joinToString("\n\n")
-        }
-
-        SecurityMessage.ConfigFailed -> security to stringResource(R.string.shelldon_sshconfig_failed)
     }
 }
-
-private const val MAX_LISTED_OPTIONS = 8

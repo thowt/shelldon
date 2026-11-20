@@ -7,9 +7,11 @@
 package org.connectbot.shelldon.ui.hostlist
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -422,9 +424,67 @@ class ShelldonHostListContentTest {
         composeTestRule.onNodeWithTag("shelldon_search_clear").assertDoesNotExist()
     }
 
+    @Test
+    fun emptyState_offersTheSshImport() {
+        var opened = 0
+        setContent(uiState = HostListUiState(hosts = emptyList()), onImportSsh = { opened++ })
+
+        composeTestRule.onNodeWithTag("empty_import_ssh").assertIsDisplayed().performClick()
+
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun overflowMenu_offersTheSshImport() {
+        var opened = 0
+        val web = testHost(id = UUID(0, 21), nickname = "web-01")
+        setContent(uiState = HostListUiState(hosts = listOf(web)), onImportSsh = { opened++ })
+
+        composeTestRule.onNodeWithContentDescription(composeTestRule.activity.getString(R.string.button_more_options)).performClick()
+        composeTestRule.onNodeWithTag("host_menu_import_ssh").assertIsDisplayed().performClick()
+
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun filesAction_isOnlyAvailableOnAConnectedHost() {
+        val web = testHost(id = UUID(0, 22), nickname = "web-01")
+        val db = testHost(id = UUID(0, 23), nickname = "db-01")
+        var filesFor: Host? = null
+        setContent(
+            uiState = HostListUiState(
+                hosts = listOf(web, db),
+                connectionStates = mapOf(web.id to ConnectionState.CONNECTED, db.id to ConnectionState.DISCONNECTED),
+            ),
+            onNavigateToFiles = { filesFor = it },
+        )
+
+        composeTestRule.onNodeWithTag(HostListTestTags.itemMenuButton(db.id)).performClick()
+        composeTestRule.onNodeWithTag("host_files_${db.id}").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("host_files_${db.id}").performClick()
+        assertNull(filesFor)
+    }
+
+    @Test
+    fun filesAction_opensTheFilesOfAConnectedHost() {
+        val web = testHost(id = UUID(0, 24), nickname = "web-01")
+        var filesFor: Host? = null
+        setContent(
+            uiState = HostListUiState(hosts = listOf(web), connectionStates = mapOf(web.id to ConnectionState.CONNECTED)),
+            onNavigateToFiles = { filesFor = it },
+        )
+
+        composeTestRule.onNodeWithTag(HostListTestTags.itemMenuButton(web.id)).performClick()
+        composeTestRule.onNodeWithTag("host_files_${web.id}").assertIsEnabled().performClick()
+
+        assertEquals(web.id, filesFor?.id)
+    }
+
     private fun setContent(
         uiState: HostListUiState = HostListUiState(),
         makingShortcut: Boolean = false,
+        onImportSsh: () -> Unit = {},
+        onNavigateToFiles: (Host) -> Unit = {},
         onNavigateToConsole: (Host) -> Unit = {},
         onSelectShortcut: (Host) -> Unit = {},
         onNavigateToEditHost: (Host?) -> Unit = {},
@@ -454,6 +514,8 @@ class ShelldonHostListContentTest {
                     onDisconnectHost = {},
                     onDisconnectAll = {},
                     onQuickConnect = onQuickConnect,
+                    onImportSsh = onImportSsh,
+                    onNavigateToFiles = onNavigateToFiles,
                     unsavedSessions = unsavedSessions,
                     lastSessions = lastSessions,
                     onSaveActiveSession = onSaveActiveSession,

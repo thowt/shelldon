@@ -35,6 +35,7 @@ import org.connectbot.shelldon.ui.hostlist.ShelldonHostListScreen
 import org.connectbot.shelldon.ui.keychain.ShelldonKeychainScreen
 import org.connectbot.shelldon.ui.sftp.SftpScreen
 import org.connectbot.shelldon.ui.snippets.ShelldonSnippetsScreen
+import org.connectbot.shelldon.ui.sshimport.SshImportScreen
 import org.connectbot.shelldon.ui.tunnels.ShelldonTunnelsScreen
 import org.connectbot.shelldon.ui.vault.SecurityScreen
 import org.connectbot.ui.screens.colors.ColorsScreen
@@ -108,6 +109,12 @@ fun ConnectBotNavHost(
                     },
                     onNavigateToHelp = {
                         navController.navigateSafely(NavDestinations.HELP)
+                    },
+                    onNavigateToFiles = { host ->
+                        navController.navigateSafely("${NavDestinations.SFTP}/${host.id}")
+                    },
+                    onNavigateToSshImport = {
+                        navController.navigateSafely(NavDestinations.SSH_IMPORT)
                     },
                 )
             }
@@ -286,7 +293,13 @@ fun ConnectBotNavHost(
             }
 
             composable(NavDestinations.SECURITY) {
-                SecurityScreen(onNavigateBack = { navController.safePopBackStack() })
+                SecurityScreen(
+                    onNavigateBack = { navController.safePopBackStack() },
+                    onNavigateToSshImport = { navController.navigateSafely(NavDestinations.SSH_IMPORT) },
+                )
+            }
+            composable(NavDestinations.SSH_IMPORT) {
+                SshImportScreen(onNavigateBack = { navController.safePopBackStack() })
             }
 
             composable("keyboard_layout/{layoutId}", arguments = listOf(navArgument("layoutId") { type = NavType.StringType })) { entry ->
