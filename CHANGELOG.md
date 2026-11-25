@@ -16,6 +16,8 @@ this section collects what has been added on top of ConnectBot since the fork.
 - OpenSSH container tests for the SSH transport and for SFTP
 
 ### Changed
+- Top bars are 56 dp on phones and the folded cover screen and 48 dp on wide windows such as an
+  unfolded Fold (Material's default is 64 dp); the terminal title bar hides by default on wide windows
 - New application id, name and launcher icon; bottom navigation with Hosts, Keychain, Snippets,
   Tunnels and Settings
 - Mosh archives are pinned by SHA-256 in `gradle/mosh4android.sha256`

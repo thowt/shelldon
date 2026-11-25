@@ -749,6 +749,28 @@ against a real DNS server in a container.
 **Open questions for the owner:** where the Tools entry sits in the navigation; whether the first slice may
 be system resolver only, with a chosen server, DoT and DoH as a second step.
 
+### Header size and the Fold (2026-11-25)
+
+On a Pixel Fold the unfolded screen is about 840 dp wide and the cover screen about 410 dp, and Material's
+64 dp top bar wastes most on the first. One helper (`shelldon/ui/shell/HeaderMetrics.kt`) picks the height
+from `LocalConfiguration.screenWidthDp`, and every `TopAppBar` passes it as `expandedHeight`:
+
+| Window width | Top bar | Terminal title bar by default |
+| --- | --- | --- |
+| below 600 dp (phone, folded cover screen) | 56 dp | visible |
+| 600 dp and up (unfolded Fold, tablet) | 48 dp | hidden (tap the terminal to show it) |
+
+48 dp is the floor: below it an icon button no longer gets its full touch target. The autohide default
+applies only until the person chooses; the setting under Settings then wins on both screens, and the
+switch shows the default for the current width until it has been chosen. Folding and unfolding recreates
+the activity (`MainActivity` has no `configChanges`), so the new height applies at once, and open sessions
+are unaffected because they live in the service.
+
+Not done, on purpose: a navigation rail instead of the bottom bar on wide windows, `configChanges` on
+`MainActivity`, and smaller titles on the Hosts, Keychain, Snippets and Tunnels tabs. Those titles are list
+items that scroll away, not a fixed bar. **Verified:** unit tests for the width thresholds and a Compose
+test that the bar is 56 dp at 412 dp and 48 dp at 840 dp. **Not verified:** on the Fold itself.
+
 ## Security rules and features to drop
 
 - No accept-all host-key mode. A changed host key blocks the connection.
