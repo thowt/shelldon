@@ -769,9 +769,9 @@ exists; whether it is green is shown by the CI run, not by this file.
 
 | Gate | Workflow | Runs on | What it checks |
 | --- | --- | --- | --- |
-| Build, unit and container tests, Room schema | `build.yml` | PR, push to `main`, manual (not docs-only) | It compiles, the tests pass, the Room schema JSON matches the generated code |
-| Spotless and ktlint | `checks.yml` job `style` | PR, push to `main`, manual (not docs-only) | ktlint 1.8.0 with the Compose rules over all Kotlin including `org.connectbot.shelldon`, licence headers, whitespace. CI passes `-PspotlessFull`, so it checks every file, not only those changed since `main` |
-| Android lint | `checks.yml` job `lint` | PR and manual (not docs-only) | `:app:lintOssDebug`; the findings are printed in the log and attached |
+| Build, unit and container tests, Room schema | `build.yml` | every PR, push to `main` (not docs-only), manual | It compiles, the tests pass, the Room schema JSON matches the generated code |
+| Spotless and ktlint | `checks.yml` job `style` | every PR, push to `main` (not docs-only), manual | ktlint 1.8.0 with the Compose rules over all Kotlin including `org.connectbot.shelldon`, licence headers, whitespace. CI passes `-PspotlessFull`, so it checks every file, not only those changed since `main` |
+| Android lint | `checks.yml` job `lint` | every PR and manual | `:app:lintOssDebug`; the findings are printed in the log and attached |
 | Secret scan | `security.yml` job `secrets` | every push and PR, also docs-only | gitleaks 8.30.1 over the full history; reviewed false positives are listed by fingerprint in `.gitleaksignore` |
 | Known vulnerabilities | `security.yml` job `osv` | every push and PR, weekly | OSV-Scanner 2.5.1 over two lists. *Shipped*: the resolved release runtime classpath (what is inside the APK); fails the check, reviewed exceptions go in `osv-scanner.toml` with a reason and an expiry date. *Tooling*: everything in `gradle/verification-metadata.xml`, which also holds the Android Gradle plugin, lint, test and formatting tools; shown in the run summary as a warning, does not fail |
 | Dependency checksums | Gradle itself | every build | Once `gradle/verification-metadata.xml` exists, Gradle refuses any library whose SHA-256 differs |
@@ -801,11 +801,12 @@ Notes:
     monthly batch. Bouncy Castle 1.86 (ours, Argon2id) is not flagged.
   - Done from the earlier partial audit: Bouncy Castle 1.85.2 to 1.86. Open: `biometric-ktx` is on an alpha
   (`1.4.0-alpha02`) in the unlock path; beta or stable should be chosen before the first release.
-- Trap for later: `build.yml` and `checks.yml` skip docs-only changes with `paths-ignore`. A
-  branch-protection rule or ruleset that *requires* `Build APK` would then wait forever on a
-  docs-only pull request, because the check never starts. Before requiring checks, either do not
-  require them, or replace `paths-ignore` with a first job that detects docs-only changes and lets
-  the required job finish at once.
+- Trap, now hit and fixed (2026-11-25): `build.yml` and `checks.yml` skipped docs-only changes with
+  `paths-ignore`, and the ruleset on `main` requires `Build APK`, `Spotless and ktlint`, `Android lint`
+  and the two security jobs. A required check that never starts leaves a docs-only pull request
+  "blocked" for good (PR #15 was). The `pull_request` trigger of both workflows no longer has a path
+  filter; minutes are free on a public repository. A push to `main` that only changes docs or Markdown
+  still skips them, which is fine because nothing requires a check on a push.
 
 ## Hosting and CI
 

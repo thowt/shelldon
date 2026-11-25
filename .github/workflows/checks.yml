@@ -7,14 +7,14 @@ name: Checks
 #   lint  : Android lint on the oss debug variant; pull requests and manual runs only
 # Same rules as build.yml: read-only token, no secrets, every action pinned to a full commit SHA.
 # Secret scanning and the dependency vulnerability scan are in security.yml, which also runs for
-# docs-only changes.
+# docs-only changes. Like build.yml, these checks run on every pull request (the branch rules on main
+# require them), and only a push to main that changes nothing but docs and Markdown skips them.
 
 on:
   push:
     branches: [ main ]
     paths-ignore: [ 'docs/**', '**/*.md' ]
   pull_request:
-    paths-ignore: [ 'docs/**', '**/*.md' ]
   workflow_dispatch:
 
 concurrency:
