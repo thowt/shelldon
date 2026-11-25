@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.connectbot.R
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.PreviewScreen
 import org.connectbot.ui.theme.ConnectBotTheme
 
@@ -59,6 +60,7 @@ fun ContactScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.title_contact)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

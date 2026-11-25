@@ -61,6 +61,7 @@ import org.connectbot.shelldon.sshconfig.PlannedKey
 import org.connectbot.shelldon.sshconfig.SshImportOptions
 import org.connectbot.shelldon.sshconfig.SshImportPlan
 import org.connectbot.shelldon.sshconfig.SshImportResult
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 
 /**
  * Bring hosts, algorithm settings, host keys and private keys over from an OpenSSH `~/.ssh` folder.
@@ -104,6 +105,7 @@ internal fun SshImportContent(
         modifier = modifier,
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.shelldon_sshimport_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

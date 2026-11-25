@@ -47,6 +47,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.connectbot.R
 import org.connectbot.data.keyboard.KeyboardDraft
 import org.connectbot.service.TerminalBridge
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +69,7 @@ internal fun ConsoleKeyboardSettings(bridge: TerminalBridge, onNavigateBack: () 
         }
     }
     Scaffold(topBar = {
-        TopAppBar(title = { Text(stringResource(R.string.keyboard_settings_title)) }, navigationIcon = {
+        TopAppBar(expandedHeight = shelldonBarHeight(), title = { Text(stringResource(R.string.keyboard_settings_title)) }, navigationIcon = {
             IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.button_navigate_up)) }
         })
     }) { padding ->

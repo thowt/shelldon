@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.connectbot.R
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.PreviewScreen
 import org.connectbot.ui.components.ColorPickerDialog
 import org.connectbot.ui.components.RgbColorPickerDialog
@@ -176,6 +177,7 @@ fun PaletteEditorScreenContent(
         },
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.title_palette_editor)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

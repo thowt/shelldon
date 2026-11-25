@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.connectbot.R
 import org.connectbot.data.entity.Profile
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.common.getLocalizedFontDisplayName
 import org.connectbot.ui.common.getLocalizedFontWeightName
 import org.connectbot.ui.components.TextInputAlertDialog
@@ -93,6 +94,7 @@ fun ProfileListScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.profile_list_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

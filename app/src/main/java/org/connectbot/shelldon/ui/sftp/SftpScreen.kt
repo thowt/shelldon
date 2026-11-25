@@ -70,6 +70,7 @@ import org.connectbot.R
 import org.connectbot.shelldon.sftp.SftpItem
 import org.connectbot.shelldon.sftp.SftpKind
 import org.connectbot.shelldon.sftp.SftpPaths
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.LocalTerminalManager
 
 /**
@@ -142,6 +143,7 @@ fun SftpScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = {
                     Column {
                         Text(

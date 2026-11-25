@@ -81,6 +81,7 @@ import org.connectbot.ctap2.Fido2Algorithm
 import org.connectbot.ctap2.Fido2Credential
 import org.connectbot.ctap2.android.Fido2ConnectionState
 import org.connectbot.data.entity.Fido2Transport
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,6 +151,7 @@ fun ImportFido2Screen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.fido2_import_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
