@@ -10,7 +10,7 @@ that can later be offered to the public.
 
 ## Decisions so far
 
-- **Name: Shelldon SSH.** Application id `io.github.thowt.shelldon`. Repo `thowt/shelldon` (private for now).
+- **Name: Shelldon SSH.** Application id `io.github.thowt.shelldon`. Repo `thowt/shelldon` (public since 2026-11-25).
 - **Icon direction:** a turtle named Shelldon with a `#` (the root prompt) on its shell.
   Original artwork only: no existing mascot, no ConnectBot artwork. Adaptive icon with a
   monochrome layer for themed icons. A name check (EUIPO TMview, Play Store, F-Droid,
@@ -66,7 +66,7 @@ that can later be offered to the public.
 
 - **Branding sweep (2026-11-16).** Every user-visible "ConnectBot" is now "Shelldon SSH": all 54 string
   files, the Help screen title, the Hints intro, the export and tombstone file names, the en-US store
-  listing. Bug and source links point to `github.com/thowt/shelldon` (private until the repo goes public).
+  listing. Bug and source links point to `github.com/thowt/shelldon` (the repo has been public since 2026-11-25).
   The Help screen carries the copyright and a "Based on ConnectBot, (c) Kenny Root, Jeffrey Sharkey and the
   ConnectBot contributors, Apache-2.0" line, and the Contact screen links to the upstream project.
   **Removed:** the "Support Development" section (GitHub Sponsors and Buy Me a Coffee links of the upstream
@@ -826,16 +826,23 @@ State on 2026-11-15:
 - Compile feedback also comes from the VM, since the cloud workspace used for planning cannot build
   Android code (no SDK, Maven Central blocked).
 
-## Going public (checked 2026-11-17)
+## Going public (checked 2026-11-17, switched to public 2026-11-25)
 
-The owner wants the project public, possibly soon. What was checked and what is still open.
+The repository was made public on 2026-11-25. What was checked and what is still open.
 
 **History and tree.** The history is ConnectBot's public history (3,400 commits) plus ours. Scanned
 for key and keystore files, private-key headers, token patterns, the owner's email and domain, and
 private addresses in our commits. Nothing real turned up: the only hits are test fixtures (fake keys,
-`10.0.0.x` addresses in `ssh_config` tests) and a `tests/local.properties` that upstream committed in 2009 (an Android SDK path, since removed). Our
-commits carry `Claude <noreply@anthropic.com>` as author, so no personal address is exposed. This was
+`10.0.0.x` addresses in `ssh_config` tests) and a `tests/local.properties` that upstream committed in 2009 (an Android SDK path, since removed). This was
 a manual scan; the quality PR adds a gitleaks job that scans the whole history in CI.
+
+**Correction (2026-11-25).** The first version of this note said our commits carry only
+`Claude <noreply@anthropic.com>`, so no personal address was exposed. That was wrong. The 14 "Merge pull
+request" commits that GitHub made when the owner merged (11 of them on `main`) are authored with the
+owner's personal address. Rewriting history would not remove it from a repository that is already
+public (old commits stay reachable through pull request refs), and the repository went public as it was.
+Merges made after the owner enables "Keep my email addresses private" in the GitHub settings use the
+GitHub no-reply address.
 
 **Done in the readiness PR (Markdown only, so CI is skipped):** README (status, badges, security
 commitments, build steps including the upstream tag a fresh clone needs), CONTRIBUTING (was still
