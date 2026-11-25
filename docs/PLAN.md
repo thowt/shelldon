@@ -327,6 +327,14 @@ compile). Spotless and lint were not run either. Update this section after the C
   change, StrongBox when the device has it) wraps the DEK into `shelldon-vault.bio`. If the key is
   invalidated, the unlock screen says so, the master password still works, and the shortcut can be turned
   on again under Security.
+  **Switched off only for a real loss** (2026-11-25): the system invalidated the key, the key is gone while
+  the wrap file is still there, or the wrap file is damaged. Any other error when starting an unlock (the
+  Keystore is busy, the device counts as locked, a vendor glitch) keeps the setup, shows "not available
+  right now" and falls back to the password. Before, every such error deleted the key and the wrap and
+  claimed the biometrics had changed. The unlock screen also reads what is set up each time it appears and
+  shows prompt errors (too many attempts, sensor not available); choosing the password or leaving the app
+  shows nothing. Verified: unit tests for the error policy and the view model. Not verified: on a phone,
+  and the real Keystore (it cannot run on the JVM).
 - **Auto-lock**: after 0, 1, 5, 15 or 60 minutes in the background (default 5; there is no "never"). Locking
   zeroes the DEK. A connection that is already open keeps working because it holds what it needs; a new
   connection that needs a key or a saved password fails while locked.
