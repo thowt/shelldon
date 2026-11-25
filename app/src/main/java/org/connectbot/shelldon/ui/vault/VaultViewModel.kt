@@ -6,6 +6,7 @@
 
 package org.connectbot.shelldon.ui.vault
 
+import androidx.biometric.BiometricPrompt
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.connectbot.shelldon.vault.BiometricStart
+import org.connectbot.shelldon.vault.BiometricStatus
 import org.connectbot.shelldon.vault.UnlockResult
 import org.connectbot.shelldon.vault.Vault
 import org.connectbot.shelldon.vault.VaultController
@@ -23,7 +26,28 @@ import org.connectbot.shelldon.vault.VaultState
 import javax.crypto.Cipher
 import javax.inject.Inject
 
-enum class VaultError { TOO_SHORT, MISMATCH, CREATE_FAILED, WRONG_PASSWORD, DAMAGED, BIOMETRIC_CHANGED, BIOMETRIC_FAILED }
+enum class VaultError {
+    TOO_SHORT,
+    MISMATCH,
+    CREATE_FAILED,
+    WRONG_PASSWORD,
+    DAMAGED,
+
+    /** The enrolled biometrics changed; biometric unlock was switched off. */
+    BIOMETRIC_CHANGED,
+
+    /** The prompt authenticated but the vault did not open. */
+    BIOMETRIC_FAILED,
+
+    /** Biometric unlock was set up but its key is gone; it was switched off. */
+    BIOMETRIC_LOST,
+
+    /** The system would not start or finish the prompt just now; biometric unlock is still set up. */
+    BIOMETRIC_UNAVAILABLE,
+
+    /** Too many wrong fingers or faces; the system blocks the sensor for a while. */
+    BIOMETRIC_LOCKED_OUT,
+}
 
 data class VaultUiState(
     val busy: Boolean = false,
@@ -102,16 +126,74 @@ class VaultViewModel @Inject constructor(
         }
     }
 
-    /** A cipher to authenticate with the system biometric prompt, or null if biometric unlock cannot be used now. */
-    fun beginBiometricUnlock(): Cipher? {
-        val cipher = controller.biometric.beginUnlock()
-        if (cipher == null) {
-            val wasEnabled = mutableUiState.value.biometricEnabled
-            mutableUiState.update {
-                it.copy(biometricEnabled = false, error = if (wasEnabled) VaultError.BIOMETRIC_CHANGED else it.error)
+    /**
+     * Called whenever the unlock screen appears: reads what is really set up instead of trusting
+     * what was true when this view model was created, and clears messages left from an earlier
+     * visit. Returns true if the biometric prompt can be shown.
+     */
+    fun refreshBiometric(): Boolean {
+        val biometric = controller.biometric
+        return when (biometric.status()) {
+            BiometricStatus.READY -> {
+                mutableUiState.update { it.copy(biometricEnabled = true, error = null) }
+                true
+            }
+
+            BiometricStatus.NOT_SET_UP -> {
+                mutableUiState.update { it.copy(biometricEnabled = false, error = null) }
+                false
+            }
+
+            BiometricStatus.KEY_LOST -> {
+                biometric.disable()
+                mutableUiState.update { it.copy(biometricEnabled = false, error = VaultError.BIOMETRIC_LOST) }
+                false
             }
         }
-        return cipher
+    }
+
+    /** A cipher to authenticate with the system biometric prompt, or null if biometric unlock cannot be used now. */
+    fun beginBiometricUnlock(): Cipher? = when (val start = controller.biometric.beginUnlock()) {
+        is BiometricStart.Ready -> start.cipher
+
+        BiometricStart.NotSetUp -> {
+            mutableUiState.update { it.copy(biometricEnabled = false) }
+            null
+        }
+
+        BiometricStart.Invalidated -> {
+            mutableUiState.update { it.copy(biometricEnabled = false, error = VaultError.BIOMETRIC_CHANGED) }
+            null
+        }
+
+        BiometricStart.Lost -> {
+            mutableUiState.update { it.copy(biometricEnabled = false, error = VaultError.BIOMETRIC_LOST) }
+            null
+        }
+
+        // Still set up: the button stays, so the next tap can try again.
+        BiometricStart.Unavailable -> {
+            mutableUiState.update { it.copy(error = VaultError.BIOMETRIC_UNAVAILABLE) }
+            null
+        }
+    }
+
+    /** The system prompt ended with an error [code] (a `BiometricPrompt.ERROR_*` value). */
+    fun onBiometricError(code: Int) {
+        val error = when (code) {
+            // The person chose the password, or the system took the prompt away (app left, screen off).
+            BiometricPrompt.ERROR_USER_CANCELED,
+            BiometricPrompt.ERROR_NEGATIVE_BUTTON,
+            BiometricPrompt.ERROR_CANCELED,
+            -> null
+
+            BiometricPrompt.ERROR_LOCKOUT,
+            BiometricPrompt.ERROR_LOCKOUT_PERMANENT,
+            -> VaultError.BIOMETRIC_LOCKED_OUT
+
+            else -> VaultError.BIOMETRIC_UNAVAILABLE
+        }
+        if (error != null) mutableUiState.update { it.copy(error = error) }
     }
 
     fun finishBiometricUnlock(cipher: Cipher) {

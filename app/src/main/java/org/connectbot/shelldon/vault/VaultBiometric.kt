@@ -17,8 +17,6 @@ import androidx.biometric.BiometricManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import java.io.File
-import java.io.IOException
-import java.security.GeneralSecurityException
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -26,6 +24,47 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** Where biometric unlock stands on disk and in the Keystore. */
+enum class BiometricStatus {
+    /** Never set up, or switched off. */
+    NOT_SET_UP,
+
+    /** The wrap file and the Keystore key are both there. */
+    READY,
+
+    /** The wrap file is there but the Keystore key is gone, for instance deleted by the system. */
+    KEY_LOST,
+}
+
+/** How an attempt to start a biometric unlock went. */
+sealed interface BiometricStart {
+    /** Show the system prompt with [cipher]. */
+    class Ready(val cipher: Cipher) : BiometricStart
+
+    /** Biometric unlock is not set up. */
+    data object NotSetUp : BiometricStart
+
+    /** The enrolled biometrics changed and the system invalidated the key. Biometric unlock was switched off. */
+    data object Invalidated : BiometricStart
+
+    /** It was set up but cannot be used any more (key gone, wrap damaged). Biometric unlock was switched off. */
+    data object Lost : BiometricStart
+
+    /** The system refused the key just now. Nothing was switched off; the master password works. */
+    data object Unavailable : BiometricStart
+}
+
+/**
+ * Decides what a failed attempt to start an unlock means. Only a key that the system itself
+ * invalidated is a reason to throw the biometric setup away. Every other error (the Keystore is
+ * busy, the device counts as locked, a vendor glitch) may be gone on the next try, so the setup is
+ * kept and the master password is used this time.
+ */
+internal fun startFailure(error: Exception): BiometricStart = when (error) {
+    is KeyPermanentlyInvalidatedException -> BiometricStart.Invalidated
+    else -> BiometricStart.Unavailable
+}
 
 /**
  * Lets a Class 3 (strong) biometric stand in for the master password.
@@ -53,8 +92,24 @@ class VaultBiometric @Inject constructor(
     /** True if the device has an enrolled strong biometric. */
     fun isAvailable(): Boolean = BiometricManager.from(context).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
 
-    /** True if biometric unlock has been set up for the current vault. */
-    fun isEnabled(): Boolean = wrapFile.exists() && keyStore.containsAlias(KEY_ALIAS)
+    /** What is on disk and in the Keystore. If the Keystore cannot be asked, the wrap file decides. */
+    fun status(): BiometricStatus {
+        val hasWrap = wrapFile.exists()
+        val hasKey = try {
+            keyStore.containsAlias(KEY_ALIAS)
+        } catch (e: Exception) {
+            Timber.w(e, "Could not ask the Keystore about the biometric key")
+            return if (hasWrap) BiometricStatus.READY else BiometricStatus.NOT_SET_UP
+        }
+        return when {
+            hasWrap && hasKey -> BiometricStatus.READY
+            hasWrap -> BiometricStatus.KEY_LOST
+            else -> BiometricStatus.NOT_SET_UP
+        }
+    }
+
+    /** True if biometric unlock has been set up for the current vault and can be tried. */
+    fun isEnabled(): Boolean = status() == BiometricStatus.READY
 
     /** Step 1 of enabling: a fresh Keystore key and an encrypt cipher to authenticate with. Needs the vault unlocked. */
     fun beginEnable(): Cipher {
@@ -80,32 +135,44 @@ class VaultBiometric @Inject constructor(
     }
 
     /**
-     * Step 1 of unlocking: a decrypt cipher to authenticate with, or null if biometric unlock is
-     * not usable (not set up, or the system invalidated the key because biometrics changed, in
-     * which case it is switched off and the password is needed again).
+     * Step 1 of unlocking: a decrypt cipher to authenticate with, or the reason there is none.
+     * Biometric unlock is switched off only when it cannot work any more: the system invalidated
+     * the key because the biometrics changed, the key is gone, or the wrap is damaged. A temporary
+     * Keystore error leaves everything as it is.
      */
-    fun beginUnlock(): Cipher? {
-        if (!isEnabled()) return null
+    fun beginUnlock(): BiometricStart {
+        when (status()) {
+            BiometricStatus.NOT_SET_UP -> return BiometricStart.NotSetUp
+
+            BiometricStatus.KEY_LOST -> {
+                Timber.w("The biometric key is gone; biometric unlock switched off")
+                disable()
+                return BiometricStart.Lost
+            }
+
+            BiometricStatus.READY -> Unit
+        }
         return try {
             val stored = wrapFile.readBytes()
-            if (stored.size != VaultCrypto.NONCE_BYTES + VaultCrypto.KEY_BYTES + VaultCrypto.TAG_BYTES) {
+            val key = keyStore.getKey(KEY_ALIAS, null) as? SecretKey
+            if (key == null || stored.size != VaultCrypto.NONCE_BYTES + VaultCrypto.KEY_BYTES + VaultCrypto.TAG_BYTES) {
+                Timber.w("The biometric key or wrap is unusable; biometric unlock switched off")
                 disable()
-                return null
+                BiometricStart.Lost
+            } else {
+                val cipher = Cipher.getInstance(TRANSFORMATION)
+                cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(VaultCrypto.TAG_BITS, stored.copyOf(VaultCrypto.NONCE_BYTES)))
+                BiometricStart.Ready(cipher)
             }
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(VaultCrypto.TAG_BITS, stored.copyOf(VaultCrypto.NONCE_BYTES)))
-            cipher
-        } catch (_: KeyPermanentlyInvalidatedException) {
-            Timber.i("Biometrics changed; biometric unlock switched off")
-            disable()
-            null
-        } catch (e: GeneralSecurityException) {
-            Timber.e(e, "Biometric unlock is not usable")
-            disable()
-            null
-        } catch (e: IOException) {
-            Timber.e(e, "Biometric unlock is not usable")
-            null
+        } catch (e: Exception) {
+            val outcome = startFailure(e)
+            if (outcome == BiometricStart.Invalidated) {
+                Timber.i("Biometrics changed; biometric unlock switched off")
+                disable()
+            } else {
+                Timber.w(e, "Biometric unlock is not usable right now; kept for the next try")
+            }
+            outcome
         }
     }
 

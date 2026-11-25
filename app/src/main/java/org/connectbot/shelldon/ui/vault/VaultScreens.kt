@@ -92,8 +92,10 @@ fun VaultGate(
         state == VaultState.LOCKED -> VaultUnlockScreen(
             ui = ui,
             onUnlock = viewModel::unlock,
+            refreshBiometric = viewModel::refreshBiometric,
             beginBiometric = viewModel::beginBiometricUnlock,
             finishBiometric = viewModel::finishBiometricUnlock,
+            onBiometricError = viewModel::onBiometricError,
             onReset = viewModel::reset,
             modifier = modifier,
         )
@@ -154,8 +156,10 @@ private fun VaultSetupScreen(
 private fun VaultUnlockScreen(
     ui: VaultUiState,
     onUnlock: (String) -> Unit,
+    refreshBiometric: () -> Boolean,
     beginBiometric: () -> Cipher?,
     finishBiometric: (Cipher) -> Unit,
+    onBiometricError: (Int) -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -167,16 +171,21 @@ private fun VaultUnlockScreen(
     val negative = stringResource(R.string.shelldon_vault_bio_prompt_negative)
     val prompt = rememberBiometricPromptState(
         onSuccess = { result -> result.cryptoObject?.cipher?.let(finishBiometric) },
-        onError = { _, _ -> },
+        onError = { code, _ -> onBiometricError(code) },
     )
     fun launchBiometric() {
         val cipher = beginBiometric() ?: return
         prompt?.authenticate(title, subtitle, negative, BiometricPrompt.CryptoObject(cipher))
     }
 
-    // Ask for the fingerprint straight away, as when coming back to a locked app.
+    fun refreshAndLaunchBiometric() {
+        if (refreshBiometric()) launchBiometric()
+    }
+
+    // Ask for the fingerprint straight away, as when coming back to a locked app. What is set up is
+    // read afresh each time: the view model outlives many lock screens and may be out of date.
     LaunchedEffect(Unit) {
-        if (ui.biometricEnabled) launchBiometric()
+        refreshAndLaunchBiometric()
     }
 
     VaultScaffold(modifier) {
@@ -390,4 +399,7 @@ internal fun errorMessage(error: VaultError): String = when (error) {
     VaultError.DAMAGED -> stringResource(R.string.shelldon_vault_err_damaged)
     VaultError.BIOMETRIC_CHANGED -> stringResource(R.string.shelldon_vault_bio_changed)
     VaultError.BIOMETRIC_FAILED -> stringResource(R.string.shelldon_vault_err_bio)
+    VaultError.BIOMETRIC_LOST -> stringResource(R.string.shelldon_vault_bio_lost)
+    VaultError.BIOMETRIC_UNAVAILABLE -> stringResource(R.string.shelldon_vault_bio_unavailable)
+    VaultError.BIOMETRIC_LOCKED_OUT -> stringResource(R.string.shelldon_vault_bio_locked_out)
 }
