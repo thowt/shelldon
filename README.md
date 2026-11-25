@@ -29,6 +29,7 @@ rough edges, and do not rely on it for anything you cannot afford to lose.
 | Post-quantum key exchange (ML-KEM and sntrup hybrids) where the server supports it | In the SSH engine; not yet verified against a real server on a phone |
 | Sync through your own storage (WebDAV first), end-to-end encrypted | Planned |
 | Passwords stored in identities | Planned (keys only for now) |
+| Tools section: ping and nslookup first, more network checks later | Planned |
 
 [docs/PLAN.md](docs/PLAN.md) has the audit of existing apps, the decisions taken and why, and what
 each round of work contained.

@@ -20,6 +20,10 @@ this section collects what has been added on top of ConnectBot since the fork.
   Tunnels and Settings
 - Mosh archives are pinned by SHA-256 in `gradle/mosh4android.sha256`
 
+### Fixed
+- Biometric unlock is no longer switched off for good by a temporary Keystore error, and the unlock
+  screen reports why the fingerprint prompt did not appear
+
 ### Removed
 - Upstream donation links; Android backup is switched off
 

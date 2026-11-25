@@ -10,7 +10,7 @@ that can later be offered to the public.
 
 ## Decisions so far
 
-- **Name: Shelldon SSH.** Application id `io.github.thowt.shelldon`. Repo `thowt/shelldon` (private for now).
+- **Name: Shelldon SSH.** Application id `io.github.thowt.shelldon`. Repo `thowt/shelldon` (public since 2026-11-25).
 - **Icon direction:** a turtle named Shelldon with a `#` (the root prompt) on its shell.
   Original artwork only: no existing mascot, no ConnectBot artwork. Adaptive icon with a
   monochrome layer for themed icons. A name check (EUIPO TMview, Play Store, F-Droid,
@@ -66,7 +66,7 @@ that can later be offered to the public.
 
 - **Branding sweep (2026-11-16).** Every user-visible "ConnectBot" is now "Shelldon SSH": all 54 string
   files, the Help screen title, the Hints intro, the export and tombstone file names, the en-US store
-  listing. Bug and source links point to `github.com/thowt/shelldon` (private until the repo goes public).
+  listing. Bug and source links point to `github.com/thowt/shelldon` (the repo has been public since 2026-11-25).
   The Help screen carries the copyright and a "Based on ConnectBot, (c) Kenny Root, Jeffrey Sharkey and the
   ConnectBot contributors, Apache-2.0" line, and the Contact screen links to the upstream project.
   **Removed:** the "Support Development" section (GitHub Sponsors and Buy Me a Coffee links of the upstream
@@ -327,6 +327,14 @@ compile). Spotless and lint were not run either. Update this section after the C
   change, StrongBox when the device has it) wraps the DEK into `shelldon-vault.bio`. If the key is
   invalidated, the unlock screen says so, the master password still works, and the shortcut can be turned
   on again under Security.
+  **Switched off only for a real loss** (2026-11-25): the system invalidated the key, the key is gone while
+  the wrap file is still there, or the wrap file is damaged. Any other error when starting an unlock (the
+  Keystore is busy, the device counts as locked, a vendor glitch) keeps the setup, shows "not available
+  right now" and falls back to the password. Before, every such error deleted the key and the wrap and
+  claimed the biometrics had changed. The unlock screen also reads what is set up each time it appears and
+  shows prompt errors (too many attempts, sensor not available); choosing the password or leaving the app
+  shows nothing. Verified: unit tests for the error policy and the view model. Not verified: on a phone,
+  and the real Keystore (it cannot run on the JVM).
 - **Auto-lock**: after 0, 1, 5, 15 or 60 minutes in the background (default 5; there is no "never"). Locking
   zeroes the DEK. A connection that is already open keeps working because it holds what it needs; a new
   connection that needs a key or a saved password fails while locked.
@@ -692,6 +700,55 @@ built at run time now, in `TestPem`). **Not verified:** nothing has been tried o
 has not been run against the owner's real files. No OpenSSH container test is involved, because nothing in
 `transport/` or the crypto code changed; the algorithm lists go through the existing policy validator.
 
+### Tools section (noted 2026-11-20, not built)
+
+Owner request: a Tools section in the app, with **ping** and **nslookup** as the first tools. This is a note
+for later, not a design that was decided; nothing here exists yet.
+
+**Existing apps, read first (not tried).** HostLookup (F-Droid) queries 25 record types, compares public
+resolvers over UDP, TCP, DNS-over-TLS and DNS-over-HTTPS, and adds WHOIS and network info; its resolver list
+is fixed. Vernet has ping and a host and port scanner. Android Ping Utils has ping and dig. The
+`android-network-tools` library behind the "Network Tools Library" app (Apache-2.0) has ping, port scan and
+Wake-on-LAN. Two lessons: OG Network Tools does its DNS lookups through a Google web API, which F-Droid flags
+as a non-free network dependency, and NextTraceroute needs the NextTrace web API. We send lookups to no
+third-party service. The licences of HostLookup, Vernet and Ping Utils were not checked, so no code is taken
+from them.
+
+**First slice.**
+- *Ping.* Apps cannot open raw ICMP sockets. Plan: run the system `ping` binary as a child process (no root
+  needed on stock Android; its output has to be parsed, and it must be checked on the Pixel and on Android
+  17), with a TCP connect to a chosen port as the fallback, which also tells open, refused and timed out
+  apart. Shows each reply, min/avg/max and loss. Count and interval are capped, so it cannot be used as a
+  flood tool.
+- *nslookup.* Android has no `nslookup` binary. Plan: the system resolver through `DnsResolver` (API 29 and
+  newer; A, AAAA and other record types, follows Private DNS), and plain `InetAddress` (A and AAAA only) on
+  older devices. Asking a chosen server (`nslookup name 1.1.1.1`) or using DoT/DoH needs a DNS client of our
+  own: a small hand-written one for plain UDP/TCP queries, or a library (dnsjava is a candidate, BSD-licensed,
+  to be checked). That is a dependency, so the owner is asked first. The default is always the system
+  resolver, and the result says which server answered.
+
+**How it ties in.** A host card gets Ping and Resolve with the address prefilled. Later, "check this group":
+a plain TCP connect to each host's SSH port, run in parallel with the existing `FanOut`, shows who is
+reachable. It never logs in, so the decision on unattended logins (saved key only) is not involved.
+
+**Later candidates, not committed:** TCP port check, Wake-on-LAN (one UDP packet), TLS certificate expiry and
+fingerprint check, SSH host key fingerprint of a server (like `ssh-keyscan`, using the existing SSH code),
+WHOIS (port 43, the query goes out unencrypted), own addresses and DNS servers. Traceroute is hard without
+raw sockets (the "time exceeded" replies cannot be read), so it probably stays out.
+
+**Rules that apply:** no new permission (`INTERNET` and `ACCESS_NETWORK_STATE` are declared; asking before
+any other); no telemetry; no history saved by default, results live on the screen with a copy button; host
+names and addresses are validated before they reach a process or a socket; the screen says when a query
+travels unencrypted (plain DNS, WHOIS).
+
+**Where it would live:** a Tools destination next to Tunnels and Snippets (placement is open), code in
+`org.connectbot.shelldon.tools`, each tool a small unit with a pure Kotlin core (the `ping` output parser, DNS
+message encode and decode) covered by unit tests. If a DNS client of our own is written, it also gets a test
+against a real DNS server in a container.
+
+**Open questions for the owner:** where the Tools entry sits in the navigation; whether the first slice may
+be system resolver only, with a chosen server, DoT and DoH as a second step.
+
 ## Security rules and features to drop
 
 - No accept-all host-key mode. A changed host key blocks the connection.
@@ -777,16 +834,23 @@ State on 2026-11-15:
 - Compile feedback also comes from the VM, since the cloud workspace used for planning cannot build
   Android code (no SDK, Maven Central blocked).
 
-## Going public (checked 2026-11-17)
+## Going public (checked 2026-11-17, switched to public 2026-11-25)
 
-The owner wants the project public, possibly soon. What was checked and what is still open.
+The repository was made public on 2026-11-25. What was checked and what is still open.
 
 **History and tree.** The history is ConnectBot's public history (3,400 commits) plus ours. Scanned
 for key and keystore files, private-key headers, token patterns, the owner's email and domain, and
 private addresses in our commits. Nothing real turned up: the only hits are test fixtures (fake keys,
-`10.0.0.x` addresses in `ssh_config` tests) and a `tests/local.properties` that upstream committed in 2009 (an Android SDK path, since removed). Our
-commits carry `Claude <noreply@anthropic.com>` as author, so no personal address is exposed. This was
+`10.0.0.x` addresses in `ssh_config` tests) and a `tests/local.properties` that upstream committed in 2009 (an Android SDK path, since removed). This was
 a manual scan; the quality PR adds a gitleaks job that scans the whole history in CI.
+
+**Correction (2026-11-25).** The first version of this note said our commits carry only
+`Claude <noreply@anthropic.com>`, so no personal address was exposed. That was wrong. The 14 "Merge pull
+request" commits that GitHub made when the owner merged (11 of them on `main`) are authored with the
+owner's personal address. Rewriting history would not remove it from a repository that is already
+public (old commits stay reachable through pull request refs), and the repository went public as it was.
+Merges made after the owner enables "Keep my email addresses private" in the GitHub settings use the
+GitHub no-reply address.
 
 **Done in the readiness PR (Markdown only, so CI is skipped):** README (status, badges, security
 commitments, build steps including the upstream tag a fresh clone needs), CONTRIBUTING (was still
@@ -845,7 +909,9 @@ Each milestone is a branch and a pull request into `main`. The user merges after
   decision on unattended runs above, decided 2026-11-19: opt-in, saved key only).
 - **M11: UX round** (PR #13, merged and phone-tested 2026-11-19).
 - **M12: onboarding and cleanup** (branch `m12-ssh-import`). Import from `~/.ssh` (config, known_hosts,
-  keys), Files action on the host card, dependency clean-up. Next: CSV and other apps' exports, then export.
+  keys), Files action on the host card, dependency clean-up (merged, PR #14). Next: CSV and other apps'
+  exports, then export.
+- **M13: Tools section** (noted 2026-11-20, not started). Ping and nslookup first, see "Tools section".
 
 ## Open items
 
@@ -876,3 +942,7 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - https://cicdcalculator.com/gitlab-ci-free-tier (GitLab Free vs GitHub Actions minutes)
 - https://docs.termius.com/llms-full.txt (Termius concepts: vaults, groups, hosts, keychain)
 - https://termai.sh/blog/juicessh-alternatives
+- https://f-droid.org/packages/de.obsp.hostlookup/ (HostLookup: DNS record types, resolver comparison)
+- https://f-droid.org/en/packages/com.stealthcotper.networktools/ (Network Tools Library: ping, port scan)
+- https://f-droid.org/en/packages/org.fsociety.vernet/ (Vernet: ping, host and port scanner)
+- https://f-droid.org/en/packages/xyz.pisoj.og.nettools/ (OG Network Tools: DNS through a Google API)

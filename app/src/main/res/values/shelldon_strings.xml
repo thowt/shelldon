@@ -216,6 +216,9 @@
     <string name="shelldon_vault_err_wait">Too many attempts. Try again in %1$d s.</string>
     <string name="shelldon_vault_bio_changed">Your biometrics changed, so biometric unlock was switched off. Enter the master password.</string>
     <string name="shelldon_vault_err_bio">Biometric unlock failed. Enter the master password.</string>
+    <string name="shelldon_vault_bio_lost">Biometric unlock is no longer set up on this device, so it was switched off. Enter the master password, then switch it on again in Settings, Security, backup and import.</string>
+    <string name="shelldon_vault_bio_unavailable">Biometric unlock is not available right now. Enter the master password. If this keeps happening, switch it off and on again in Settings, Security, backup and import.</string>
+    <string name="shelldon_vault_bio_locked_out">Too many biometric attempts. Enter the master password or try again later.</string>
     <string name="shelldon_vault_forgot">Forgot the password?</string>
 
     <!-- Vault: reset -->
