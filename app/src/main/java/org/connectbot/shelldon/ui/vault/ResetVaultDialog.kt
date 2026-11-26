@@ -110,43 +110,45 @@ internal fun ResetVaultDialog(
 
 @Composable
 private fun ResetDetails(impact: ResetImpact, unlocked: Boolean, onBackUp: (() -> Unit)?) {
-    val items = resetItems(impact)
-    if (items.isEmpty()) {
-        Text(stringResource(R.string.shelldon_vault_reset_nothing), style = MaterialTheme.typography.bodyMedium)
-    } else {
-        Text(stringResource(R.string.shelldon_vault_reset_deletes), style = MaterialTheme.typography.bodyMedium)
-        Column(modifier = Modifier.testTag("vault_reset_items"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        val items = resetItems(impact)
+        if (items.isEmpty()) {
+            Text(stringResource(R.string.shelldon_vault_reset_nothing), style = MaterialTheme.typography.bodyMedium)
+        } else {
+            Text(stringResource(R.string.shelldon_vault_reset_deletes), style = MaterialTheme.typography.bodyMedium)
+            Column(modifier = Modifier.testTag("vault_reset_items"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+            }
         }
-    }
-    Text(stringResource(R.string.shelldon_vault_reset_stays), style = MaterialTheme.typography.bodyMedium)
-    if (impact.losesSecrets) {
-        Text(stringResource(R.string.shelldon_vault_reset_readd), style = MaterialTheme.typography.bodyMedium)
-        when {
-            unlocked -> {
-                Text(
-                    stringResource(R.string.shelldon_vault_reset_hint_unlocked),
+        Text(stringResource(R.string.shelldon_vault_reset_stays), style = MaterialTheme.typography.bodyMedium)
+        if (impact.losesSecrets) {
+            Text(stringResource(R.string.shelldon_vault_reset_readd), style = MaterialTheme.typography.bodyMedium)
+            when {
+                unlocked -> {
+                    Text(
+                        stringResource(R.string.shelldon_vault_reset_hint_unlocked),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (onBackUp != null) {
+                        TextButton(onClick = onBackUp, modifier = Modifier.testTag("vault_reset_backup")) {
+                            Text(stringResource(R.string.shelldon_vault_reset_backup))
+                        }
+                    }
+                }
+
+                impact.biometric -> Text(
+                    stringResource(R.string.shelldon_vault_reset_hint_biometric),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (onBackUp != null) {
-                    TextButton(onClick = onBackUp, modifier = Modifier.testTag("vault_reset_backup")) {
-                        Text(stringResource(R.string.shelldon_vault_reset_backup))
-                    }
-                }
+
+                else -> Text(
+                    stringResource(R.string.shelldon_vault_reset_hint_locked),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-
-            impact.biometric -> Text(
-                stringResource(R.string.shelldon_vault_reset_hint_biometric),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            else -> Text(
-                stringResource(R.string.shelldon_vault_reset_hint_locked),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

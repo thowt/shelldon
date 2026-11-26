@@ -192,9 +192,10 @@ class ResetVaultDialogTest {
         whenever(controller.lastReset).thenReturn(MutableStateFlow(removed))
         whenever(controller.biometric).thenReturn(biometric)
         whenever(biometric.isEnabled()).thenReturn(false)
+        val viewModel = VaultViewModel(controller)
         composeTestRule.setContent {
             ConnectBotTheme {
-                VaultGate(makingShortcut = false, viewModel = VaultViewModel(controller)) {}
+                VaultGate(makingShortcut = false, viewModel = viewModel) {}
             }
         }
         composeTestRule.waitForIdle()
