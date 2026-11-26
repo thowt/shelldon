@@ -229,10 +229,16 @@ fun SecurityScreen(
     }
     if (showReset) {
         ResetVaultDialog(
+            loadImpact = viewModel::resetImpact,
+            unlocked = true,
             onDismiss = { showReset = false },
             onConfirm = {
                 showReset = false
                 viewModel.reset()
+            },
+            onBackUp = {
+                showReset = false
+                showExport = true
             },
         )
     }

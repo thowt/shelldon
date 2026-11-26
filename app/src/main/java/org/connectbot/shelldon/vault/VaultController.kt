@@ -14,6 +14,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import org.connectbot.data.ConnectBotDatabase
@@ -85,7 +86,10 @@ class VaultController @Inject constructor(
                 false
             }
         }
-        if (created) sealLegacySecrets()
+        if (created) {
+            mutableLastReset.value = null
+            sealLegacySecrets()
+        }
         return created
     }
 
@@ -112,18 +116,34 @@ class VaultController @Inject constructor(
         vault.changePassword(oldPassword, newPassword)
     }
 
+    /** What [reset] would delete right now. Reads counts only, nothing is opened. */
+    suspend fun resetImpact(): ResetImpact = withContext(dispatchers.io) {
+        ResetImpact(
+            passwords = passwords.count(),
+            keys = pubkeys.countSealedKeys(),
+            biometric = biometric.isEnabled(),
+        )
+    }
+
+    /** What the last [reset] removed, until a new vault is created. Lets the setup screen say so. */
+    val lastReset: StateFlow<ResetImpact?> get() = mutableLastReset
+    private val mutableLastReset = MutableStateFlow<ResetImpact?>(null)
+
     /**
      * For a forgotten master password: removes the vault, biometric unlock, saved passwords and
      * every private key that was sealed in it, since none of that can be opened again. Hosts,
      * folders, tags and identities stay.
+     *
+     * @return what was removed
      */
-    suspend fun reset() {
-        withContext(dispatchers.io) {
-            biometric.disable()
-            passwords.deleteAll()
-            pubkeys.deleteSealedKeys()
-            vault.reset()
-        }
+    suspend fun reset(): ResetImpact = withContext(dispatchers.io) {
+        val hadBiometric = biometric.isEnabled()
+        biometric.disable()
+        val removed = ResetImpact(passwords.deleteAll(), pubkeys.deleteSealedKeys(), hadBiometric)
+        // Before the vault flips to "no vault", so the setup screen never shows without its note.
+        mutableLastReset.value = removed
+        vault.reset()
+        removed
     }
 
     private suspend fun sealLegacySecrets() {

@@ -23,6 +23,9 @@ this section collects what has been added on top of ConnectBot since the fork.
 - Mosh archives are pinned by SHA-256 in `gradle/mosh4android.sha256`
 
 ### Fixed
+- Resetting the vault now says exactly what it deletes (saved passwords, private keys, biometric
+  unlock) and what stays, offers a backup first when the vault is open, and asks for a tick before
+  anything is lost; the setup screen that follows reports what was removed
 - Biometric unlock is no longer switched off for good by a temporary Keystore error, and the unlock
   screen reports why the fingerprint prompt did not appear
 

@@ -26,6 +26,7 @@ import org.connectbot.shelldon.backup.BackupImportResult
 import org.connectbot.shelldon.backup.BackupOptions
 import org.connectbot.shelldon.backup.BackupProblem
 import org.connectbot.shelldon.backup.ShelldonBackup
+import org.connectbot.shelldon.vault.ResetImpact
 import org.connectbot.shelldon.vault.VaultController
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
@@ -124,6 +125,9 @@ class SecurityViewModel @Inject constructor(
             SecurityMessage.BackupFailed(null)
         }
     }
+
+    /** What a reset would remove right now, for the confirmation. */
+    suspend fun resetImpact(): ResetImpact = controller.resetImpact()
 
     /** Forgotten master password: removes the vault and what was sealed in it. The gate then asks for a new one. */
     fun reset() {

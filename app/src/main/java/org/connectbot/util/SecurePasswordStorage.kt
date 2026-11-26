@@ -135,9 +135,18 @@ class SecurePasswordStorage @Inject constructor(
         prefs.edit().remove(getPasswordKey(hostId)).apply()
     }
 
-    /** Removes every saved password. Used when the vault is reset and they could not be read again. */
-    fun deleteAll() {
-        prefs.edit().clear().apply()
+    /** How many host passwords are saved, sealed or not. Opens none of them. */
+    fun count(): Int = prefs.all.keys.count { it.startsWith(KEY_PREFIX) }
+
+    /**
+     * Removes every saved password. Used when the vault is reset and they could not be read again.
+     *
+     * @return how many passwords were removed
+     */
+    fun deleteAll(): Int {
+        val removed = count()
+        prefs.edit().clear().commit()
+        return removed
     }
 
     /**
