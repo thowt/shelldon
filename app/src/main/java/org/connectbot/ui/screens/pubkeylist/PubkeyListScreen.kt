@@ -106,6 +106,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.connectbot.R
 import org.connectbot.data.entity.Pubkey
 import org.connectbot.piv.YubiKeyPiv
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.LocalTerminalManager
 import org.connectbot.ui.PreviewScreen
 import org.connectbot.ui.components.FocusableAlertDialog
@@ -352,6 +353,7 @@ fun PubkeyListScreenContent(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.title_pubkey_list)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

@@ -97,6 +97,7 @@ import org.connectbot.data.entity.Host
 import org.connectbot.data.entity.Pubkey
 import org.connectbot.service.DisconnectReason
 import org.connectbot.service.descriptionResource
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.LocalTerminalManager
 import org.connectbot.ui.PreviewScreen
 import org.connectbot.ui.components.DisconnectAllDialog
@@ -319,6 +320,7 @@ fun HostListScreenContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     if (!makingShortcut) {

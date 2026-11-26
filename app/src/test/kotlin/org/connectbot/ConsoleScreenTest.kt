@@ -104,6 +104,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+import org.robolectric.annotation.Config
 import java.util.UUID
 import javax.inject.Inject
 
@@ -123,6 +124,23 @@ class ConsoleScreenTest {
     @Before
     fun setUp() {
         hiltRule.inject()
+        // This suite runs in a tablet-sized window, where the title bar hides itself until the person
+        // chooses. Most tests need the bar, so they start from a person who chose to keep it.
+        setTitleBarHide(false)
+    }
+
+    private fun setTitleBarHide(hide: Boolean) {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .putBoolean(PreferenceConstants.TITLEBARHIDE, hide)
+            .commit()
+    }
+
+    private fun forgetTitleBarChoice() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .remove(PreferenceConstants.TITLEBARHIDE)
+            .commit()
     }
 
     @After
@@ -565,13 +583,46 @@ class ConsoleScreenTest {
     }
 
     @Test
-    fun consoleScreen_displaysTopAppBarByDefault() {
+    fun consoleScreen_displaysTopAppBar_whenPreferenceIsOff() {
         setContent()
         navigateToConsoleScreen()
 
         composeTestRule
             .onNodeWithTag("top_app_bar")
             .assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w412dp-h900dp")
+    fun consoleScreen_displaysTopAppBarOnAPhoneUntilThePersonChooses() {
+        forgetTitleBarChoice()
+
+        setContent()
+        navigateToConsoleScreen()
+
+        composeTestRule.onNodeWithTag("top_app_bar").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w840dp-h900dp")
+    fun consoleScreen_hidesTopAppBarOnAWideWindowUntilThePersonChooses() {
+        forgetTitleBarChoice()
+
+        setContent()
+        navigateToConsoleScreen()
+
+        composeTestRule.onNodeWithTag("top_app_bar").assertIsNotDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w840dp-h900dp")
+    fun consoleScreen_displaysTopAppBarOnAWideWindow_whenThePersonKeptIt() {
+        setTitleBarHide(false)
+
+        setContent()
+        navigateToConsoleScreen()
+
+        composeTestRule.onNodeWithTag("top_app_bar").assertIsDisplayed()
     }
 
     @Test

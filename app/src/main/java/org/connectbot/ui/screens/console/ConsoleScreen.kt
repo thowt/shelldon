@@ -162,6 +162,8 @@ import org.connectbot.service.PromptRequest
 import org.connectbot.service.PromptResponse
 import org.connectbot.service.TerminalBridge
 import org.connectbot.service.descriptionResource
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
+import org.connectbot.shelldon.ui.shell.titleBarHideDefault
 import org.connectbot.terminal.ComposeController
 import org.connectbot.terminal.ImeShortcutInputMode
 import org.connectbot.terminal.ProgressState
@@ -759,7 +761,9 @@ fun ConsoleScreen(
         prefs.getBoolean(PreferenceConstants.PG_UPDN_GESTURE, false)
     }
     var fullscreen by remember { mutableStateOf(prefs.getBoolean(PreferenceConstants.FULLSCREEN, false)) }
-    var titleBarHide by remember { mutableStateOf(prefs.getBoolean(PreferenceConstants.TITLEBARHIDE, false)) }
+    // Until the person chooses, the title bar hides itself on a wide window (an unfolded Fold) and stays on a phone.
+    val titleBarHideFallback = titleBarHideDefault(LocalConfiguration.current.screenWidthDp)
+    var titleBarHide by remember { mutableStateOf(prefs.getBoolean(PreferenceConstants.TITLEBARHIDE, titleBarHideFallback)) }
     val volumeKeysChangeFontSize = remember { prefs.getBoolean(PreferenceConstants.VOLUME_FONT, true) }
     val keepScreenAwake = remember { prefs.getBoolean(PreferenceConstants.KEEP_ALIVE, true) }
 
@@ -1478,6 +1482,7 @@ fun ConsoleScreen(
         if (!titleBarHide || showTitleBar) {
             val density = LocalDensity.current
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = {
                     Text(
                         currentBridge?.host?.nickname

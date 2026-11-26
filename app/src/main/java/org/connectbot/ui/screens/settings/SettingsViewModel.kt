@@ -72,6 +72,8 @@ data class SettingsUiState(
     val scrollback: String = "140",
     val rotation: String = "Default",
     val titlebarhide: Boolean = false,
+    /** False until the person has chosen; the switch then shows the default for the window width. */
+    val titlebarhideChosen: Boolean = true,
     val fullscreen: Boolean = false,
     val pgupdngesture: Boolean = false,
     val swipeSessions: Boolean = false,
@@ -218,6 +220,7 @@ class SettingsViewModel @Inject constructor(
             scrollback = prefs.getString(PreferenceConstants.SCROLLBACK, "140") ?: "140",
             rotation = prefs.getString(PreferenceConstants.ROTATION, "Default") ?: "Default",
             titlebarhide = prefs.getBoolean(PreferenceConstants.TITLEBARHIDE, false),
+            titlebarhideChosen = prefs.contains(PreferenceConstants.TITLEBARHIDE),
             fullscreen = prefs.getBoolean(PreferenceConstants.FULLSCREEN, false),
             pgupdngesture = prefs.getBoolean(PreferenceConstants.PG_UPDN_GESTURE, false),
             swipeSessions = prefs.getBoolean(PreferenceConstants.SWIPE_SESSIONS, false),
@@ -354,7 +357,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updateTitleBarHide(value: Boolean) {
-        updateBooleanPref(PreferenceConstants.TITLEBARHIDE, value) { copy(titlebarhide = value) }
+        updateBooleanPref(PreferenceConstants.TITLEBARHIDE, value) { copy(titlebarhide = value, titlebarhideChosen = true) }
     }
 
     fun updatePgUpDnGesture(value: Boolean) {

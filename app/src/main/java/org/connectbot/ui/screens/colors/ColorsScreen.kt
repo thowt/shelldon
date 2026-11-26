@@ -84,6 +84,7 @@ import org.connectbot.data.EntityIds
 import org.connectbot.data.JsonImportReader
 import org.connectbot.data.JsonImportTooLargeException
 import org.connectbot.data.entity.ColorScheme
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.PreviewScreen
 import org.connectbot.ui.common.getLocalizedColorSchemeDescription
 import org.connectbot.ui.components.FocusableAlertDialog
@@ -262,6 +263,7 @@ fun ColorsScreenContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.title_scheme_manager)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

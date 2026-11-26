@@ -72,6 +72,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -83,6 +84,8 @@ import kotlinx.coroutines.launch
 import org.connectbot.BuildConfig
 import org.connectbot.R
 import org.connectbot.data.EntityIds
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
+import org.connectbot.shelldon.ui.shell.titleBarHideDefault
 import org.connectbot.terminal.ImeShortcutInputMode
 import org.connectbot.ui.ObservePermissionOnResume
 import org.connectbot.ui.PreviewScreen
@@ -280,6 +283,7 @@ fun SettingsScreenContent(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.title_settings)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -564,7 +568,11 @@ fun SettingsScreenContent(
                 SwitchPreference(
                     title = stringResource(R.string.pref_titlebarhide_title),
                     summary = stringResource(R.string.pref_titlebarhide_summary),
-                    checked = uiState.titlebarhide,
+                    checked = if (uiState.titlebarhideChosen) {
+                        uiState.titlebarhide
+                    } else {
+                        titleBarHideDefault(LocalConfiguration.current.screenWidthDp)
+                    },
                     onCheckedChange = onTitleBarHideChange,
                 )
             }

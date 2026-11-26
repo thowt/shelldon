@@ -52,6 +52,7 @@ import org.connectbot.R
 import org.connectbot.shelldon.backup.BackupCrypto
 import org.connectbot.shelldon.backup.BackupOptions
 import org.connectbot.shelldon.backup.BackupProblem
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.shelldon.vault.Vault
 import org.connectbot.shelldon.vault.VaultController
 import org.connectbot.ui.components.rememberBiometricPromptState
@@ -98,6 +99,7 @@ fun SecurityScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.shelldon_security_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

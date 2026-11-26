@@ -67,6 +67,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.connectbot.BuildConfig
 import org.connectbot.R
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.PreviewScreen
 import org.connectbot.ui.theme.ConnectBotTheme
 
@@ -85,6 +86,7 @@ fun HelpScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.title_help)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

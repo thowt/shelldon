@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.connectbot.R
 import org.connectbot.data.entity.KnownHost
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.PreviewScreen
 import org.connectbot.ui.theme.ConnectBotTheme
 import java.util.UUID
@@ -158,6 +159,7 @@ fun KnownHostListScreenContent(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = shelldonBarHeight(),
                 title = { Text(stringResource(R.string.known_hosts_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

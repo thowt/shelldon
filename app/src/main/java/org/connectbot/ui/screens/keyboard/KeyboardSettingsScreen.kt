@@ -97,6 +97,7 @@ import org.connectbot.data.keyboard.KeyboardUsage
 import org.connectbot.data.keyboard.MacroAction
 import org.connectbot.data.keyboard.MacroFormat
 import org.connectbot.data.keyboard.fittedKeyboardItems
+import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.terminal.TerminalKeyCatalog
 import org.connectbot.ui.components.EditorUnsavedChangesDialog
 import org.connectbot.ui.components.KeyboardGrid
@@ -277,7 +278,7 @@ internal fun KeyboardLibrary(
             )
         }
     }, topBar = {
-        TopAppBar(title = { Text(if (draft != null && macro == null) stringResource(R.string.keyboard_edit_layout_title) else macro?.name ?: stringResource(if (libraryTab == 1) R.string.keyboard_macros else R.string.keyboard_settings_title)) }, navigationIcon = {
+        TopAppBar(expandedHeight = shelldonBarHeight(), title = { Text(if (draft != null && macro == null) stringResource(R.string.keyboard_edit_layout_title) else macro?.name ?: stringResource(if (libraryTab == 1) R.string.keyboard_macros else R.string.keyboard_settings_title)) }, navigationIcon = {
             IconButton(onClick = requestBack, enabled = !busy) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.button_navigate_up)) }
         }, actions = {
             if (draft != null && macro == null) {
@@ -478,7 +479,7 @@ internal fun KeyboardLibrary(
     if (choosingPreset) {
         KeyboardWorkflowDialog(onDismiss = { choosingPreset = false }) {
             BackHandler { choosingPreset = false }
-            Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.keyboard_choose_preset)) }, navigationIcon = { IconButton(onClick = { choosingPreset = false }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.button_navigate_up)) } }) }) { padding ->
+            Scaffold(topBar = { TopAppBar(expandedHeight = shelldonBarHeight(), title = { Text(stringResource(R.string.keyboard_choose_preset)) }, navigationIcon = { IconButton(onClick = { choosingPreset = false }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.button_navigate_up)) } }) }) { padding ->
                 Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     val originalName = stringResource(R.string.keyboard_original_layout)
                     val originalLayout = remember(originalName) { KeyboardLayout(name = originalName) }
