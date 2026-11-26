@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.connectbot.shelldon.vault.BiometricStart
 import org.connectbot.shelldon.vault.BiometricStatus
+import org.connectbot.shelldon.vault.ResetImpact
 import org.connectbot.shelldon.vault.UnlockResult
 import org.connectbot.shelldon.vault.Vault
 import org.connectbot.shelldon.vault.VaultController
@@ -68,6 +69,9 @@ class VaultViewModel @Inject constructor(
     private val controller: VaultController,
 ) : ViewModel() {
     val vaultState: StateFlow<VaultState> = controller.state
+
+    /** What the last reset removed, for the setup screen that follows it. */
+    val lastReset: StateFlow<ResetImpact?> = controller.lastReset
 
     private val mutableUiState = MutableStateFlow(VaultUiState(biometricEnabled = controller.biometric.isEnabled()))
     val uiState: StateFlow<VaultUiState> = mutableUiState.asStateFlow()
@@ -217,6 +221,9 @@ class VaultViewModel @Inject constructor(
     }
 
     fun dismissBiometricOffer() = mutableUiState.update { it.copy(offerBiometric = false) }
+
+    /** What a reset would remove right now, for the confirmation. */
+    suspend fun resetImpact(): ResetImpact = controller.resetImpact()
 
     /** For a forgotten master password. Removes the vault and everything sealed in it. */
     fun reset() {

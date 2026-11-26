@@ -210,6 +210,9 @@ class PubkeyRepository @Inject constructor(
         return converted
     }
 
+    /** How many keys have their private part sealed in the vault. Opens none of them. */
+    suspend fun countSealedKeys(): Int = pubkeyDao.getAll().count { Vault.isSealed(it.privateKey) }
+
     /**
      * Deletes every key whose private part is sealed in the vault. Only for resetting a vault whose
      * password is lost: the sealed data can never be opened again.

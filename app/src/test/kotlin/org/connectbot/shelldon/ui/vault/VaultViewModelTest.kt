@@ -33,6 +33,7 @@ class VaultViewModelTest {
     @Before
     fun setUp() {
         whenever(controller.state).thenReturn(MutableStateFlow(VaultState.LOCKED))
+        whenever(controller.lastReset).thenReturn(MutableStateFlow(null))
         whenever(controller.biometric).thenReturn(biometric)
         whenever(biometric.isEnabled()).thenReturn(true)
         viewModel = VaultViewModel(controller)

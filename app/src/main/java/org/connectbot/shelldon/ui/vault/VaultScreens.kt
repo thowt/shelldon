@@ -7,6 +7,7 @@
 package org.connectbot.shelldon.ui.vault
 
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +27,6 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.connectbot.R
+import org.connectbot.shelldon.vault.ResetImpact
 import org.connectbot.shelldon.vault.Vault
 import org.connectbot.shelldon.vault.VaultState
 import org.connectbot.ui.components.rememberBiometricPromptState
@@ -76,6 +77,7 @@ fun VaultGate(
 ) {
     val state by viewModel.vaultState.collectAsState()
     val ui by viewModel.uiState.collectAsState()
+    val afterReset by viewModel.lastReset.collectAsState()
     // One call site for [content]: a slot reused in several branches would lose its state when the
     // branch changes.
     val showContent = makingShortcut ||
@@ -85,6 +87,7 @@ fun VaultGate(
 
         state == VaultState.NO_VAULT -> VaultSetupScreen(
             ui = ui,
+            afterReset = afterReset,
             onCreate = viewModel::create,
             modifier = modifier,
         )
@@ -96,6 +99,7 @@ fun VaultGate(
             beginBiometric = viewModel::beginBiometricUnlock,
             finishBiometric = viewModel::finishBiometricUnlock,
             onBiometricError = viewModel::onBiometricError,
+            loadResetImpact = viewModel::resetImpact,
             onReset = viewModel::reset,
             modifier = modifier,
         )
@@ -112,6 +116,7 @@ fun VaultGate(
 @Composable
 private fun VaultSetupScreen(
     ui: VaultUiState,
+    afterReset: ResetImpact?,
     onCreate: (password: String, confirm: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -120,6 +125,7 @@ private fun VaultSetupScreen(
 
     VaultScaffold(modifier) {
         VaultTitle(title = stringResource(R.string.shelldon_vault_setup_title), body = stringResource(R.string.shelldon_vault_setup_body))
+        if (afterReset != null) ResetNote(afterReset)
         PasswordField(
             value = password,
             onValueChange = { password = it },
@@ -160,6 +166,7 @@ private fun VaultUnlockScreen(
     beginBiometric: () -> Cipher?,
     finishBiometric: (Cipher) -> Unit,
     onBiometricError: (Int) -> Unit,
+    loadResetImpact: suspend () -> ResetImpact,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -227,10 +234,15 @@ private fun VaultUnlockScreen(
     }
 
     if (confirmReset) {
-        ResetVaultDialog(onDismiss = { confirmReset = false }, onConfirm = {
-            confirmReset = false
-            onReset()
-        })
+        ResetVaultDialog(
+            loadImpact = loadResetImpact,
+            unlocked = false,
+            onDismiss = { confirmReset = false },
+            onConfirm = {
+                confirmReset = false
+                onReset()
+            },
+        )
     }
 }
 
@@ -276,20 +288,24 @@ private fun BiometricOfferScreen(
     }
 }
 
+/** Tells what the reset that just happened removed, on the screen that asks for the new password. */
 @Composable
-internal fun ResetVaultDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.shelldon_vault_reset_title)) },
-        text = { Text(stringResource(R.string.shelldon_vault_reset_body)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm, modifier = Modifier.testTag("vault_reset_confirm")) {
-                Text(stringResource(R.string.shelldon_vault_reset_confirm), color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.shelldon_cancel)) }
-        },
+private fun ResetNote(removed: ResetImpact) {
+    val items = resetItems(removed)
+    val text = if (items.isEmpty()) {
+        stringResource(R.string.shelldon_vault_reset_done_nothing)
+    } else {
+        stringResource(R.string.shelldon_vault_reset_done, items.joinToString(", "))
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.medium)
+            .padding(12.dp)
+            .testTag("vault_reset_note"),
     )
 }
 

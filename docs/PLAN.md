@@ -344,7 +344,13 @@ compile). Spotless and lint were not run either. Update this section after the C
   re-wraps the DEK only (no re-encryption of the data).
 - **Forgotten password**: the only way out is "Reset vault", which deletes the saved passwords and the
   stored private keys (the key entries are removed; hosts and everything else stay). That is the price of
-  no backdoor.
+  no backdoor. The confirmation counts what goes before it goes (saved passwords, sealed keys, biometric
+  unlock; counts only, nothing is opened), lists what stays, and when secrets would be lost asks for a tick
+  on "I understand this cannot be undone". Reset is not offered until the counts are loaded. From Settings
+  (vault open) it offers an encrypted backup first, to import after the reset; on the lock screen it points
+  at biometric unlock when that still works, since that is the one way to open the vault and make a backup
+  without the password. The setup screen after a reset says what was removed (in memory only, gone once a
+  new vault exists).
 - **Cloud backup**: found and fixed in this round. The upstream manifest still had `allowBackup="true"` with
   ConnectBot's backup agent, against our rule. The agent left private keys out unless the "Backup pubkeys"
   setting was on (default off), but it did back up the host database. Builds up to and including round 1 are

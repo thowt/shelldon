@@ -223,8 +223,27 @@
 
     <!-- Vault: reset -->
     <string name="shelldon_vault_reset_title">Reset the vault?</string>
-    <string name="shelldon_vault_reset_body">This deletes every saved password and every private key stored in Shelldon. It cannot be undone. Hosts, folders, tags and identities stay.</string>
+    <string name="shelldon_vault_reset_deletes">This permanently deletes:</string>
+    <plurals name="shelldon_vault_reset_passwords">
+        <item quantity="one">%d saved password</item>
+        <item quantity="other">%d saved passwords</item>
+    </plurals>
+    <plurals name="shelldon_vault_reset_keys">
+        <item quantity="one">%d private key</item>
+        <item quantity="other">%d private keys</item>
+    </plurals>
+    <string name="shelldon_vault_reset_item_biometric">Biometric unlock</string>
+    <string name="shelldon_vault_reset_nothing">No saved passwords or private keys are stored, so nothing is lost. The master password and biometric unlock are removed.</string>
+    <string name="shelldon_vault_reset_stays">Stays: hosts, groups, tags and identities.</string>
+    <string name="shelldon_vault_reset_readd">Add their passwords and keys again afterwards, or import a backup.</string>
+    <string name="shelldon_vault_reset_hint_unlocked">The vault is open, so you can make an encrypted backup first. After the reset, import it to get your keys and passwords back.</string>
+    <string name="shelldon_vault_reset_backup">Back up first</string>
+    <string name="shelldon_vault_reset_hint_biometric">Biometric unlock still works. Use it to open the vault and make an encrypted backup (Settings, Security, backup and import) before you reset.</string>
+    <string name="shelldon_vault_reset_hint_locked">Without the master password the vault cannot be opened or backed up, so nothing deleted here can be recovered.</string>
+    <string name="shelldon_vault_reset_understand">I understand this cannot be undone</string>
     <string name="shelldon_vault_reset_confirm">Reset</string>
+    <string name="shelldon_vault_reset_done">The vault was reset. Deleted: %1$s. Choose a new master password, then add your keys and passwords again or import a backup.</string>
+    <string name="shelldon_vault_reset_done_nothing">The vault was reset. Choose a new master password.</string>
 
     <!-- Vault: biometric -->
     <string name="shelldon_vault_bio_offer_title">Unlock with biometrics?</string>
