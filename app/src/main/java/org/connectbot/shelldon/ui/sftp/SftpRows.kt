@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
@@ -60,6 +61,7 @@ internal fun SftpRow(
     onRename: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    onEdit: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
@@ -130,6 +132,17 @@ internal fun SftpRow(
                         menu = false
                         onDownload()
                     },
+                )
+            }
+            if (item.kind == SftpKind.FILE && onEdit != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.shelldon_sftp_edit)) },
+                    leadingIcon = { Icon(Icons.Default.Create, contentDescription = null) },
+                    onClick = {
+                        menu = false
+                        onEdit()
+                    },
+                    modifier = Modifier.testTag("sftp_edit_${item.name}"),
                 )
             }
             DropdownMenuItem(

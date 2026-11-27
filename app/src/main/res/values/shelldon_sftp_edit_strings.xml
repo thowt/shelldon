@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shelldon SSH
+  Copyright 2026 the Shelldon SSH contributors
+  SPDX-License-Identifier: Apache-2.0
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- SFTP: edit a text file on the server -->
+    <string name="shelldon_sftp_edit">Edit</string>
+    <string name="shelldon_sftp_edit_title">Edit %1$s</string>
+    <string name="shelldon_sftp_edit_save">Save</string>
+    <string name="shelldon_sftp_edit_saved">Saved</string>
+    <string name="shelldon_sftp_edit_close">Close the editor</string>
+    <string name="shelldon_sftp_edit_text">File content</string>
+    <string name="shelldon_sftp_edit_key_tab">Tab</string>
+    <string name="shelldon_sftp_edit_too_large">This file is too big to edit here (the limit is 256 KiB). Download it instead.</string>
+    <string name="shelldon_sftp_edit_binary">This is not a text file, so it cannot be edited here.</string>
+    <string name="shelldon_sftp_edit_not_utf8">Only UTF-8 text can be edited here. Saving would change some characters.</string>
+    <string name="shelldon_sftp_edit_line_endings">This file mixes line ending styles, and saving from here would change them. Download it instead.</string>
+    <string name="shelldon_sftp_edit_discard_title">Discard your changes?</string>
+    <string name="shelldon_sftp_edit_discard_body">The changes to %1$s have not been saved.</string>
+    <string name="shelldon_sftp_edit_discard">Discard</string>
+    <string name="shelldon_sftp_edit_keep">Keep editing</string>
+    <string name="shelldon_sftp_edit_conflict_title">The file changed on the server</string>
+    <string name="shelldon_sftp_edit_conflict_body">%1$s was changed after you opened it. Saving here would replace those changes.</string>
+    <string name="shelldon_sftp_edit_overwrite">Overwrite</string>
+    <string name="shelldon_sftp_edit_save_copy">Save as a copy</string>
+    <string name="shelldon_sftp_edit_copy_saved">Saved as %1$s. The original is unchanged.</string>
+    <string name="shelldon_sftp_edit_interrupted">Saving was interrupted, so %1$s on the server may be cut off. A complete copy of your text is on the server as %2$s. Your text is still here: save again to retry.</string>
+</resources>

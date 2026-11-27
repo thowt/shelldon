@@ -34,9 +34,17 @@ import org.connectbot.R
 import org.connectbot.data.EntityIds
 import org.connectbot.di.CoroutineDispatchers
 import org.connectbot.service.TerminalManager
+import org.connectbot.shelldon.sftp.EditOpen
+import org.connectbot.shelldon.sftp.EditRefusal
+import org.connectbot.shelldon.sftp.EditSave
+import org.connectbot.shelldon.sftp.EditSnapshot
+import org.connectbot.shelldon.sftp.EditableText
 import org.connectbot.shelldon.sftp.SftpBrowser
+import org.connectbot.shelldon.sftp.SftpEdit
+import org.connectbot.shelldon.sftp.SftpEditText
 import org.connectbot.shelldon.sftp.SftpFailure
 import org.connectbot.shelldon.sftp.SftpItem
+import org.connectbot.shelldon.sftp.SftpKind
 import org.connectbot.shelldon.sftp.SftpPaths
 import org.connectbot.shelldon.sftp.SftpProblem
 import org.connectbot.shelldon.sftp.SftpTransfers
@@ -88,6 +96,7 @@ data class SftpUiState(
     val showHidden: Boolean = false,
     val transfers: List<TransferUi> = emptyList(),
     val conflict: UploadConflict? = null,
+    val editor: EditorUi? = null,
 ) {
     val visibleItems: List<SftpItem> get() = if (showHidden) items else items.filterNot { it.isHidden }
     val hiddenCount: Int get() = items.count { it.isHidden }
@@ -115,6 +124,8 @@ class SftpViewModel @Inject constructor(
     private var nextTransferId = 1L
     private val transferJobs = HashMap<Long, Job>()
     private val transferLock = Mutex()
+    private var editJob: Job? = null
+    private var editSession: EditSession? = null
 
     /** Called by the screen once the connection service is bound. Opens the file channel once. */
     fun setTerminalManager(manager: TerminalManager) {
@@ -396,6 +407,122 @@ class SftpViewModel @Inject constructor(
         return (name ?: uri.lastPathSegment ?: "upload") to size
     }
 
+    // --- Editing a text file ---
+
+    /** Opens a regular text file in the editor. Only one file is edited at a time. */
+    fun edit(item: SftpItem) {
+        val files = client ?: return
+        if (item.kind != SftpKind.FILE || _state.value.editor != null) return
+        _state.update { it.copy(editor = EditorUi(item.name, item.path)) }
+        editJob = viewModelScope.launch {
+            try {
+                when (val opened = withContext(dispatchers.io) { SftpEdit.open(files, item.path) }) {
+                    is EditOpen.Refused -> updateEditor { it.copy(phase = EditorPhase.REFUSED, problem = refusalMessage(opened.reason)) }
+
+                    is EditOpen.Opened -> {
+                        editSession = EditSession(opened.snapshot, opened.file)
+                        updateEditor { it.copy(phase = EditorPhase.EDITING, text = opened.file.text, original = opened.file.text) }
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: SftpFailure) {
+                if (e.problem == SftpProblem.CONNECTION_LOST) unavailable(SftpUnavailable.LOST)
+                updateEditor { it.copy(phase = EditorPhase.FAILED, problem = problemMessage(e.problem), problemDetail = failureDetail(e)) }
+            }
+        }
+    }
+
+    fun editText(text: String) {
+        updateEditor { if (it.phase == EditorPhase.EDITING) it.copy(text = text, saved = false, interruptedCopy = null, savedCopy = null, problem = null, problemDetail = "") else it }
+    }
+
+    /** @param overwrite true after the user chose to replace a file that changed on the server */
+    fun saveEdit(overwrite: Boolean = false) {
+        val files = client ?: return
+        val session = editSession ?: return
+        val editor = _state.value.editor?.takeIf { it.phase == EditorPhase.EDITING && (it.dirty || overwrite) } ?: return
+        updateEditor { it.copy(phase = EditorPhase.SAVING, conflict = false, problem = null, problemDetail = "", interruptedCopy = null, savedCopy = null) }
+        val bytes = SftpEditText.encode(editor.text, session.file)
+        editJob = viewModelScope.launch {
+            try {
+                when (val saved = withContext(dispatchers.io) { SftpEdit.save(files, session.snapshot, bytes, overwrite) }) {
+                    is EditSave.Saved -> {
+                        editSession = EditSession(saved.snapshot, session.file)
+                        updateEditor { it.copy(phase = EditorPhase.EDITING, original = editor.text, saved = true) }
+                    }
+
+                    EditSave.ChangedOnServer -> updateEditor { it.copy(phase = EditorPhase.EDITING, conflict = true) }
+
+                    is EditSave.Interrupted -> {
+                        if (saved.failure.problem == SftpProblem.CONNECTION_LOST) unavailable(SftpUnavailable.LOST)
+                        updateEditor {
+                            it.copy(
+                                phase = EditorPhase.EDITING,
+                                problem = problemMessage(saved.failure.problem),
+                                problemDetail = failureDetail(saved.failure),
+                                interruptedCopy = saved.completeCopy,
+                            )
+                        }
+                    }
+                }
+            } catch (e: CancellationException) {
+                updateEditor { it.copy(phase = EditorPhase.EDITING) }
+                throw e
+            } catch (e: SftpFailure) {
+                if (e.problem == SftpProblem.CONNECTION_LOST) unavailable(SftpUnavailable.LOST)
+                updateEditor { it.copy(phase = EditorPhase.EDITING, problem = problemMessage(e.problem), problemDetail = failureDetail(e)) }
+            }
+        }
+    }
+
+    /** Saves the text as a new file next to the original, which stays as it is. */
+    fun saveEditCopy() {
+        val files = client ?: return
+        val session = editSession ?: return
+        val editor = _state.value.editor?.takeIf { it.phase == EditorPhase.EDITING } ?: return
+        updateEditor { it.copy(phase = EditorPhase.SAVING, conflict = false, problem = null, problemDetail = "") }
+        val bytes = SftpEditText.encode(editor.text, session.file)
+        editJob = viewModelScope.launch {
+            try {
+                val copy = withContext(dispatchers.io) { SftpEdit.saveCopy(files, session.snapshot, bytes) }
+                // What was typed is now safe on the server, so closing the editor needs no question.
+                updateEditor { it.copy(phase = EditorPhase.EDITING, original = editor.text, savedCopy = copy) }
+                if (SftpPaths.parent(copy) == _state.value.path) refresh()
+            } catch (e: CancellationException) {
+                updateEditor { it.copy(phase = EditorPhase.EDITING) }
+                throw e
+            } catch (e: SftpFailure) {
+                if (e.problem == SftpProblem.CONNECTION_LOST) unavailable(SftpUnavailable.LOST)
+                updateEditor { it.copy(phase = EditorPhase.EDITING, problem = problemMessage(e.problem), problemDetail = failureDetail(e)) }
+            }
+        }
+    }
+
+    fun keepEditing() = updateEditor { it.copy(conflict = false) }
+
+    /** Closes the editor and forgets the text. The screen asks first if there is something unsaved. */
+    fun closeEditor() {
+        editJob?.cancel()
+        editJob = null
+        editSession = null
+        _state.update { it.copy(editor = null) }
+    }
+
+    private fun updateEditor(change: (EditorUi) -> EditorUi) {
+        _state.update { s -> s.copy(editor = s.editor?.let(change)) }
+    }
+
+    private fun failureDetail(failure: SftpFailure): String = if (failure.problem == SftpProblem.OTHER) failure.detail else ""
+
+    @StringRes
+    private fun refusalMessage(reason: EditRefusal): Int = when (reason) {
+        EditRefusal.TOO_LARGE -> R.string.shelldon_sftp_edit_too_large
+        EditRefusal.BINARY -> R.string.shelldon_sftp_edit_binary
+        EditRefusal.NOT_UTF8 -> R.string.shelldon_sftp_edit_not_utf8
+        EditRefusal.LINE_ENDINGS -> R.string.shelldon_sftp_edit_line_endings
+    }
+
     // --- Messages ---
 
     @StringRes
@@ -443,6 +570,8 @@ class SftpViewModel @Inject constructor(
         }
         super.onCleared()
     }
+
+    private class EditSession(val snapshot: EditSnapshot, val file: EditableText)
 
     private companion object {
         const val PROGRESS_INTERVAL_NANOS = 100_000_000L
