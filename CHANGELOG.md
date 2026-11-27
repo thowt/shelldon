@@ -12,6 +12,8 @@ this section collects what has been added on top of ConnectBot since the fork.
   identities, keys and known hosts
 - A vault protected by a master password (Argon2id) with a biometric shortcut and auto-lock
 - Encrypted backup, export and import, and `~/.ssh/config` import
+- SFTP downloads and uploads that were stopped continue where they stopped, after checking that what is
+  already there still matches
 - SFTP browser, snippets, and a Tunnels tab for local, remote and SOCKS (`-L`, `-R`, `-D`) forwards
 - OpenSSH container tests for the SSH transport and for SFTP
 
