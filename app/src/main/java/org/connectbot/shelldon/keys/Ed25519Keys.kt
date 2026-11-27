@@ -6,11 +6,9 @@
 
 package org.connectbot.shelldon.keys
 
-import org.connectbot.sshlib.SshKeys
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.spec.InvalidKeySpecException
-import kotlin.io.encoding.Base64
 
 /**
  * Reads stored Ed25519 keys back into JCA keys without asking Android for an Ed25519 key factory.
@@ -33,13 +31,7 @@ internal object Ed25519Keys {
     @Throws(InvalidKeySpecException::class)
     fun decodePrivate(pkcs8: ByteArray): PrivateKey {
         // The PEM reader accepts any PKCS#8 key and picks the type itself, so check what came back.
-        val pair = try {
-            val body = Base64.Default.encode(pkcs8)
-            SshKeys.decodePemPrivateKey("-----BEGIN PRIVATE KEY-----\n$body\n-----END PRIVATE KEY-----\n")
-        } catch (e: Exception) {
-            throw InvalidKeySpecException("Stored Ed25519 private key cannot be read", e)
-        }
-        val key = pair.private
+        val key = StoredKeys.decodePrivate(pkcs8)
         if (key.algorithm.lowercase() !in ALGORITHM_NAMES) {
             throw InvalidKeySpecException("Stored key is not an Ed25519 key")
         }
