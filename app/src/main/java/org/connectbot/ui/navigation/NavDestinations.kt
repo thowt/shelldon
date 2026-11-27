@@ -30,6 +30,7 @@ object NavDestinations {
     const val SFTP = "sftp"
     const val SECURITY = "shelldon_security"
     const val SSH_IMPORT = "shelldon_ssh_import"
+    const val HOST_IMPORT = "shelldon_host_import"
     const val GENERATE_PUBKEY = "generate_pubkey"
     const val PUBKEY_EDITOR = "pubkey_editor"
     const val PORT_FORWARD_LIST = "port_forward_list"

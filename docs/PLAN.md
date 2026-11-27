@@ -692,10 +692,26 @@ scan shows 231 shipped libraries (239 before) and no Guava, only the empty `list
 the Guava floor in `app/build.gradle.kts` and its version entry were deleted. Version
 bumps were not done: each one needs the same workflow run, and a monthly batch is the plan.
 
-**Not built yet (next onboarding steps):** CSV import with a column mapping, then PuTTY, MobaXterm,
-SecureCRT and mRemoteNG; export to `ssh_config` and CSV; per-host checkboxes in the preview; `Include`
-following; port forwards from `LocalForward` and friends; the old Keychain keys screen still exists for key
-export, YubiKey and FIDO2.
+**Import from other apps and CSV (fine-tuning branch, 2026-11-26).** A second screen, reached from the
+import page ("Coming from another app?"), reads one file and recognises it from its content: CSV or TSV
+(RFC 4180, delimiter detected, header names guessed, every column changeable in the preview), MobaXterm
+sessions (`.mxtsessions`, Windows-1252, `SubRep` folders, type 0 is SSH and 1 is Telnet), PuTTY registry
+exports (UTF-16 handled, `%XX` names, `/` in a name becomes a folder) and mRemoteNG `confCons.xml`
+(containers become folders). Folders are created as nested groups and tags as tags, reusing existing ones
+(case-insensitive). Decisions: **passwords are never imported** (only counted, because a plaintext password
+column in a CSV is exactly what this app should not encourage; saving one is a manual step through the
+vault); Telnet entries only with a switch and a plaintext warning; RDP, VNC, FTP, serial and SSH-1 are
+counted and left out; an address that is not a plain host name or IP (spaces, slashes, a URL) is counted as
+invalid instead of "fixed"; a name that is taken by a different host gets a number (`db (2)`), the same file
+imported twice adds nothing; the XML reader refuses any `<!DOCTYPE` or `<!ENTITY` (no entity expansion, no
+external entities) and an mRemoteNG file that is encrypted as a whole says so. The parsers and the planner
+are plain Kotlin with no Android types. Not built: SecureCRT, Termius JSON, Royal TS, KiTTY extras, Windows
+Terminal profiles, key files referenced by PuTTY (`PublicKeyFile`) or mRemoteNG; those need a per-format
+sample from the owner's own export.
+
+**Still not built (onboarding):** export to `ssh_config` and CSV; per-host checkboxes in the preview;
+`Include` following; port forwards from `LocalForward` and friends; the old Keychain keys screen still exists
+for key export, YubiKey and FIDO2.
 
 **Verified.** In CI (pull request #14): compile, 1931 unit tests including the new parser, `known_hosts`,
 planner, importer (Room under Robolectric), real policy validation and key decoding, and the Compose tests
