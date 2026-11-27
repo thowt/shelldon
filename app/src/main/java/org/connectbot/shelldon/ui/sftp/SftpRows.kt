@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -50,6 +51,7 @@ import org.connectbot.R
 import org.connectbot.shelldon.sftp.SftpItem
 import org.connectbot.shelldon.sftp.SftpItems
 import org.connectbot.shelldon.sftp.SftpKind
+import org.connectbot.shelldon.sftp.SftpMode
 import org.connectbot.shelldon.sftp.SftpPaths
 
 @Composable
@@ -60,6 +62,7 @@ internal fun SftpRow(
     onRename: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    onPermissions: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
@@ -140,6 +143,17 @@ internal fun SftpRow(
                     onRename()
                 },
             )
+            if (onPermissions != null && SftpMode.of(item.permissions) != null && (item.kind == SftpKind.FILE || item.kind == SftpKind.FOLDER)) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.shelldon_sftp_permissions)) },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    onClick = {
+                        menu = false
+                        onPermissions()
+                    },
+                    modifier = Modifier.testTag("sftp_permissions_${item.name}"),
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.shelldon_delete)) },
                 leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },

@@ -69,6 +69,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.connectbot.R
 import org.connectbot.shelldon.sftp.SftpItem
 import org.connectbot.shelldon.sftp.SftpKind
+import org.connectbot.shelldon.sftp.SftpMode
 import org.connectbot.shelldon.sftp.SftpPaths
 import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 import org.connectbot.ui.LocalTerminalManager
@@ -94,6 +95,7 @@ fun SftpScreen(
     var newFolder by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<SftpItem?>(null) }
     var deleting by remember { mutableStateOf<SftpItem?>(null) }
+    var permissions by remember { mutableStateOf<SftpItem?>(null) }
     var leaving by remember { mutableStateOf(false) }
     // Kept across a rotation or a process restart while the file picker is open.
     var downloadPath by rememberSaveable { mutableStateOf<String?>(null) }
@@ -278,6 +280,7 @@ fun SftpScreen(
                             onDownload = { startDownload(item) },
                             onRename = { renaming = item },
                             onDelete = { deleting = item },
+                            onPermissions = { permissions = item },
                         )
                     }
                 }
@@ -311,6 +314,21 @@ fun SftpScreen(
             },
             onDismiss = { renaming = null },
         )
+    }
+
+    permissions?.let { item ->
+        val current = SftpMode.of(item.permissions)
+        if (current != null) {
+            PermissionsDialog(
+                item = item,
+                initial = current,
+                onApply = { mode, recursive ->
+                    permissions = null
+                    viewModel.changePermissions(item, mode, recursive)
+                },
+                onDismiss = { permissions = null },
+            )
+        }
     }
 
     deleting?.let { item ->
