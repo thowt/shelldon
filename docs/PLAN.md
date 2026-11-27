@@ -948,8 +948,19 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - ShellDroid is worth a second look if its licence is permissive.
 - Fine-tuning candidates after round 3: background and resumable transfers, folder download, chmod editor,
   editing remote files in place. (The Files entry on the Hosts screen is done in M12.)
-- Per-forward LAN bind: `-L` and `-D` always bind loopback, the editor offers a bind address only for `-R`.
-  Needs a change in `transport/`, so it comes with container tests.
+- Per-forward LAN bind is built (branch `lan-bind`): `-L` and `-D` listen on loopback unless the stored
+  listen address says otherwise, and the editor needs a tick per forward before it accepts an address
+  that is not loopback. `tunnels/ForwardBind.kt` turns the stored address into the socket address (IP
+  literals only, no DNS, an invalid address means the forward does not start) and `SSH.enablePortForward`
+  passes it to sshlib. Container tests (`ForwardBindContainerTest`) check on real sockets against
+  OpenSSH that loopback refuses the network address and a wildcard bind answers there. Still open:
+  - A `-D` forward on the network is an open SOCKS proxy for anyone on that network. The editor says so
+    and asks for the tick. SOCKS5 user and password (sshlib has a `Socks5Authenticator`) would close it
+    and is the obvious follow-up.
+  - Android 17 asks for the local-network permission of apps that target API 37 or higher. The app
+    targets 36, where it is granted implicitly. Raising `targetSdk` needs the owner's decision (new
+    permission) and a check that a LAN-bound forward still accepts connections.
+  - Not tried on a phone: the container tests run on the desktop JVM, not on Android's network stack.
 - Identity passwords in the vault (needs a database migration).
 - Name and trademark check before any public release.
 - Icon provenance: AI-generated artwork. Check the tool's terms and the copyright position before release.

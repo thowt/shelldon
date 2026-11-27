@@ -14,6 +14,8 @@ this section collects what has been added on top of ConnectBot since the fork.
 - Encrypted backup, export and import, and `~/.ssh/config` import
 - SFTP browser, snippets, and a Tunnels tab for local, remote and SOCKS (`-L`, `-R`, `-D`) forwards
 - OpenSSH container tests for the SSH transport and for SFTP
+- A forward can listen on the network instead of loopback only: per `-L` or `-D` forward, behind a
+  warning and an explicit tick (a SOCKS proxy on the network is open to everyone there)
 
 ### Changed
 - Top bars are 56 dp on phones and the folded cover screen and 48 dp on wide windows such as an
