@@ -16,7 +16,6 @@ import org.connectbot.sshlib.SftpResult
 import org.connectbot.sshlib.SftpStatusCode
 import org.junit.Test
 import java.io.File
-import java.nio.file.Files
 import java.util.Random
 
 class SftpFolderDownloadTest {
@@ -47,8 +46,8 @@ class SftpFolderDownloadTest {
     private val fake = FakeSftpClient()
     private val server = Refusing(fake)
     private val random = Random(5)
-    private val destination: File = Files.createTempDirectory("shelldon-folder-dest").toFile().also { it.deleteOnExit() }
-    private val temp: File = Files.createTempDirectory("shelldon-folder-temp").toFile().also { it.deleteOnExit() }
+    private val destination: File = newTempDir("shelldon-folder-dest")
+    private val temp: File = newTempDir("shelldon-folder-temp")
     private val tree = FileTree()
 
     private fun bytes(count: Int) = ByteArray(count).also(random::nextBytes)

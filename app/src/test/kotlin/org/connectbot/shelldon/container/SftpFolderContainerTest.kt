@@ -16,13 +16,13 @@ import org.connectbot.shelldon.sftp.FolderResult
 import org.connectbot.shelldon.sftp.RemoteTree
 import org.connectbot.shelldon.sftp.SftpProblem
 import org.connectbot.shelldon.sftp.SftpTreeScan
+import org.connectbot.shelldon.sftp.newTempDir
 import org.connectbot.sshlib.SftpClient
 import org.connectbot.sshlib.SftpResult
 import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
-import java.nio.file.Files
 import java.security.MessageDigest
 
 /**
@@ -45,8 +45,8 @@ class SftpFolderContainerTest {
     @get:Rule
     val jdkProviders = JdkProvidersRule()
 
-    private val destination: File = Files.createTempDirectory("shelldon-folder-container").toFile().also { it.deleteOnExit() }
-    private val temp: File = Files.createTempDirectory("shelldon-folder-container-temp").toFile().also { it.deleteOnExit() }
+    private val destination: File = newTempDir("shelldon-folder-container")
+    private val temp: File = newTempDir("shelldon-folder-container-temp")
 
     private suspend fun LiveServer.Connection.withSftp(block: suspend (SftpClient) -> Unit) {
         val opened = client.openSftp()
