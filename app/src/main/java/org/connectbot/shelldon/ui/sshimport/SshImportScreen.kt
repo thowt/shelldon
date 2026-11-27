@@ -71,6 +71,7 @@ import org.connectbot.shelldon.ui.shell.shelldonBarHeight
 fun SshImportScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onImportFromOtherApp: (() -> Unit)? = null,
     viewModel: SshImportViewModel = hiltViewModel(),
 ) {
     SshImportContent(
@@ -82,6 +83,7 @@ fun SshImportScreen(
         onImport = viewModel::import,
         onStartOver = viewModel::startOver,
         modifier = modifier,
+        onImportFromOtherApp = onImportFromOtherApp,
     )
 }
 
@@ -96,6 +98,7 @@ internal fun SshImportContent(
     onImport: () -> Unit,
     onStartOver: () -> Unit,
     modifier: Modifier = Modifier,
+    onImportFromOtherApp: (() -> Unit)? = null,
 ) {
     val ui by uiState.collectAsState()
     val currentOnFilesPick by rememberUpdatedState(onFilesPick)
@@ -130,6 +133,7 @@ internal fun SshImportContent(
             SshImportPhase.PICK -> PickBody(
                 error = ui.error,
                 onPick = { picker.launch(arrayOf("*/*")) },
+                onImportFromOtherApp = onImportFromOtherApp,
                 modifier = body,
             )
 
@@ -163,6 +167,7 @@ private fun willWriteSomething(plan: SshImportPlan, options: SshImportOptions): 
 private fun PickBody(
     error: SshImportError?,
     onPick: () -> Unit,
+    onImportFromOtherApp: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -177,6 +182,14 @@ private fun PickBody(
         }
         Button(onClick = onPick, modifier = Modifier.testTag("sshimport_pick")) {
             Text(stringResource(R.string.shelldon_sshimport_pick_button))
+        }
+        if (onImportFromOtherApp != null) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text(stringResource(R.string.shelldon_sshimport_other_apps_title), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.shelldon_sshimport_other_apps_body), style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(onClick = onImportFromOtherApp, modifier = Modifier.testTag("sshimport_other_apps")) {
+                Text(stringResource(R.string.shelldon_sshimport_other_apps_button))
+            }
         }
     }
 }
