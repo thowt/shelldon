@@ -953,6 +953,28 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - Identity passwords in the vault (needs a database migration).
 - Name and trademark check before any public release.
 - Icon provenance: AI-generated artwork. Check the tool's terms and the copyright position before release.
+- **SFTP folder download** (fine-tuning, branch `sftp-folder-download`, 2026-11-27). Row menu "Download
+  folder" on a folder: the app first looks through it (parallel listings, at most 20 000 entries, depth cap
+  as for delete), then asks, with counts, total size and what is left out, before anything is copied. The
+  user picks a folder with the system folder picker (no storage permission) and the files are mirrored into
+  a subfolder named like the remote one. Decisions: **nothing is ever overwritten or deleted** on the phone
+  (a file that is there with the same size counts as done, like `rsync --size-only`, so running it again
+  after a stop carries on; a file there with another size is kept and reported); **links are never followed
+  and not copied** (a link to `/` or a loop would pull in the whole server), special files and unreadable
+  folders are counted and shown, never silently dropped; remote names that cannot be local names or clash
+  on a case-insensitive phone filesystem get a ` (1)` suffix instead of being merged; each file goes to the
+  app's cache first and into the chosen folder only when whole, so a stop leaves no half-written file among
+  the finished ones, one file failing does not stop the rest, a lost connection does. Folder jobs wait for a
+  running single transfer (one at a time, as before), and leaving the screen stops them. Known limits: the
+  same-size check is not a content check (a changed file of equal size is not refreshed); the scan cap means a
+  folder with more than 20 000 entries needs to be downloaded in parts, and the screen says so; no per-file
+  resume inside a folder job (files already complete are skipped, a partly fetched one starts again); the
+  listing of the phone's folder is read once per folder, so another app changing it during a run is not
+  noticed. Verified: the scan and mirror logic against a fake server and a plain-file tree
+  (`SftpFolderDownloadTest`, run locally with a pure-Kotlin harness and mutation-checked); Compose tests and
+  the OpenSSH container test (`SftpFolderContainerTest`: links, a pipe, a locked folder and file, odd names, a
+  3 MB file hashed on both sides) are only run by CI; `SafTree` (the Android Storage Access Framework side)
+  has no automated test and has not been tried on a phone.
 - Decide where new code lives: new Gradle modules (for example `:vault`, `:sync`, pure Kotlin where
   possible) keep upstream merges cheap and the code unit-testable.
 
