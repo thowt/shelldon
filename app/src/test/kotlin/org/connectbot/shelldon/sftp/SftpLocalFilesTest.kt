@@ -11,11 +11,15 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.io.File
 import java.io.FileInputStream
-import java.nio.file.Files
 import java.util.Random
 
 class SftpLocalFilesTest {
-    private val dir: File = Files.createTempDirectory("shelldon-sftp-test").toFile().also { it.deleteOnExit() }
+    // File.createTempFile, not java.nio.file.Files: the NIO call needs API 26 and lint checks tests against minSdk 24.
+    private val dir: File = File.createTempFile("shelldon-sftp-test", "").also {
+        it.delete()
+        it.mkdirs()
+        it.deleteOnExit()
+    }
 
     private fun bytes(count: Int) = ByteArray(count).also(Random(3)::nextBytes)
 
