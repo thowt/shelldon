@@ -893,7 +893,7 @@ open class SSH : AbsTransport {
             val privKey = try {
                 PubkeyUtils.decodePrivate(privateKey, pubkey.type, password)
             } catch (e: Exception) {
-                val message = KeyLoadFailure.message(pubkey.nickname, pubkey.encrypted)
+                val message = KeyLoadFailure.message(pubkey.nickname, pubkey.encrypted, e)
                 Timber.e(e, "Cannot load key '%s'", pubkey.nickname)
                 bridge?.outputLine(message)
                 return null
