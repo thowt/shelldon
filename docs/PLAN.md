@@ -941,6 +941,20 @@ Each milestone is a branch and a pull request into `main`. The user merges after
   keys), Files action on the host card, dependency clean-up (merged, PR #14). Next: CSV and other apps'
   exports, then export.
 - **M13: Tools section** (noted 2026-11-20, not started). Ping and nslookup first, see "Tools section".
+- **SFTP permissions editor** (fine-tuning, branch `sftp-chmod`). Row menu "Permissions" on files and
+  folders (not on links, sockets or devices): a grid of read, write and execute boxes for owner, group
+  and others that stays in step with the octal number, setuid, setgid and sticky behind a heading, and
+  warnings for world-writable and set-id modes. Looked at: Solid Explorer, FileZilla and Termius, which
+  all offer the grid plus octal; FileZilla's "apply to files only / folders only" is not copied.
+  - Only the permission field goes over the wire (`setstat` with nothing else set), so owner, size and
+    times stay as they are. Checked against OpenSSH with `stat`.
+  - "Also change everything inside" is `chmod -R u=rwX`-like: files get the mode, folders get it with
+    execute added wherever they have read, so a `640` run cannot lock a folder. Contents are changed
+    before the folder itself. Links, sockets, devices and pipes are skipped, never followed (`chmod`
+    follows links on the server, so following one could change something outside the folder shown).
+    An item that cannot be changed is counted and reported; the rest still go ahead, as with `chmod -R`.
+  - Setuid, setgid and sticky are refused for a recursive change: the dialog switches recursion off and
+    says why.
 
 ## Open items
 
