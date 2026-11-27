@@ -152,12 +152,13 @@ class PermissionsDialogTest {
     @Test
     fun aFolderCanBeChangedWithEverythingInsideIt() {
         show(folder(0x41ED))
+        // 755 with read taken from others: the execute bit they had stays, so it is 751.
         click("sftp_perm_others_read")
         click("sftp_perm_recursive")
 
         apply().performClick()
 
-        assertEquals(listOf(SftpMode(0b111_101_100) to true), applied)
+        assertEquals(listOf(SftpMode(0b111_101_001) to true), applied)
     }
 
     @Test
