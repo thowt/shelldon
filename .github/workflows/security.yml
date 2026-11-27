@@ -160,6 +160,10 @@ jobs:
                 echo
                 cat "$RUNNER_TEMP/tooling.md"
               } >> "$GITHUB_STEP_SUMMARY"
+              # Also in the log, so it can be read without opening the summary page.
+              echo "::group::Build tooling: known vulnerabilities (report only)"
+              cat "$RUNNER_TEMP/tooling.md"
+              echo "::endgroup::"
               echo "::warning::Known vulnerabilities in build tooling, see the run summary"
               ;;
             *) echo "::error::OSV-Scanner failed with exit code $code"; exit "$code" ;;
