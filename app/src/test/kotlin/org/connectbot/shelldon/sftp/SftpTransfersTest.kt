@@ -166,7 +166,7 @@ class SftpTransfersTest {
     fun uploadProgressEndsAtTheSize() = runBlocking<Unit> {
         val data = bytes(SftpTransfers.CHUNK_SIZE * 11)
         var last = 0L
-        SftpTransfers.upload(fake, ByteArrayInputStream(data), "/up", overwrite = false) { last = it }
+        SftpTransfers.upload(fake, ByteArrayInputStream(data), "/up", overwrite = false, onProgress = { last = it })
         assertThat(last).isEqualTo(data.size.toLong())
     }
 

@@ -41,8 +41,10 @@ object SftpTransfers {
      *
      * @param expectedSize the size the server reported before the transfer, if it did. With it, a file that
      *   ends early is reported as [SftpProblem.TRUNCATED] instead of being saved incomplete.
-     * @param onProgress total bytes written so far
-     * @return the number of bytes written
+     * @param onProgress total bytes of the file that are in place so far, [startAt] included
+     * @param startAt the first byte to fetch: the bytes before it are already in place and [out] continues
+     *   after them. Needs [expectedSize], because only then can the end be told from a short read.
+     * @return the number of bytes of the file that are in place when it returns
      */
     suspend fun download(
         sftp: SftpClient,
@@ -50,15 +52,23 @@ object SftpTransfers {
         out: OutputStream,
         expectedSize: Long?,
         onProgress: (Long) -> Unit = {},
+        startAt: Long = 0,
     ): Long {
         // A reported size of zero is not trusted: some servers say so for files that do have content.
         val expected = expectedSize?.takeIf { it > 0 }
+        require(startAt >= 0) { "Negative start" }
+        require(startAt == 0L || expected != null) { "Continuing a download needs the size of the file" }
+        if (expected != null && startAt > expected) throw SftpFailure(SftpProblem.CHANGED)
+        if (expected != null && startAt == expected) {
+            onProgress(startAt)
+            return startAt
+        }
         val handle = sftp.open(remotePath, setOf(SftpOpenFlag.READ)).orFail()
         try {
             return coroutineScope {
                 val window = ArrayDeque<Slot>()
-                var nextOffset = 0L
-                var written = 0L
+                var nextOffset = startAt
+                var written = startAt
                 var chunk = CHUNK_SIZE
                 var reachedEnd = false
                 try {
@@ -109,8 +119,10 @@ object SftpTransfers {
      * @param overwrite when false, an existing file is never touched and the result is
      *   [SftpProblem.ALREADY_EXISTS]. When true the existing file is replaced, and if the transfer fails
      *   half way it stays incomplete; the caller has to say so.
-     * @param onProgress total bytes the server has acknowledged so far
-     * @return the number of bytes sent
+     * @param onProgress total bytes of the file the server has acknowledged so far, [startAt] included
+     * @param startAt where [input] has been moved to: the file on the server already holds the bytes
+     *   before it, and writing continues after them. The file must exist and is not truncated.
+     * @return the number of bytes of the file that are on the server when it returns
      */
     suspend fun upload(
         sftp: SftpClient,
@@ -118,8 +130,14 @@ object SftpTransfers {
         remotePath: String,
         overwrite: Boolean,
         onProgress: (Long) -> Unit = {},
+        startAt: Long = 0,
     ): Long {
-        val flags = setOf(SftpOpenFlag.WRITE, SftpOpenFlag.CREATE, if (overwrite) SftpOpenFlag.TRUNCATE else SftpOpenFlag.EXCLUDE)
+        require(startAt >= 0) { "Negative start" }
+        val flags = if (startAt > 0) {
+            setOf(SftpOpenFlag.WRITE)
+        } else {
+            setOf(SftpOpenFlag.WRITE, SftpOpenFlag.CREATE, if (overwrite) SftpOpenFlag.TRUNCATE else SftpOpenFlag.EXCLUDE)
+        }
         val opened = sftp.open(remotePath, flags)
         if (!overwrite && opened is SftpResult.ServerError && opened.statusCode == SftpStatusCode.FAILURE) {
             // Servers answer "failure" when O_EXCL meets an existing file.
@@ -130,8 +148,8 @@ object SftpTransfers {
         try {
             val sent = coroutineScope {
                 val inFlight = ArrayDeque<Deferred<Int>>()
-                var offset = 0L
-                var acknowledged = 0L
+                var offset = startAt
+                var acknowledged = startAt
                 val buffer = ByteArray(CHUNK_SIZE)
                 try {
                     while (true) {
