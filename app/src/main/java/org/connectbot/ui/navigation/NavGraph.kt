@@ -31,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import org.connectbot.data.EntityIds
 import org.connectbot.data.entity.Host
+import org.connectbot.shelldon.ui.hostimport.HostImportScreen
 import org.connectbot.shelldon.ui.hostlist.ShelldonHostListScreen
 import org.connectbot.shelldon.ui.keychain.ShelldonKeychainScreen
 import org.connectbot.shelldon.ui.sftp.SftpScreen
@@ -299,7 +300,13 @@ fun ConnectBotNavHost(
                 )
             }
             composable(NavDestinations.SSH_IMPORT) {
-                SshImportScreen(onNavigateBack = { navController.safePopBackStack() })
+                SshImportScreen(
+                    onNavigateBack = { navController.safePopBackStack() },
+                    onImportFromOtherApp = { navController.navigateSafely(NavDestinations.HOST_IMPORT) },
+                )
+            }
+            composable(NavDestinations.HOST_IMPORT) {
+                HostImportScreen(onNavigateBack = { navController.safePopBackStack() })
             }
 
             composable("keyboard_layout/{layoutId}", arguments = listOf(navArgument("layoutId") { type = NavType.StringType })) { entry ->
