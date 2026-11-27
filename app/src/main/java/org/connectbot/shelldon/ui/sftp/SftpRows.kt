@@ -60,6 +60,7 @@ internal fun SftpRow(
     onRename: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    onDownloadFolder: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
@@ -130,6 +131,17 @@ internal fun SftpRow(
                         menu = false
                         onDownload()
                     },
+                )
+            }
+            if (item.kind == SftpKind.FOLDER && onDownloadFolder != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.shelldon_sftp_folder_download)) },
+                    leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                    onClick = {
+                        menu = false
+                        onDownloadFolder()
+                    },
+                    modifier = Modifier.testTag("sftp_download_folder_${item.name}"),
                 )
             }
             DropdownMenuItem(
