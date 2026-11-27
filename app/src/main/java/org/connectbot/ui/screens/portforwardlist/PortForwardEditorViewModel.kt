@@ -31,6 +31,7 @@ import org.connectbot.data.HostRepository
 import org.connectbot.data.entity.PortForward
 import org.connectbot.di.CoroutineDispatchers
 import org.connectbot.service.TerminalManager
+import org.connectbot.shelldon.tunnels.ForwardBind
 import org.connectbot.util.HostConstants
 import java.util.UUID
 import javax.inject.Inject
@@ -48,6 +49,8 @@ data class PortForwardEditorUiState(
     val hasUnsavedChanges: Boolean = false,
     val hasEdited: Boolean = false,
     val error: String? = null,
+    /** The person confirmed that a listen address other than this phone's loopback is meant. */
+    val lanAcknowledged: Boolean = false,
 ) {
     val isRemote: Boolean get() = type == HostConstants.PORTFORWARD_REMOTE
     val needsDestination: Boolean get() = type != HostConstants.PORTFORWARD_DYNAMIC5
@@ -59,10 +62,26 @@ data class PortForwardEditorUiState(
             return parts.size == 2 && parts[0].isNotBlank() && parts[1].toIntOrNull()?.let { it in 1..65535 } == true
         }
 
+    /** Where a local or dynamic forward listens on this phone, as stored: `localhost`, an address, or empty for every interface. */
+    val listenAddress: String
+        get() = if (sourceAddressOption == SourceAddressOption.SPECIFIC) specificAddress.trim() else sourceAddressOption.sshValue
+
+    /** A local or dynamic forward that anyone on the network could use. Needs the confirmation before it can be saved. */
+    val exposesLan: Boolean get() = !isRemote && ForwardBind.isExposed(listenAddress)
+
+    /** An empty "specific" address would mean every interface, so it is never accepted for a local or dynamic forward. */
+    val isListenAddressValid: Boolean
+        get() = isRemote || (
+            !(sourceAddressOption == SourceAddressOption.SPECIFIC && specificAddress.isBlank()) &&
+                ForwardBind.socketAddress(listenAddress, 0) != null
+            )
+
     val canSave: Boolean
         get() {
             if (!isSourcePortValid || !isDestinationValid) return false
             if (isRemote && sourceAddressOption == SourceAddressOption.SPECIFIC && specificAddress.isBlank()) return false
+            if (!isListenAddressValid) return false
+            if (exposesLan && !lanAcknowledged) return false
             return true
         }
 }
@@ -100,6 +119,8 @@ class PortForwardEditorViewModel @Inject constructor(
                                 sourcePort = forward.sourcePort.toString(),
                                 sourceAddressOption = sourceOption,
                                 specificAddress = if (sourceOption == SourceAddressOption.SPECIFIC) forward.sourceAddr else "",
+                                // An existing choice is kept; changing the address asks again.
+                                lanAcknowledged = true,
                                 destination = if (forward.destAddr != null && forward.destPort > 0) {
                                     "${forward.destAddr}:${forward.destPort}"
                                 } else {
@@ -121,10 +142,11 @@ class PortForwardEditorViewModel @Inject constructor(
     }
 
     fun updateNickname(value: String) = update { it.copy(nickname = value) }
-    fun updateType(value: String) = update { it.copy(type = value) }
+    fun updateType(value: String) = update { it.copy(type = value, lanAcknowledged = false) }
     fun updateSourcePort(value: String) = update { it.copy(sourcePort = value) }
-    fun updateSourceAddressOption(value: SourceAddressOption) = update { it.copy(sourceAddressOption = value) }
-    fun updateSpecificAddress(value: String) = update { it.copy(specificAddress = value) }
+    fun updateSourceAddressOption(value: SourceAddressOption) = update { it.copy(sourceAddressOption = value, lanAcknowledged = false) }
+    fun updateSpecificAddress(value: String) = update { it.copy(specificAddress = value, lanAcknowledged = false) }
+    fun updateLanAcknowledged(value: Boolean) = update { it.copy(lanAcknowledged = value) }
     fun updateDestination(value: String) = update { it.copy(destination = value) }
 
     private fun update(change: (PortForwardEditorUiState) -> PortForwardEditorUiState) {
@@ -142,7 +164,7 @@ class PortForwardEditorViewModel @Inject constructor(
                     val sourceAddress = if (state.isRemote) {
                         if (state.sourceAddressOption == SourceAddressOption.SPECIFIC) state.specificAddress else state.sourceAddressOption.sshValue
                     } else {
-                        "localhost"
+                        state.listenAddress
                     }
                     val portForward = PortForward(
                         id = original?.id ?: UUID.randomUUID(),

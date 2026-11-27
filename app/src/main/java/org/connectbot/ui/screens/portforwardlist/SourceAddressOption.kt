@@ -49,4 +49,6 @@ internal object PortForwardEditorTestTags {
     const val SOURCE_PORT_FIELD = "port_forward_source_port_field"
     const val DESTINATION_FIELD = "port_forward_destination_field"
     const val SPECIFIC_SOURCE_ADDRESS_FIELD = "port_forward_specific_source_address_field"
+    const val LAN_WARNING = "port_forward_lan_warning"
+    const val LAN_ACKNOWLEDGE = "port_forward_lan_acknowledge"
 }
