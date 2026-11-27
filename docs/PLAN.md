@@ -966,9 +966,6 @@ Each milestone is a branch and a pull request into `main`. The user merges after
   editing remote files in place. (The Files entry on the Hosts screen is done in M12.)
 - Per-forward LAN bind: `-L` and `-D` always bind loopback, the editor offers a bind address only for `-R`.
   Needs a change in `transport/`, so it comes with container tests.
-- Identity passwords in the vault (needs a database migration).
-- Name and trademark check before any public release.
-- Icon provenance: AI-generated artwork. Check the tool's terms and the copyright position before release.
 - **Edit remote files in place** (fine-tuning, branch `sftp-edit`, 2026-11-27). Row menu "Edit" on a regular
   file opens a built-in plain-text editor (full screen, monospace, Tab and `# / ~ | $` keys above the
   keyboard, Save, a question before leaving with unsaved changes). Decision: **no hand-over to other apps**.
@@ -994,6 +991,9 @@ Each milestone is a branch and a pull request into `main`. The user merges after
   recovery copy each make tests fail); the Compose tests and `SftpEditContainerTest` (inode, mode and owner
   kept, CRLF and BOM bytes kept, changed file, read-only file and folder, refusals) run only in CI; not tried
   on a phone.
+- Identity passwords in the vault (needs a database migration).
+- Name and trademark check before any public release.
+- Icon provenance: AI-generated artwork. Check the tool's terms and the copyright position before release.
 - Decide where new code lives: new Gradle modules (for example `:vault`, `:sync`, pure Kotlin where
   possible) keep upstream merges cheap and the code unit-testable.
 
