@@ -84,8 +84,8 @@ class SftpChmodTest {
         chmod.apply(item("/home/test/docs", SftpKind.FOLDER), SftpMode(0b110_000_000), recursive = true)
 
         assertThat(server.paths.last()).isEqualTo("/home/test/docs")
-        assertThat(server.paths.indexOf("/home/test/docs/deep/c.txt")).isLessThan(server.paths.indexOf("/home/test/docs/deep").toLong())
-        assertThat(server.paths.indexOf("/home/test/docs/deep")).isLessThan(server.paths.indexOf("/home/test/docs").toLong())
+        assertThat(server.paths.indexOf("/home/test/docs/deep/c.txt")).isLessThan(server.paths.indexOf("/home/test/docs/deep"))
+        assertThat(server.paths.indexOf("/home/test/docs/deep")).isLessThan(server.paths.indexOf("/home/test/docs"))
     }
 
     @Test
