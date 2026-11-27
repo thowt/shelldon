@@ -31,6 +31,9 @@ this section collects what has been added on top of ConnectBot since the fork.
   anything is lost; the setup screen that follows reports what was removed
 - Biometric unlock is no longer switched off for good by a temporary Keystore error, and the unlock
   screen reports why the fingerprint prompt did not appear
+- Stored Ed25519 keys, imported or generated, could fail at login with "Bad password for key" on
+  Android builds whose first Ed25519 key factory refuses raw keys; they now load through the SSH
+  library's own reader, and a key that cannot be decoded is no longer reported as a bad password
 
 ### Removed
 - Upstream donation links; Android backup is switched off

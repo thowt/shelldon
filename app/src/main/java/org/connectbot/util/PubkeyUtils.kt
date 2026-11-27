@@ -18,6 +18,7 @@
 package org.connectbot.util
 
 import org.connectbot.data.entity.Pubkey
+import org.connectbot.shelldon.keys.Ed25519Keys
 import org.connectbot.sshlib.SshKeys
 import timber.log.Timber
 import java.security.Key
@@ -97,6 +98,8 @@ object PubkeyUtils {
             ?: throw NoSuchAlgorithmException("Unsupported key type: $keyType")
         val algorithm = sshKeyType.keyFactoryAlgorithm
             ?: throw NoSuchAlgorithmException("Unsupported key type: $keyType")
+        // Shelldon: Android's Ed25519 key factory can refuse stored keys, see Ed25519Keys.
+        if (sshKeyType == SshKeyType.ED25519) return Ed25519Keys.decodePrivate(privateKeyBytes)
         val privKeySpec = PKCS8EncodedKeySpec(privateKeyBytes)
         val kf = KeyFactory.getInstance(algorithm)
         return kf.generatePrivate(privKeySpec)
@@ -119,6 +122,7 @@ object PubkeyUtils {
             ?: throw NoSuchAlgorithmException("Unsupported key type: $keyType")
         val algorithm = sshKeyType.keyFactoryAlgorithm
             ?: throw NoSuchAlgorithmException("Unsupported key type: $keyType")
+        if (sshKeyType == SshKeyType.ED25519) return Ed25519Keys.decodePublic(publicKeyBytes)
         val pubKeySpec = X509EncodedKeySpec(publicKeyBytes)
         val kf = KeyFactory.getInstance(algorithm)
         return kf.generatePublic(pubKeySpec)

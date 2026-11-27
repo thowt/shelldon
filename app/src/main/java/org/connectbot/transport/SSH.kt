@@ -63,6 +63,7 @@ import org.connectbot.service.requestStringPrompt
 import org.connectbot.shelldon.exec.ExecLimits
 import org.connectbot.shelldon.exec.ExecResult
 import org.connectbot.shelldon.exec.SshExec
+import org.connectbot.shelldon.keys.KeyLoadFailure
 import org.connectbot.shelldon.ssh.ShelldonSshIdentity
 import org.connectbot.sshlib.AgentProvider
 import org.connectbot.sshlib.AgentResult
@@ -892,8 +893,8 @@ open class SSH : AbsTransport {
             val privKey = try {
                 PubkeyUtils.decodePrivate(privateKey, pubkey.type, password)
             } catch (e: Exception) {
-                val message = String.format("Bad password for key '%s'. Authentication failed.", pubkey.nickname)
-                Timber.e(e, message)
+                val message = KeyLoadFailure.message(pubkey.nickname, pubkey.encrypted, e)
+                Timber.e(e, "Cannot load key '%s'", pubkey.nickname)
                 bridge?.outputLine(message)
                 return null
             }
