@@ -78,7 +78,12 @@ object SftpTreeScan {
                 gate.withPermit { sftp.listdir(path).orFail() }
             } catch (e: SftpFailure) {
                 if (e.problem == SftpProblem.CONNECTION_LOST || depth == 0) throw e
-                synchronized(lock) { unreadable++ }
+                // Counted and left out: it was added to the list when its parent was read, and a folder that
+                // is "left out" must not show up as an empty folder on the phone.
+                synchronized(lock) {
+                    unreadable++
+                    folders.remove(parts)
+                }
                 return
             }
             val children = ArrayList<Pair<String, List<String>>>()
@@ -229,8 +234,15 @@ class FolderDownload<N>(
             val temp = File.createTempFile("folder-", ".part", tempFolder)
             try {
                 FileOutputStream(temp).use { out -> SftpTransfers.download(sftp, remotePath, out, file.size, onProgress = ::report) }
-                tree.store(dir.node, name, temp)
-                downloaded++
+                // The copy holds the first file.size bytes. If the file is a different size now (a log that kept
+                // growing, a file that was replaced), that is a cut-off or mixed copy: report it, do not keep it.
+                val sizeNow = sftp.lstat(remotePath).orFail().size
+                if (sizeNow != null && sizeNow != file.size) {
+                    failures.add(FolderFailure(display, SftpProblem.OTHER, "the file changed while it was being downloaded; download the folder again"))
+                } else {
+                    tree.store(dir.node, name, temp)
+                    downloaded++
+                }
                 bytesDone += file.size
             } catch (e: CancellationException) {
                 throw e

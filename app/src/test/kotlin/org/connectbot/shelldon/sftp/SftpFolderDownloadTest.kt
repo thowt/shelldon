@@ -105,6 +105,11 @@ class SftpFolderDownloadTest {
 
         assertThat(result.unreadable).isEqualTo(1)
         assertThat(result.files.map { it.parts.last() }).containsExactly("data.bin", "readme.txt", "main.kt")
+        // "Left out" means left out: no empty stand-in folder on the phone either.
+        assertThat(result.folders).doesNotContain(listOf("src", "util"))
+        run(result)
+        assertThat(File(destination, "proj/src/util").exists()).isFalse()
+        assertThat(File(destination, "proj/src").isDirectory).isTrue()
     }
 
     @Test
@@ -215,6 +220,25 @@ class SftpFolderDownloadTest {
         assertThat(result.failures).isEmpty()
         val allContent = File(destination, "proj").listFiles().orEmpty().filter { it.isFile }.map { it.readText() }.toSet()
         assertThat(allContent.containsAll(listOf("one", "two", "three", "four"))).isTrue()
+    }
+
+    @Test
+    fun aFileThatChangedSizeSinceTheScanIsReportedAndNotKeptCutOff() = runBlocking<Unit> {
+        val scanned = scan()
+        fake.files["/home/test/proj/readme.txt"] = bytes(150)
+
+        val result = run(scanned)
+
+        assertThat(result.downloaded).isEqualTo(3)
+        assertThat(result.failures.map { it.path to it.problem }).containsExactly("readme.txt" to SftpProblem.OTHER)
+        assertThat(result.failures.single().detail).contains("changed")
+        assertThat(File(destination, "proj/readme.txt").exists()).isFalse()
+        assertThat(temp.listFiles()?.toList().orEmpty()).isEmpty()
+
+        // A new scan sees the new size, and the file arrives whole.
+        val again = run(scan())
+        assertThat(again.failures).isEmpty()
+        assertThat(File(destination, "proj/readme.txt").length()).isEqualTo(150L)
     }
 
     @Test

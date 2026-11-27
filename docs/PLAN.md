@@ -980,7 +980,10 @@ Each milestone is a branch and a pull request into `main`. The user merges after
   folders are counted and shown, never silently dropped; remote names that cannot be local names or clash
   on a case-insensitive phone filesystem get a ` (1)` suffix instead of being merged; each file goes to the
   app's cache first and into the chosen folder only when whole, so a stop leaves no half-written file among
-  the finished ones, one file failing does not stop the rest, a lost connection does. Folder jobs wait for a
+  the finished ones, one file failing does not stop the rest, a lost connection does. A file whose size
+  differs from the scan once it has been fetched (a log that kept growing, a replaced file) is reported and
+  not kept, rather than saved cut off; a folder that cannot be read is left out entirely, with no empty
+  stand-in on the phone (both found by the OpenSSH container tests in CI). Folder jobs wait for a
   running single transfer (one at a time, as before), and leaving the screen stops them. Known limits: the
   same-size check is not a content check (a changed file of equal size is not refreshed); the scan cap means a
   folder with more than 20 000 entries needs to be downloaded in parts, and the screen says so; no per-file
