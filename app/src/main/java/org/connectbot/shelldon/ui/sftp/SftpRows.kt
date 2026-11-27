@@ -200,6 +200,14 @@ internal fun TransferCard(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        if (transfer.resumedFrom > 0) {
+                            Text(
+                                text = stringResource(R.string.shelldon_sftp_resumed_from, Formatter.formatShortFileSize(context, transfer.resumedFrom)),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.testTag("sftp_transfer_resumed_${transfer.name}"),
+                            )
+                        }
                     }
 
                     TransferStatus.DONE -> Text(
@@ -209,7 +217,7 @@ internal fun TransferCard(
                     )
 
                     TransferStatus.CANCELLED -> Text(
-                        text = stringResource(R.string.shelldon_sftp_cancelled),
+                        text = stringResource(R.string.shelldon_sftp_cancelled) + if (transfer.resumable) " · " + stringResource(R.string.shelldon_sftp_resume_hint) else "",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -218,10 +226,11 @@ internal fun TransferCard(
                         text = buildString {
                             append(transfer.problem?.let { resources.getString(it) } ?: resources.getString(R.string.shelldon_sftp_problem_other))
                             if (transfer.problemDetail.isNotEmpty()) append(" (").append(transfer.problemDetail).append(')')
+                            if (transfer.resumable) append(". ").append(resources.getString(R.string.shelldon_sftp_resume_hint))
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
-                        maxLines = 2,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }

@@ -455,7 +455,7 @@
     <string name="shelldon_sftp_dismiss">Dismiss</string>
     <string name="shelldon_sftp_transfer_hint">Transfers stop if you leave this screen or the connection ends.</string>
     <string name="shelldon_sftp_leave_title">Stop the transfers?</string>
-    <string name="shelldon_sftp_leave_body">Leaving the file list stops the transfers that are running. Unfinished downloads are removed.</string>
+    <string name="shelldon_sftp_leave_body">Leaving the file list stops the transfers that are running. If you start them again later, they continue where they stopped.</string>
     <string name="shelldon_sftp_leave_stop">Stop and leave</string>
     <string name="shelldon_sftp_leave_stay">Stay</string>
     <string name="shelldon_sftp_unavailable_no_session">There is no open session for this host. Connect to it first, then open Files from the session menu.</string>

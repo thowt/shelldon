@@ -9,6 +9,7 @@ package org.connectbot.shelldon.ui.sftp
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.annotation.StringRes
@@ -34,15 +35,22 @@ import org.connectbot.R
 import org.connectbot.data.EntityIds
 import org.connectbot.di.CoroutineDispatchers
 import org.connectbot.service.TerminalManager
+import org.connectbot.shelldon.sftp.ChannelSource
+import org.connectbot.shelldon.sftp.FilePartial
+import org.connectbot.shelldon.sftp.RemoteVersion
 import org.connectbot.shelldon.sftp.SftpBrowser
 import org.connectbot.shelldon.sftp.SftpFailure
 import org.connectbot.shelldon.sftp.SftpItem
+import org.connectbot.shelldon.sftp.SftpPartials
 import org.connectbot.shelldon.sftp.SftpPaths
 import org.connectbot.shelldon.sftp.SftpProblem
+import org.connectbot.shelldon.sftp.SftpResume
 import org.connectbot.shelldon.sftp.SftpTransfers
 import org.connectbot.sshlib.SftpClient
 import org.connectbot.sshlib.SftpResult
 import timber.log.Timber
+import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
@@ -58,6 +66,10 @@ data class TransferUi(
     val done: Long = 0,
     val total: Long? = null,
     val status: TransferStatus = TransferStatus.QUEUED,
+    /** Starting it again continues where it stopped, so the card says so when it did not finish. */
+    val resumable: Boolean = false,
+    /** Bytes kept from an earlier try, once the transfer has checked them. */
+    val resumedFrom: Long = 0,
     /** Why it failed, as a message the screen can show. */
     @param:StringRes val problem: Int? = null,
     val problemDetail: String = "",
@@ -66,7 +78,7 @@ data class TransferUi(
 /** Files the user picked for upload, some of which are already on the server. */
 data class UploadConflict(val names: List<String>, val targets: List<UploadTarget>)
 
-data class UploadTarget(val uri: Uri, val name: String, val size: Long?, val path: String)
+data class UploadTarget(val uri: Uri, val name: String, val size: Long?, val path: String, val modified: Long? = null)
 
 /** Something to tell the user once: what was being done, to what, and why it failed. [serial] makes two equal notices distinct. */
 data class SftpNotice(
@@ -101,6 +113,9 @@ class SftpViewModel @Inject constructor(
 ) : ViewModel() {
     private val hostId: UUID = EntityIds.parse(savedStateHandle.get<String>("hostId"))
     private val resolver: ContentResolver = context.contentResolver
+
+    /** Unfinished downloads. In the cache, so "clear cache" removes them and the system may when space runs out. */
+    private val partialFolder = File(context.cacheDir, "sftp-partial")
 
     private val _state = MutableStateFlow(SftpUiState())
     val uiState: StateFlow<SftpUiState> = _state.asStateFlow()
@@ -144,6 +159,7 @@ class SftpViewModel @Inject constructor(
 
             is SftpResult.Success -> {
                 client = opened.value
+                viewModelScope.launch(dispatchers.io) { SftpPartials.prune(partialFolder, System.currentTimeMillis()) }
                 val files = SftpBrowser(opened.value)
                 browser = files
                 try {
@@ -230,9 +246,27 @@ class SftpViewModel @Inject constructor(
 
     fun download(item: SftpItem, target: Uri) {
         val files = client ?: return
-        launchTransfer(TransferUi(nextId(), item.name, upload = false, total = item.size), cleanUp = { deletePartial(target) }) { id ->
+        val size = item.size
+        if (size == null || size <= 0) {
+            // Without a size there is no telling a finished file from a cut-off one, so there is nothing to continue.
+            launchTransfer(TransferUi(nextId(), item.name, upload = false, total = size), cleanUp = { deletePartial(target) }) { id ->
+                val out = resolver.openOutputStream(target, "wt") ?: throw IOException("Cannot write to the chosen file")
+                out.use { SftpTransfers.download(files, item.path, it, size, progressTo(id)) }
+            }
+            return
+        }
+        val version = RemoteVersion(size, item.modified)
+        val partial = FilePartial(File(partialFolder, SftpResume.partialName(hostId.toString(), item.path, version)))
+        // The half-finished copy stays in this app's cache when the transfer stops, so the next try continues
+        // from it. The file the person chose is only written when the copy is whole.
+        launchTransfer(TransferUi(nextId(), item.name, upload = false, total = size, resumable = true), cleanUp = { deletePartial(target) }) { id ->
+            partialFolder.mkdirs()
+            val missing = size - partial.length
+            if (partialFolder.usableSpace < missing + FREE_SPACE_MARGIN) throw IOException("Not enough free space on this phone")
+            SftpResume.download(files, item.path, version, partial, onStart = { kept -> setResumedFrom(id, kept) }, onProgress = progressTo(id))
             val out = resolver.openOutputStream(target, "wt") ?: throw IOException("Cannot write to the chosen file")
-            out.use { SftpTransfers.download(files, item.path, it, item.size, progressTo(id)) }
+            out.use { sink -> partial.file.inputStream().use { it.copyTo(sink) } }
+            partial.file.delete()
         }
     }
 
@@ -245,7 +279,7 @@ class SftpViewModel @Inject constructor(
                 uris.map { uri ->
                     val (name, size) = describe(uri)
                     val remote = SftpPaths.remoteFileName(name)
-                    UploadTarget(uri, remote, size, SftpPaths.child(folder, remote))
+                    UploadTarget(uri, remote, size, SftpPaths.child(folder, remote), lastModifiedOf(uri))
                 }
             }
             val existing = try {
@@ -284,13 +318,33 @@ class SftpViewModel @Inject constructor(
         val files = client ?: return
         val folder = SftpPaths.parent(target.path)
         launchTransfer(
-            TransferUi(nextId(), target.name, upload = true, total = target.size),
+            TransferUi(nextId(), target.name, upload = true, total = target.size, resumable = !overwrite),
             cleanUp = {},
             after = { if (_state.value.path == folder) refresh() },
         ) { id ->
-            val input = resolver.openInputStream(target.uri) ?: throw IOException("Cannot read the chosen file")
-            input.use { SftpTransfers.upload(files, it, target.path, overwrite, progressTo(id)) }
+            // A new file goes up under a hidden name and gets its real one when it is whole, so a stop leaves
+            // something to continue from and never a half-written file under the real name. Replacing a file, or a
+            // source that cannot be read from any point, is sent straight to the name as before.
+            val source = if (overwrite) null else ChannelSource.openOrNull { openForUpload(target.uri) }
+            if (source != null) {
+                source.use {
+                    val part = SftpPaths.child(folder, SftpResume.uploadPartName(target.name, it.length, target.modified))
+                    SftpResume.upload(files, it, target.path, part, onStart = { kept -> setResumedFrom(id, kept) }, onProgress = progressTo(id))
+                }
+            } else {
+                val input = resolver.openInputStream(target.uri) ?: throw IOException("Cannot read the chosen file")
+                input.use { SftpTransfers.upload(files, it, target.path, overwrite, progressTo(id)) }
+            }
         }
+    }
+
+    private fun openForUpload(uri: Uri): FileInputStream {
+        val descriptor = resolver.openFileDescriptor(uri, "r") ?: throw IOException("Cannot read the chosen file")
+        return ParcelFileDescriptor.AutoCloseInputStream(descriptor)
+    }
+
+    private fun setResumedFrom(id: Long, kept: Long) {
+        _state.update { s -> s.copy(transfers = s.transfers.map { if (it.id == id) it.copy(resumedFrom = kept) else it }) }
     }
 
     /** Transfers run one at a time: a single one already fills the link. */
@@ -378,6 +432,16 @@ class SftpViewModel @Inject constructor(
         }
     }
 
+    /** Seconds since 1970 of the last change, if the provider says; only used to tell two versions of a file apart. */
+    private fun lastModifiedOf(uri: Uri): Long? = try {
+        resolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_LAST_MODIFIED), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) / 1000 else null
+        }
+    } catch (e: Exception) {
+        Timber.d(e, "The provider does not say when the chosen file changed")
+        null
+    }
+
     private fun describe(uri: Uri): Pair<String, Long?> {
         var name: String? = null
         var size: Long? = null
@@ -406,6 +470,7 @@ class SftpViewModel @Inject constructor(
         SftpProblem.CONNECTION_LOST -> R.string.shelldon_sftp_problem_lost
         SftpProblem.UNSUPPORTED -> R.string.shelldon_sftp_problem_unsupported
         SftpProblem.TRUNCATED -> R.string.shelldon_sftp_problem_truncated
+        SftpProblem.CHANGED -> R.string.shelldon_sftp_problem_changed
         SftpProblem.INVALID_NAME -> R.string.shelldon_sftp_problem_name
         SftpProblem.TOO_DEEP -> R.string.shelldon_sftp_problem_deep
         SftpProblem.OTHER -> R.string.shelldon_sftp_problem_other
@@ -446,5 +511,6 @@ class SftpViewModel @Inject constructor(
 
     private companion object {
         const val PROGRESS_INTERVAL_NANOS = 100_000_000L
+        const val FREE_SPACE_MARGIN = 8L * 1024 * 1024
     }
 }
