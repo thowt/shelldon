@@ -94,10 +94,10 @@ shell, original artwork only. Do not use ConnectBot's name, logo or artwork in t
 listing, and do not draw any existing mascot. Keep attribution to ConnectBot in NOTICE and the
 About screen.
 
-## Current milestone: round 2 (vault, backup, container tests)
+## Current phase: fine-tuning
 
-Delivery is three big rounds, then fine-tuning (`docs/PLAN.md`, "Delivery in three rounds"). Round 1
-(keychain, groups, tags, identities) is merged and CI-green. Round 2 is branch `m7-vault-export`: vault,
-encrypted backup and `ssh_config` import, OpenSSH container tests, Mosh hash pinning; its design and
-risks are in "Round 2" there. Round 3 is SFTP browser, snippets, tunnels tab, WebDAV sync. Keep new code
-in `org.connectbot.shelldon.*` and touch upstream files minimally.
+Delivery was planned as three rounds (`docs/PLAN.md`, "Delivery in three rounds"). Everything except sync is
+in; what is left is fine-tuning, sync and the open items listed in `docs/PLAN.md`. Work on one branch per feature or fix, branched from `main`, and open
+one pull request per branch into `main`. Keep branches small and independent so the owner can merge them in
+any order, and do not stack pull requests on each other. Keep new code in `org.connectbot.shelldon.*` and
+touch upstream files minimally.
