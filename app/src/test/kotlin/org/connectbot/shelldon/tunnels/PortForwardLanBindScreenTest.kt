@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.connectbot
+package org.connectbot.shelldon.tunnels
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import org.connectbot.HiltComponentActivity
 import org.connectbot.ui.screens.portforwardlist.PortForwardEditorScreenContent
 import org.connectbot.ui.screens.portforwardlist.PortForwardEditorTestTags
 import org.connectbot.ui.screens.portforwardlist.PortForwardEditorUiState

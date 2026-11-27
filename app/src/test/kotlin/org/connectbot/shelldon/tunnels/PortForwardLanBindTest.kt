@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.connectbot.ui.screens.portforwardlist
+package org.connectbot.shelldon.tunnels
 
 import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +18,8 @@ import org.connectbot.data.EntityIds
 import org.connectbot.data.HostRepository
 import org.connectbot.data.entity.PortForward
 import org.connectbot.di.CoroutineDispatchers
+import org.connectbot.ui.screens.portforwardlist.PortForwardEditorViewModel
+import org.connectbot.ui.screens.portforwardlist.SourceAddressOption
 import org.connectbot.util.HostConstants
 import org.junit.After
 import org.junit.Assert.assertEquals
