@@ -18,14 +18,17 @@
 package org.connectbot.ui.screens.portforwardlist
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +36,7 @@ import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -48,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -79,6 +84,7 @@ fun PortForwardEditorScreen(
         onDestinationChange = viewModel::updateDestination,
         onSave = { viewModel.save(onNavigateBack) },
         modifier = modifier,
+        onLanAcknowledgedChange = viewModel::updateLanAcknowledged,
     )
 }
 
@@ -95,6 +101,7 @@ fun PortForwardEditorScreenContent(
     onDestinationChange: (String) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    onLanAcknowledgedChange: (Boolean) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var typeMenuExpanded by remember { mutableStateOf(false) }
@@ -111,6 +118,7 @@ fun PortForwardEditorScreenContent(
     )
     val typeLabels = stringArrayResource(R.array.list_portforward_types)
     val typeIndex = types.indexOf(uiState.type).coerceAtLeast(0)
+    val addressLabel = if (uiState.isRemote) R.string.portforward_host_address else R.string.shelldon_forward_listen_on
 
     EditorScaffold(
         modifier = modifier,
@@ -171,7 +179,7 @@ fun PortForwardEditorScreenContent(
                     }
                 }
 
-                if (uiState.isRemote) {
+                Column {
                     Spacer(Modifier.height(8.dp))
                     ExposedDropdownMenuBox(
                         expanded = sourceAddressMenuExpanded,
@@ -181,7 +189,7 @@ fun PortForwardEditorScreenContent(
                             value = stringResource(uiState.sourceAddressOption.labelRes),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(stringResource(R.string.portforward_host_address)) },
+                            label = { Text(stringResource(addressLabel)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(sourceAddressMenuExpanded) },
                             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                         )
@@ -202,11 +210,23 @@ fun PortForwardEditorScreenContent(
                         OutlinedTextField(
                             value = uiState.specificAddress,
                             onValueChange = onSpecificAddressChange,
-                            label = { Text(stringResource(R.string.portforward_host_address)) },
+                            label = { Text(stringResource(addressLabel)) },
                             placeholder = { Text(stringResource(R.string.portforward_source_addr_specific_placeholder)) },
                             modifier = Modifier.fillMaxWidth().testTag(PortForwardEditorTestTags.SPECIFIC_SOURCE_ADDRESS_FIELD),
                             singleLine = true,
-                            isError = uiState.specificAddress.isBlank(),
+                            isError = uiState.specificAddress.isBlank() || !uiState.isListenAddressValid,
+                            supportingText = if (uiState.specificAddress.isNotBlank() && !uiState.isListenAddressValid) {
+                                { Text(stringResource(R.string.shelldon_forward_listen_invalid)) }
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                    if (uiState.exposesLan) {
+                        LanWarning(
+                            dynamic = uiState.type == HostConstants.PORTFORWARD_DYNAMIC5,
+                            acknowledged = uiState.lanAcknowledged,
+                            onAcknowledgedChange = onLanAcknowledgedChange,
                         )
                     }
                 }
@@ -245,6 +265,35 @@ fun PortForwardEditorScreenContent(
                     },
                 )
             }
+        }
+    }
+}
+
+/** What it means to listen on the network, and the tick that has to be set first. */
+@Composable
+private fun LanWarning(
+    dynamic: Boolean,
+    acknowledged: Boolean,
+    onAcknowledgedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Text(
+            text = stringResource(if (dynamic) R.string.shelldon_forward_lan_warning_dynamic else R.string.shelldon_forward_lan_warning_local),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.testTag(PortForwardEditorTestTags.LAN_WARNING),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(value = acknowledged, role = Role.Checkbox, onValueChange = onAcknowledgedChange)
+                .padding(vertical = 8.dp)
+                .testTag(PortForwardEditorTestTags.LAN_ACKNOWLEDGE),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(checked = acknowledged, onCheckedChange = null)
+            Text(stringResource(R.string.shelldon_forward_lan_acknowledge), modifier = Modifier.padding(start = 12.dp))
         }
     }
 }

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shelldon SSH
+  Copyright 2026 the Shelldon SSH contributors
+  SPDX-License-Identifier: Apache-2.0
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- SFTP: permissions (chmod) editor -->
+    <string name="shelldon_sftp_permissions">Permissions</string>
+    <string name="shelldon_sftp_perm_title">Permissions of %1$s</string>
+    <string name="shelldon_sftp_perm_owner">Owner</string>
+    <string name="shelldon_sftp_perm_group">Group</string>
+    <string name="shelldon_sftp_perm_others">Others</string>
+    <string name="shelldon_sftp_perm_read">Read</string>
+    <string name="shelldon_sftp_perm_write">Write</string>
+    <string name="shelldon_sftp_perm_execute">Execute</string>
+    <string name="shelldon_sftp_perm_cell">%1$s, %2$s</string>
+    <string name="shelldon_sftp_perm_octal">Octal</string>
+    <string name="shelldon_sftp_perm_octal_error">Three or four digits, each from 0 to 7</string>
+    <string name="shelldon_sftp_perm_special_show">Special bits</string>
+    <string name="shelldon_sftp_perm_special_hide">Hide special bits</string>
+    <string name="shelldon_sftp_perm_setuid">Setuid: run with the owner’s rights</string>
+    <string name="shelldon_sftp_perm_setgid">Setgid: run with the group’s rights, and new files in a folder get its group</string>
+    <string name="shelldon_sftp_perm_sticky">Sticky: in a folder, only a file’s owner can delete or rename it</string>
+    <string name="shelldon_sftp_perm_warn_world">Anyone with an account on the server can change this.</string>
+    <string name="shelldon_sftp_perm_warn_setid">This runs with the owner’s or the group’s rights, whoever starts it.</string>
+    <string name="shelldon_sftp_perm_recursive">Also change everything inside</string>
+    <string name="shelldon_sftp_perm_recursive_hint">Files get this mode. Folders get it with execute added wherever they have read, so they stay openable. Links are skipped.</string>
+    <string name="shelldon_sftp_perm_recursive_special">Not available together with setuid, setgid or sticky.</string>
+    <string name="shelldon_sftp_perm_apply">Apply</string>
+    <string name="shelldon_sftp_err_chmod">Could not change the permissions of %1$s</string>
+    <string name="shelldon_sftp_problem_chmod_partial">some items could not be changed</string>
+</resources>

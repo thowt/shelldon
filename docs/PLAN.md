@@ -956,7 +956,46 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - **M12: onboarding and cleanup** (branch `m12-ssh-import`). Import from `~/.ssh` (config, known_hosts,
   keys), Files action on the host card, dependency clean-up (merged, PR #14). Next: CSV and other apps'
   exports, then export.
+- **SFTP resumable transfers** (fine-tuning, branch `sftp-resume`). A download or upload that stopped (link
+  dropped, cancelled) continues instead of starting over. Looked at: WinSCP and FileZilla (resume when the
+  target is smaller), rsync (`--partial`, hidden temp name), browsers (`.crdownload`). Android adds one
+  constraint: the destination of a download is a Storage Access Framework document, which cannot be
+  reopened and appended to reliably, and the person has to pick it again each time.
+  - **Download**: the bytes go to a file in the app's cache, named from host, path, size and time of the
+    remote file (so a changed file never matches an old part), and are copied to the chosen document only
+    when whole. Starting the same download again continues from the cache file. Parts older than seven days
+    are pruned when a file list opens; "clear cache" removes them too. At the end the remote size and time
+    are read again; a file that changed while it was copied is reported (`CHANGED`), not saved.
+  - **Upload** of a new file goes up as a hidden `.name.<mark>.shelldon-part` file next to the target (the
+    mark is a short hash of the local file's size and time) and is renamed when whole, so a stop never
+    leaves a half-written file under the real name, and an existing file is never replaced (SFTP `rename`
+    does not overwrite; it is checked before and after). Replacing a file, a source that cannot be read from
+    any point (a stream from another app), and a file of unknown or zero size are sent as before, without
+    resuming. A stopped upload leaves its hidden file on the server; "show hidden files" lists it.
+  - **What is checked before continuing**: the kept part is compared with the other side. Up to 4 MiB it is
+    compared whole, above that at 64 spread places of 4 KiB plus the last 32 KiB, a few reads at a time.
+    Any difference means start again from the beginning. This is a sample, not a hash of every byte (plain
+    SFTP has no hash call), so a change inside a big part that falls between the sampled places is not
+    seen. The identity in the file names (size and time) is what makes that unlikely; "Replace" is the
+    way to force a fresh copy of an upload.
+  - Not done: background transfers (they still stop when the screen is left or the session ends), a
+    queue that survives the app being closed, and resuming a folder download (folder download is a
+    separate branch).
 - **M13: Tools section** (noted 2026-11-20, not started). Ping and nslookup first, see "Tools section".
+- **SFTP permissions editor** (fine-tuning, branch `sftp-chmod`). Row menu "Permissions" on files and
+  folders (not on links, sockets or devices): a grid of read, write and execute boxes for owner, group
+  and others that stays in step with the octal number, setuid, setgid and sticky behind a heading, and
+  warnings for world-writable and set-id modes. Looked at: Solid Explorer, FileZilla and Termius, which
+  all offer the grid plus octal; FileZilla's "apply to files only / folders only" is not copied.
+  - Only the permission field goes over the wire (`setstat` with nothing else set), so owner, size and
+    times stay as they are. Checked against OpenSSH with `stat`.
+  - "Also change everything inside" is `chmod -R u=rwX`-like: files get the mode, folders get it with
+    execute added wherever they have read, so a `640` run cannot lock a folder. Contents are changed
+    before the folder itself. Links, sockets, devices and pipes are skipped, never followed (`chmod`
+    follows links on the server, so following one could change something outside the folder shown).
+    An item that cannot be changed is counted and reported; the rest still go ahead, as with `chmod -R`.
+  - Setuid, setgid and sticky are refused for a recursive change: the dialog switches recursion off and
+    says why.
 
 ## Open items
 
@@ -964,8 +1003,19 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - ShellDroid is worth a second look if its licence is permissive.
 - Fine-tuning candidates after round 3: background and resumable transfers, folder download, chmod editor,
   editing remote files in place. (The Files entry on the Hosts screen is done in M12.)
-- Per-forward LAN bind: `-L` and `-D` always bind loopback, the editor offers a bind address only for `-R`.
-  Needs a change in `transport/`, so it comes with container tests.
+- Per-forward LAN bind is built (branch `lan-bind`): `-L` and `-D` listen on loopback unless the stored
+  listen address says otherwise, and the editor needs a tick per forward before it accepts an address
+  that is not loopback. `tunnels/ForwardBind.kt` turns the stored address into the socket address (IP
+  literals only, no DNS, an invalid address means the forward does not start) and `SSH.enablePortForward`
+  passes it to sshlib. Container tests (`ForwardBindContainerTest`) check on real sockets against
+  OpenSSH that loopback refuses the network address and a wildcard bind answers there. Still open:
+  - A `-D` forward on the network is an open SOCKS proxy for anyone on that network. The editor says so
+    and asks for the tick. SOCKS5 user and password (sshlib has a `Socks5Authenticator`) would close it
+    and is the obvious follow-up.
+  - Android 17 asks for the local-network permission of apps that target API 37 or higher. The app
+    targets 36, where it is granted implicitly. Raising `targetSdk` needs the owner's decision (new
+    permission) and a check that a LAN-bound forward still accepts connections.
+  - Not tried on a phone: the container tests run on the desktop JVM, not on Android's network stack.
 - Identity passwords in the vault (needs a database migration).
 - Name and trademark check before any public release.
 - Icon provenance: AI-generated artwork. Check the tool's terms and the copyright position before release.

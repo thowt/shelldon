@@ -19,6 +19,9 @@ enum class SftpProblem {
 
     /** The file got shorter while it was being read. */
     TRUNCATED,
+
+    /** The file on the server is not the one the transfer started with. */
+    CHANGED,
     INVALID_NAME,
     TOO_DEEP,
     OTHER,

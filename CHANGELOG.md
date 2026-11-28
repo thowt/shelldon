@@ -17,8 +17,14 @@ this section collects what has been added on top of ConnectBot since the fork.
   imported, Telnet entries only on request
 - A folder in the SFTP browser can be downloaded whole into a folder you pick: it shows what it found
   first, never overwrites anything, skips links, and carries on if you run it again
+- SFTP downloads and uploads that were stopped continue where they stopped, after checking that what is
+  already there still matches
 - SFTP browser, snippets, and a Tunnels tab for local, remote and SOCKS (`-L`, `-R`, `-D`) forwards
+- A permissions editor in the SFTP browser (owner, group and others boxes, octal, setuid, setgid and
+  sticky, and optionally everything inside a folder)
 - OpenSSH container tests for the SSH transport and for SFTP
+- A forward can listen on the network instead of loopback only: per `-L` or `-D` forward, behind a
+  warning and an explicit tick (a SOCKS proxy on the network is open to everyone there)
 
 ### Changed
 - Top bars are 56 dp on phones and the folded cover screen and 48 dp on wide windows such as an
@@ -33,6 +39,13 @@ this section collects what has been added on top of ConnectBot since the fork.
   anything is lost; the setup screen that follows reports what was removed
 - Biometric unlock is no longer switched off for good by a temporary Keystore error, and the unlock
   screen reports why the fingerprint prompt did not appear
+- Stored Ed25519 keys, imported or generated, could fail at login with "Bad password for key" on
+  Android builds whose first Ed25519 key factory refuses raw keys; they now load through the SSH
+  library's own reader, and a key that cannot be decoded is no longer reported as a bad password
+- Keys imported on Android builds that name an Ed25519 key only by its numeric ID were stored under
+  a type the app did not know and failed at login with `NoSuchAlgorithmException`; the type is now
+  taken from the key's SSH name, and keys already stored that way are read from the key itself
+- The Keys list shows such a key as Ed25519 instead of the numeric ID
 
 ### Removed
 - Upstream donation links; Android backup is switched off
