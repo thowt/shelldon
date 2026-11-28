@@ -34,6 +34,9 @@ this section collects what has been added on top of ConnectBot since the fork.
 - Stored Ed25519 keys, imported or generated, could fail at login with "Bad password for key" on
   Android builds whose first Ed25519 key factory refuses raw keys; they now load through the SSH
   library's own reader, and a key that cannot be decoded is no longer reported as a bad password
+- Keys imported on Android builds that name an Ed25519 key only by its numeric ID were stored under
+  a type the app did not know and failed at login with `NoSuchAlgorithmException`; the type is now
+  taken from the key's SSH name, and keys already stored that way are read from the key itself
 
 ### Removed
 - Upstream donation links; Android backup is switched off
