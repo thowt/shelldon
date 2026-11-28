@@ -41,6 +41,15 @@ internal object StoredKeys {
             ?: pair.private.algorithm
     }
 
+    /**
+     * The canonical name for a stored type: "Ed25519" for "1.3.101.112" or "EdDSA", and so on.
+     * Names that are not a plain key type (legacy imports, hardware keys) are returned unchanged.
+     */
+    fun canonicalType(type: String): String {
+        val known = SshKeyType.fromStoredType(type)
+        return if (known == null || known == SshKeyType.LEGACY_IMPORTED) type else known.storedName
+    }
+
     /** Reads an unencrypted PKCS#8 private key of any type the SSH library supports. */
     @Throws(InvalidKeySpecException::class)
     fun pairFromPkcs8(pkcs8: ByteArray): KeyPair = try {

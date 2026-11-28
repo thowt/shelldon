@@ -95,6 +95,18 @@ class StoredKeysTest {
     }
 
     @Test
+    fun canonicalType_namesPlainKeyTypesAndLeavesTheRestAlone() {
+        assertThat(StoredKeys.canonicalType("1.3.101.112")).isEqualTo("Ed25519")
+        assertThat(StoredKeys.canonicalType("EdDSA")).isEqualTo("Ed25519")
+        assertThat(StoredKeys.canonicalType("Ed25519")).isEqualTo("Ed25519")
+        assertThat(StoredKeys.canonicalType("RSA")).isEqualTo("RSA")
+        assertThat(StoredKeys.canonicalType("ECDSA")).isEqualTo("EC")
+        assertThat(StoredKeys.canonicalType("IMPORTED")).isEqualTo("IMPORTED")
+        assertThat(StoredKeys.canonicalType("sk-ssh-ed25519@openssh.com")).isEqualTo("sk-ssh-ed25519@openssh.com")
+        assertThat(StoredKeys.canonicalType("mystery")).isEqualTo("mystery")
+    }
+
+    @Test
     fun decodeUnknownType_garbage_isRefused() {
         assertThatThrownBy { PubkeyUtils.decodePrivate(ByteArray(10), "mystery") }.isInstanceOf(Exception::class.java)
         assertThatThrownBy { PubkeyUtils.decodePublic(ByteArray(10), "mystery") }.isInstanceOf(Exception::class.java)

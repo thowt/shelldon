@@ -24,6 +24,7 @@ import kotlinx.coroutines.runBlocking
 import org.connectbot.data.dao.PubkeyDao
 import org.connectbot.data.entity.KeyStorageType
 import org.connectbot.data.entity.Pubkey
+import org.connectbot.shelldon.keys.StoredKeys
 import org.connectbot.shelldon.vault.Vault
 import org.connectbot.shelldon.vault.VaultDataException
 import org.connectbot.shelldon.vault.VaultLockedException
@@ -56,8 +57,13 @@ class PubkeyRepository @Inject constructor(
 
     private fun privateKeyContext(id: UUID): String = "pubkey/$id/private-key"
 
-    /** The key as callers should see it: private key opened, or null while locked or damaged. */
-    private fun Pubkey.opened(): Pubkey {
+    /**
+     * The key as callers should see it: private key opened, or null while locked or damaged, and
+     * the type under its canonical name (an older import stored some providers' OID names).
+     */
+    private fun Pubkey.opened(): Pubkey = withOpenedPrivateKey().let { it.copy(type = StoredKeys.canonicalType(it.type)) }
+
+    private fun Pubkey.withOpenedPrivateKey(): Pubkey {
         val stored = privateKey
         if (stored == null || !Vault.isSealed(stored)) return this
         return try {
