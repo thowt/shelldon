@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shelldon SSH
+  Copyright 2026 the Shelldon SSH contributors
+  SPDX-License-Identifier: Apache-2.0
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- SFTP: download a whole folder -->
+    <string name="shelldon_sftp_folder_download">Download folder</string>
+    <string name="shelldon_sftp_folder_scanning">Looking through %1$s</string>
+    <string name="shelldon_sftp_folder_found">%1$d items found so far</string>
+    <string name="shelldon_sftp_folder_title">Download folder %1$s</string>
+    <plurals name="shelldon_sftp_folder_files">
+        <item quantity="one">%1$d file</item>
+        <item quantity="other">%1$d files</item>
+    </plurals>
+    <plurals name="shelldon_sftp_folder_subfolders">
+        <item quantity="one">%1$d folder</item>
+        <item quantity="other">%1$d folders</item>
+    </plurals>
+    <string name="shelldon_sftp_folder_summary">%1$s holds %2$s in %3$s, %4$s in total.</string>
+    <string name="shelldon_sftp_folder_how">The files are copied into a folder of that name inside the folder you choose. Nothing is overwritten: a file that is already there with the same size is skipped, and one with another size is left alone and reported.</string>
+    <plurals name="shelldon_sftp_folder_links_skipped">
+        <item quantity="one">%1$d link is not followed and not copied.</item>
+        <item quantity="other">%1$d links are not followed and not copied.</item>
+    </plurals>
+    <plurals name="shelldon_sftp_folder_others_skipped">
+        <item quantity="one">%1$d special file (device, socket or pipe) is left out.</item>
+        <item quantity="other">%1$d special files (devices, sockets or pipes) are left out.</item>
+    </plurals>
+    <plurals name="shelldon_sftp_folder_unreadable">
+        <item quantity="one">%1$d folder cannot be read and is left out.</item>
+        <item quantity="other">%1$d folders cannot be read and are left out.</item>
+    </plurals>
+    <string name="shelldon_sftp_folder_truncated">The folder holds more than %1$d items, so only the first ones are included. Download its subfolders one by one to get everything.</string>
+    <string name="shelldon_sftp_folder_nothing">There are no files to copy in this folder.</string>
+    <string name="shelldon_sftp_folder_choose">Choose where to put it</string>
+    <string name="shelldon_sftp_folder_downloading">Downloading folder %1$s</string>
+    <string name="shelldon_sftp_folder_progress">%1$d of %2$d files · %3$s of %4$s</string>
+    <string name="shelldon_sftp_folder_stop_hint">If you stop, the files that are complete stay. Download the same folder again to carry on.</string>
+    <string name="shelldon_sftp_folder_done">Done: %1$s</string>
+    <string name="shelldon_sftp_folder_result_downloaded">%1$d downloaded</string>
+    <string name="shelldon_sftp_folder_result_there">%1$d already there</string>
+    <string name="shelldon_sftp_folder_result_kept">%1$d left alone, other size</string>
+    <string name="shelldon_sftp_folder_result_renamed">%1$d renamed</string>
+    <string name="shelldon_sftp_folder_result_failed">%1$d failed</string>
+    <string name="shelldon_sftp_folder_first_failure">First problem: %1$s, %2$s</string>
+    <string name="shelldon_sftp_folder_nothing_new">Nothing new to download: %1$s</string>
+</resources>

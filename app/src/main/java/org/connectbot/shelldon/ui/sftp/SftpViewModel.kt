@@ -37,17 +37,22 @@ import org.connectbot.di.CoroutineDispatchers
 import org.connectbot.service.TerminalManager
 import org.connectbot.shelldon.sftp.ChannelSource
 import org.connectbot.shelldon.sftp.FilePartial
+import org.connectbot.shelldon.sftp.FolderDownload
+import org.connectbot.shelldon.sftp.FolderProgress
+import org.connectbot.shelldon.sftp.RemoteTree
 import org.connectbot.shelldon.sftp.RemoteVersion
 import org.connectbot.shelldon.sftp.SftpBrowser
 import org.connectbot.shelldon.sftp.SftpChmod
 import org.connectbot.shelldon.sftp.SftpFailure
 import org.connectbot.shelldon.sftp.SftpItem
+import org.connectbot.shelldon.sftp.SftpKind
 import org.connectbot.shelldon.sftp.SftpMode
 import org.connectbot.shelldon.sftp.SftpPartials
 import org.connectbot.shelldon.sftp.SftpPaths
 import org.connectbot.shelldon.sftp.SftpProblem
 import org.connectbot.shelldon.sftp.SftpResume
 import org.connectbot.shelldon.sftp.SftpTransfers
+import org.connectbot.shelldon.sftp.SftpTreeScan
 import org.connectbot.sshlib.SftpClient
 import org.connectbot.sshlib.SftpResult
 import timber.log.Timber
@@ -102,6 +107,7 @@ data class SftpUiState(
     val showHidden: Boolean = false,
     val transfers: List<TransferUi> = emptyList(),
     val conflict: UploadConflict? = null,
+    val folder: FolderJobUi? = null,
 ) {
     val visibleItems: List<SftpItem> get() = if (showHidden) items else items.filterNot { it.isHidden }
     val hiddenCount: Int get() = items.count { it.isHidden }
@@ -132,6 +138,10 @@ class SftpViewModel @Inject constructor(
     private var nextTransferId = 1L
     private val transferJobs = HashMap<Long, Job>()
     private val transferLock = Mutex()
+    private val folderTemp = File(context.cacheDir, FOLDER_TEMP)
+    private var folderJob: Job? = null
+    private var scanned: ScannedFolder? = null
+    private var lastFolderUpdate = 0L
 
     /** Called by the screen once the connection service is bound. Opens the file channel once. */
     fun setTerminalManager(manager: TerminalManager) {
@@ -489,6 +499,105 @@ class SftpViewModel @Inject constructor(
         return (name ?: uri.lastPathSegment ?: "upload") to size
     }
 
+    // --- Folder download ---
+
+    /** Looks through a folder, then asks (the screen shows [FolderPhase.CONFIRM]) before anything is copied. */
+    fun scanFolder(item: SftpItem) {
+        val files = client ?: return
+        if (item.kind != SftpKind.FOLDER || _state.value.folder?.active == true) return
+        scanned = null
+        _state.update { it.copy(folder = FolderJobUi(item.name, FolderPhase.SCANNING)) }
+        folderJob = viewModelScope.launch {
+            try {
+                val tree = withContext(dispatchers.io) { SftpTreeScan.scan(files, item.path, item.name, onFound = ::folderFound) }
+                scanned = ScannedFolder(tree, item.path)
+                _state.update { it.copy(folder = FolderJobUi(item.name, FolderPhase.CONFIRM, summary = FolderSummary.of(tree, SftpTreeScan.MAX_ENTRIES))) }
+            } catch (e: CancellationException) {
+                _state.update { it.copy(folder = null) }
+                throw e
+            } catch (e: SftpFailure) {
+                folderFailed(item.name, problemMessage(e.problem), e.detail, e.problem)
+            }
+        }
+    }
+
+    /** Copies the scanned folder into the folder the user picked. Nothing there is overwritten. */
+    fun downloadFolder(destination: Uri) {
+        val files = client ?: return
+        val plan = scanned ?: return
+        val job = _state.value.folder?.takeIf { it.phase == FolderPhase.CONFIRM } ?: return
+        scanned = null
+        _state.update { it.copy(folder = job.copy(phase = FolderPhase.DOWNLOADING, filesTotal = plan.tree.files.size, bytesTotal = plan.tree.totalBytes)) }
+        val temp = File(folderTemp, UUID.randomUUID().toString())
+        folderJob = viewModelScope.launch {
+            try {
+                // One transfer at a time, as for single files: a folder waits for a running one.
+                val result = transferLock.withLock {
+                    withContext(dispatchers.io) {
+                        pruneFolderTemp()
+                        val tree = SafTree(resolver, destination)
+                        FolderDownload(files, tree, temp).run(plan.path, plan.tree, tree.root, ::folderProgress)
+                    }
+                }
+                val first = result.failures.firstOrNull()?.let { FolderFailureUi(it.path, problemMessage(it.problem), if (it.problem == SftpProblem.OTHER) it.detail else "") }
+                _state.update { it.copy(folder = job.copy(phase = FolderPhase.DONE, filesDone = plan.tree.files.size, filesTotal = plan.tree.files.size, bytesDone = plan.tree.totalBytes, bytesTotal = plan.tree.totalBytes, result = result, firstFailure = first)) }
+            } catch (e: CancellationException) {
+                _state.update { s -> s.copy(folder = s.folder?.copy(phase = FolderPhase.CANCELLED)) }
+                throw e
+            } catch (e: SftpFailure) {
+                folderFailed(job.name, problemMessage(e.problem), e.detail, e.problem)
+            } catch (e: IOException) {
+                folderFailed(job.name, R.string.shelldon_sftp_err_local, e.message.orEmpty(), null)
+            } finally {
+                withContext(NonCancellable + dispatchers.io) { temp.deleteRecursively() }
+            }
+        }
+    }
+
+    /** Stops a running folder job, or drops the question if it is still waiting for an answer. */
+    fun cancelFolder() {
+        val job = _state.value.folder ?: return
+        if (job.phase == FolderPhase.CONFIRM) {
+            scanned = null
+            _state.update { it.copy(folder = null) }
+        } else {
+            folderJob?.cancel()
+        }
+    }
+
+    fun dismissFolder() = _state.update { s -> s.copy(folder = s.folder?.takeIf { it.active }) }
+
+    private fun folderFailed(name: String, @StringRes problem: Int, detail: String, kind: SftpProblem?) {
+        if (kind == SftpProblem.CONNECTION_LOST) unavailable(SftpUnavailable.LOST)
+        _state.update { it.copy(folder = FolderJobUi(name, FolderPhase.FAILED, problem = problem, problemDetail = if (kind == null || kind == SftpProblem.OTHER) detail else "")) }
+    }
+
+    private fun folderFound(count: Int) {
+        if (!folderTick()) return
+        _state.update { s -> s.copy(folder = s.folder?.takeIf { it.phase == FolderPhase.SCANNING }?.copy(found = count) ?: s.folder) }
+    }
+
+    private fun folderProgress(progress: FolderProgress) {
+        if (!folderTick()) return
+        _state.update { s ->
+            s.copy(folder = s.folder?.takeIf { it.phase == FolderPhase.DOWNLOADING }?.copy(filesDone = progress.filesDone, filesTotal = progress.filesTotal, bytesDone = progress.bytesDone, bytesTotal = progress.bytesTotal) ?: s.folder)
+        }
+    }
+
+    /** True at most every [PROGRESS_INTERVAL_NANOS], so a fast scan does not flood the screen with updates. */
+    private fun folderTick(): Boolean {
+        val now = System.nanoTime()
+        if (now - lastFolderUpdate < PROGRESS_INTERVAL_NANOS) return false
+        lastFolderUpdate = now
+        return true
+    }
+
+    /** Leftovers of a folder download that was killed with the app. Each job has a folder of its own. */
+    private fun pruneFolderTemp() {
+        val limit = System.currentTimeMillis() - STALE_TEMP_MILLIS
+        folderTemp.listFiles()?.filter { it.lastModified() < limit }?.forEach { it.deleteRecursively() }
+    }
+
     // --- Messages ---
 
     @StringRes
@@ -538,8 +647,12 @@ class SftpViewModel @Inject constructor(
         super.onCleared()
     }
 
+    private class ScannedFolder(val tree: RemoteTree, val path: String)
+
     private companion object {
         const val PROGRESS_INTERVAL_NANOS = 100_000_000L
+        const val FOLDER_TEMP = "sftp-folder"
+        const val STALE_TEMP_MILLIS = 24L * 60 * 60 * 1000
         const val FREE_SPACE_MARGIN = 8L * 1024 * 1024
     }
 }

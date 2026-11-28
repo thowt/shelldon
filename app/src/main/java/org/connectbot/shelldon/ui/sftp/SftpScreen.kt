@@ -126,7 +126,11 @@ fun SftpScreen(
         if (uris.isNotEmpty()) viewModel.upload(uris)
     }
 
-    val busy = state.transfers.any { it.status == TransferStatus.RUNNING || it.status == TransferStatus.QUEUED }
+    val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) viewModel.downloadFolder(uri) else viewModel.cancelFolder()
+    }
+
+    val busy = state.transfers.any { it.status == TransferStatus.RUNNING || it.status == TransferStatus.QUEUED } || state.folder?.active == true
     val requestLeave = {
         if (busy) leaving = true else onNavigateBack()
     }
@@ -210,13 +214,15 @@ fun SftpScreen(
             }
         },
         bottomBar = {
-            if (state.transfers.isNotEmpty()) {
+            val folderCard = state.folder?.takeIf { it.phase != FolderPhase.CONFIRM }
+            if (state.transfers.isNotEmpty() || folderCard != null) {
                 Column(
                     modifier = Modifier
                         .navigationBarsPadding()
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
+                    folderCard?.let { FolderCard(job = it, onCancel = viewModel::cancelFolder, onDismiss = viewModel::dismissFolder) }
                     state.transfers.forEach { transfer ->
                         TransferCard(
                             transfer = transfer,
@@ -224,11 +230,13 @@ fun SftpScreen(
                             onDismiss = { viewModel.dismissTransfer(transfer.id) },
                         )
                     }
-                    Text(
-                        text = stringResource(R.string.shelldon_sftp_transfer_hint),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (state.transfers.isNotEmpty()) {
+                        Text(
+                            text = stringResource(R.string.shelldon_sftp_transfer_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         },
@@ -280,6 +288,7 @@ fun SftpScreen(
                             onDownload = { startDownload(item) },
                             onRename = { renaming = item },
                             onDelete = { deleting = item },
+                            onDownloadFolder = if (state.folder?.active == true) null else ({ viewModel.scanFolder(item) }),
                             onPermissions = { permissions = item },
                         )
                     }
@@ -356,6 +365,10 @@ fun SftpScreen(
                 TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.shelldon_cancel)) }
             },
         )
+    }
+
+    state.folder?.takeIf { it.phase == FolderPhase.CONFIRM }?.let { job ->
+        FolderConfirmDialog(job = job, onChoose = { pickFolder.launch(null) }, onDismiss = viewModel::cancelFolder)
     }
 
     state.conflict?.let { conflict ->
