@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.connectbot.data
+package org.connectbot.shelldon.keys
 
 import android.content.Context
 import androidx.room.Room
@@ -12,6 +12,8 @@ import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
+import org.connectbot.data.ConnectBotDatabase
+import org.connectbot.data.PubkeyRepository
 import org.connectbot.data.entity.Pubkey
 import org.connectbot.shelldon.vault.KdfParams
 import org.connectbot.shelldon.vault.Vault
