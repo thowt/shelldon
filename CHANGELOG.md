@@ -16,6 +16,8 @@ this section collects what has been added on top of ConnectBot since the fork.
   registry exports and mRemoteNG files, with folders and tags; passwords in those files are never
   imported, Telnet entries only on request
 - SFTP browser, snippets, and a Tunnels tab for local, remote and SOCKS (`-L`, `-R`, `-D`) forwards
+- A permissions editor in the SFTP browser (owner, group and others boxes, octal, setuid, setgid and
+  sticky, and optionally everything inside a folder)
 - OpenSSH container tests for the SSH transport and for SFTP
 - A forward can listen on the network instead of loopback only: per `-L` or `-D` forward, behind a
   warning and an explicit tick (a SOCKS proxy on the network is open to everyone there)

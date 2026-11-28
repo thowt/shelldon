@@ -35,8 +35,10 @@ import org.connectbot.data.EntityIds
 import org.connectbot.di.CoroutineDispatchers
 import org.connectbot.service.TerminalManager
 import org.connectbot.shelldon.sftp.SftpBrowser
+import org.connectbot.shelldon.sftp.SftpChmod
 import org.connectbot.shelldon.sftp.SftpFailure
 import org.connectbot.shelldon.sftp.SftpItem
+import org.connectbot.shelldon.sftp.SftpMode
 import org.connectbot.shelldon.sftp.SftpPaths
 import org.connectbot.shelldon.sftp.SftpProblem
 import org.connectbot.shelldon.sftp.SftpTransfers
@@ -210,6 +212,33 @@ class SftpViewModel @Inject constructor(
     fun rename(item: SftpItem, newName: String) = change(R.string.shelldon_sftp_err_rename) { it.rename(item, newName) }
 
     fun delete(item: SftpItem) = change(R.string.shelldon_sftp_err_delete) { it.delete(item) }
+
+    /** Gives [item] the permissions [mode]; with [recursive] on a folder, everything inside it too. */
+    fun changePermissions(item: SftpItem, mode: SftpMode, recursive: Boolean) {
+        val files = client ?: return
+        val subject = SftpPaths.printable(item.name)
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true) }
+            try {
+                val result = withContext(dispatchers.io) { SftpChmod(files).apply(item, mode, recursive) }
+                result.firstFailure?.let { first ->
+                    // Some items could not be changed: say why the first one failed and how many there were.
+                    _notice.value = SftpNotice(
+                        serial = System.nanoTime(),
+                        what = R.string.shelldon_sftp_err_chmod,
+                        subject = subject,
+                        problem = if (first.problem == SftpProblem.OTHER) R.string.shelldon_sftp_problem_chmod_partial else problemMessage(first.problem),
+                        detail = "${result.failed} / ${result.changed + result.failed}",
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: SftpFailure) {
+                fail(e, R.string.shelldon_sftp_err_chmod, subject)
+            }
+            refresh()
+        }
+    }
 
     private fun change(@StringRes errorRes: Int, block: suspend (SftpBrowser) -> Unit) {
         val files = browser ?: return
