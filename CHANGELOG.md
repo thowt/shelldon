@@ -37,6 +37,7 @@ this section collects what has been added on top of ConnectBot since the fork.
 - Keys imported on Android builds that name an Ed25519 key only by its numeric ID were stored under
   a type the app did not know and failed at login with `NoSuchAlgorithmException`; the type is now
   taken from the key's SSH name, and keys already stored that way are read from the key itself
+- The Keys list shows such a key as Ed25519 instead of the numeric ID
 
 ### Removed
 - Upstream donation links; Android backup is switched off

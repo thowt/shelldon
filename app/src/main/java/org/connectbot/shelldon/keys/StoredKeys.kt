@@ -41,6 +41,18 @@ internal object StoredKeys {
             ?: pair.private.algorithm
     }
 
+    private val OID_NAME = Regex("[0-9]+(\\.[0-9]+)+")
+
+    /**
+     * The canonical name for a stored type that is only an OID: "Ed25519" for "1.3.101.112". An
+     * older import wrote the provider's raw name. Every other name is returned unchanged, so what
+     * the app stored (legacy "ssh-ed25519", "IMPORTED", hardware key types) reads back as saved.
+     */
+    fun canonicalType(type: String): String {
+        if (!OID_NAME.matches(type)) return type
+        return SshKeyType.fromStoredType(type)?.storedName ?: type
+    }
+
     /** Reads an unencrypted PKCS#8 private key of any type the SSH library supports. */
     @Throws(InvalidKeySpecException::class)
     fun pairFromPkcs8(pkcs8: ByteArray): KeyPair = try {
