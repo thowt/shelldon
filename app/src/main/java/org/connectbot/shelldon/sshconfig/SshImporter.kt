@@ -16,10 +16,10 @@ import org.connectbot.data.entity.Host
 import org.connectbot.data.entity.HostCryptoConfig
 import org.connectbot.data.entity.KnownHost
 import org.connectbot.data.entity.Pubkey
+import org.connectbot.shelldon.keys.StoredKeys
 import org.connectbot.sshlib.AlgorithmCategory
 import org.connectbot.sshlib.SshCryptoPolicy
 import org.connectbot.sshlib.SshKeys
-import org.connectbot.util.SshKeyType
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -191,7 +191,7 @@ internal object SshKeyFileDecoder : KeyFileDecoder {
     override fun decode(text: String, passphrase: String?): KeyDecodeResult = try {
         val pair = if (passphrase.isNullOrEmpty()) SshKeys.decodePemPrivateKey(text) else SshKeys.decodePemPrivateKey(text, passphrase)
         KeyDecodeResult.Decoded(
-            type = SshKeyType.fromJavaAlgorithm(pair.private.algorithm)?.storedName ?: pair.private.algorithm,
+            type = StoredKeys.typeOf(pair),
             privateKey = pair.private.encoded,
             publicKey = pair.public.encoded,
         )

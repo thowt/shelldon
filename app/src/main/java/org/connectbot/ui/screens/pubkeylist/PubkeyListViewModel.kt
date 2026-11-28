@@ -41,11 +41,11 @@ import org.connectbot.data.entity.Pubkey
 import org.connectbot.di.CoroutineDispatchers
 import org.connectbot.piv.YubiKeyPiv
 import org.connectbot.service.TerminalManager
+import org.connectbot.shelldon.keys.StoredKeys
 import org.connectbot.sshlib.SshKeys
 import org.connectbot.sshlib.SshSigning
 import org.connectbot.util.BiometricKeyManager
 import org.connectbot.util.PubkeyUtils
-import org.connectbot.util.SshKeyType
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.security.PublicKey
@@ -915,7 +915,7 @@ class PubkeyListViewModel @Inject constructor(
         try {
             // Use PEMDecoder to decrypt the key
             val kp = SshKeys.decodePemPrivateKey(keyString, decryptPassword)
-            val algorithm = convertAlgorithmName(kp.private.algorithm)
+            val algorithm = StoredKeys.typeOf(kp)
 
             // Optionally re-encrypt the private key with the specified password
             val privateKeyBytes = if (encrypt && encryptPassword != null) {
@@ -981,7 +981,7 @@ class PubkeyListViewModel @Inject constructor(
         // Try to decode using SshKeys (handles PEM, PKCS#8, and OpenSSH formats)
         try {
             val kp = SshKeys.decodePemPrivateKey(keyString)
-            val algorithm = convertAlgorithmName(kp.private.algorithm)
+            val algorithm = StoredKeys.typeOf(kp)
             return ImportResult.Success(
                 Pubkey(
                     id = UUID.randomUUID(),
@@ -1031,6 +1031,4 @@ class PubkeyListViewModel @Inject constructor(
 
         return filename
     }
-
-    private fun convertAlgorithmName(algorithm: String): String = SshKeyType.fromJavaAlgorithm(algorithm)?.storedName ?: algorithm
 }

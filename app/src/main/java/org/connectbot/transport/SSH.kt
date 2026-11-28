@@ -63,7 +63,9 @@ import org.connectbot.service.requestStringPrompt
 import org.connectbot.shelldon.exec.ExecLimits
 import org.connectbot.shelldon.exec.ExecResult
 import org.connectbot.shelldon.exec.SshExec
+import org.connectbot.shelldon.keys.KeyLoadFailure
 import org.connectbot.shelldon.ssh.ShelldonSshIdentity
+import org.connectbot.shelldon.tunnels.ForwardBind
 import org.connectbot.sshlib.AgentProvider
 import org.connectbot.sshlib.AgentResult
 import org.connectbot.sshlib.AgentSignatureFlags
@@ -101,6 +103,7 @@ import org.connectbot.util.titleRes
 import timber.log.Timber
 import java.io.IOException
 import java.math.BigInteger
+import java.net.InetSocketAddress
 import java.net.NoRouteToHostException
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
@@ -892,8 +895,8 @@ open class SSH : AbsTransport {
             val privKey = try {
                 PubkeyUtils.decodePrivate(privateKey, pubkey.type, password)
             } catch (e: Exception) {
-                val message = String.format("Bad password for key '%s'. Authentication failed.", pubkey.nickname)
-                Timber.e(e, message)
+                val message = KeyLoadFailure.message(pubkey.nickname, pubkey.encrypted, e)
+                Timber.e(e, "Cannot load key '%s'", pubkey.nickname)
                 bridge?.outputLine(message)
                 return null
             }
@@ -1565,7 +1568,9 @@ open class SSH : AbsTransport {
         val forwarder: PortForwarder? = try {
             when (portForward.type) {
                 HostConstants.PORTFORWARD_LOCAL ->
-                    client?.localPortForward(portForward.sourcePort, portForward.destAddr ?: "", portForward.destPort)
+                    bindAddressOf(portForward)?.let { bind ->
+                        client?.localPortForward(bind, portForward.destAddr ?: "", portForward.destPort)
+                    }
 
                 HostConstants.PORTFORWARD_REMOTE ->
                     client?.remotePortForward(
@@ -1576,7 +1581,7 @@ open class SSH : AbsTransport {
                     )
 
                 HostConstants.PORTFORWARD_DYNAMIC5 ->
-                    client?.dynamicPortForward(portForward.sourcePort)
+                    bindAddressOf(portForward)?.let { bind -> client?.dynamicPortForward(bind) }
 
                 else -> {
                     Timber.e("attempt to forward unknown type %s", portForward.type)
@@ -1595,6 +1600,16 @@ open class SSH : AbsTransport {
         portForward.setIdentifier(forwarder)
         portForward.setEnabled(true)
         return true
+    }
+
+    /**
+     * Where a local or dynamic forward listens. A value that is not understood starts nothing, instead
+     * of falling back to some other address (see [ForwardBind]).
+     */
+    private fun bindAddressOf(portForward: PortForward): InetSocketAddress? {
+        val bind = ForwardBind.socketAddress(portForward.sourceAddr, portForward.sourcePort)
+        if (bind == null) Timber.e("Not starting forward %s: its listen address is not valid", portForward.nickname)
+        return bind
     }
 
     override suspend fun disablePortForward(portForward: PortForward): Boolean {

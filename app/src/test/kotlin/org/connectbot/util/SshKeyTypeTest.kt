@@ -32,6 +32,7 @@ class SshKeyTypeTest {
         assertThat(SshKeyType.fromStoredType("EdDSA")).isEqualTo(SshKeyType.ED25519)
         assertThat(SshKeyType.fromStoredType("EDDSA")).isEqualTo(SshKeyType.ED25519)
         assertThat(SshKeyType.fromStoredType("eddsa")).isEqualTo(SshKeyType.ED25519)
+        assertThat(SshKeyType.fromStoredType("1.3.101.112")).isEqualTo(SshKeyType.ED25519)
         assertThat(SshKeyType.fromStoredType("IMPORTED")).isEqualTo(SshKeyType.LEGACY_IMPORTED)
     }
 
@@ -58,6 +59,7 @@ class SshKeyTypeTest {
         assertThat(SshKeyType.fromJavaAlgorithm("EdDSA")).isEqualTo(SshKeyType.ED25519)
         assertThat(SshKeyType.fromJavaAlgorithm("EDDSA")).isEqualTo(SshKeyType.ED25519)
         assertThat(SshKeyType.fromJavaAlgorithm("eddsa")).isEqualTo(SshKeyType.ED25519)
+        assertThat(SshKeyType.fromJavaAlgorithm("1.3.101.112")).isEqualTo(SshKeyType.ED25519)
         assertThat(SshKeyType.fromJavaAlgorithm("Ed25519")).isEqualTo(SshKeyType.ED25519)
         assertThat(SshKeyType.fromJavaAlgorithm("ed25519")).isEqualTo(SshKeyType.ED25519)
     }
