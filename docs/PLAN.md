@@ -966,6 +966,31 @@ Each milestone is a branch and a pull request into `main`. The user merges after
   editing remote files in place. (The Files entry on the Hosts screen is done in M12.)
 - Per-forward LAN bind: `-L` and `-D` always bind loopback, the editor offers a bind address only for `-R`.
   Needs a change in `transport/`, so it comes with container tests.
+- **Edit remote files in place** (fine-tuning, branch `sftp-edit`, 2026-11-27). Row menu "Edit" on a regular
+  file opens a built-in plain-text editor (full screen, monospace, Tab and `# / ~ | $` keys above the
+  keyboard, Save, a question before leaving with unsaved changes). Decision: **no hand-over to other apps**.
+  Opening a file in another app means a plaintext copy in cache or shared storage, a FileProvider, and an
+  editor of unknown behaviour; the built-in editor keeps the text in memory only. Only files that survive
+  the round trip unchanged are offered: at most 256 KiB, valid UTF-8, no zero bytes, and either LF or CRLF
+  line endings throughout (a byte order mark and the line ending style are kept). Anything else is refused
+  with the reason, never altered quietly. Links are not followed. **Saving** is built around the fact that
+  SFTP v3 cannot rename over an existing file and sshlib has no `posix-rename` call: (1) the file must still
+  be the one that was opened (size and modification time), else the user chooses Overwrite, Save as a copy
+  (`name (edited).ext`) or Keep editing; (2) the new text is written in full to a hidden `.name.<id>.shelldon-edit`
+  next to the file, created owner-only (0600) and never replacing a file, which is where a full disk shows up
+  while the original is untouched; (3) the original is checked again and opened for writing, then overwritten
+  in place (this keeps its inode, owner, mode and links) and, once begun, not cancelled by leaving the
+  screen; (4) the hidden copy is removed. If step 3 fails half way, the copy stays and its path is shown, so
+  no text is lost. Limits: SFTP has no locking, so a change between the second check and the overwrite is
+  unlikely but not impossible; modification times have one second resolution; the folder must be writable
+  (a writable file in a read-only folder is refused, because the safe save needs the hidden copy); the
+  overwrite itself is not atomic, a lost connection during its few writes can leave the file cut off, which is
+  why the copy exists; the keyboard app may still learn what is typed. Verified: text round trip (11 tests)
+  and the save logic against a fake server with deliberate failures (19 tests) run locally with a
+  pure-Kotlin harness and mutation-checked (skipping the second check, a world-readable copy and deleting the
+  recovery copy each make tests fail); the Compose tests and `SftpEditContainerTest` (inode, mode and owner
+  kept, CRLF and BOM bytes kept, changed file, read-only file and folder, refusals) run only in CI; not tried
+  on a phone.
 - Identity passwords in the vault (needs a database migration).
 - Name and trademark check before any public release.
 - Icon provenance: AI-generated artwork. Check the tool's terms and the copyright position before release.

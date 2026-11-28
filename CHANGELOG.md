@@ -11,6 +11,9 @@ this section collects what has been added on top of ConnectBot since the fork.
 - Hosts, nested groups, tags, quick connect and search; reusable identities; a keychain with
   identities, keys and known hosts
 - A vault protected by a master password (Argon2id) with a biometric shortcut and auto-lock
+- Text files on the server can be edited in the SFTP browser, in a built-in editor: it keeps line endings,
+  saves without ever leaving a half-written file where it can avoid it, and asks before overwriting a
+  file that changed meanwhile
 - Encrypted backup, export and import, and `~/.ssh/config` import
 - Import from other apps: CSV (columns are guessed and can be changed), MobaXterm sessions, PuTTY
   registry exports and mRemoteNG files, with folders and tags; passwords in those files are never

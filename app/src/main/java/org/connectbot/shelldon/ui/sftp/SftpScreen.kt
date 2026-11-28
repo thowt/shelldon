@@ -67,6 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.connectbot.R
+import org.connectbot.shelldon.sftp.SftpEditText
 import org.connectbot.shelldon.sftp.SftpItem
 import org.connectbot.shelldon.sftp.SftpKind
 import org.connectbot.shelldon.sftp.SftpPaths
@@ -278,6 +279,7 @@ fun SftpScreen(
                             onDownload = { startDownload(item) },
                             onRename = { renaming = item },
                             onDelete = { deleting = item },
+                            onEdit = if (item.kind == SftpKind.FILE && (item.size ?: 0L) <= SftpEditText.MAX_BYTES) ({ viewModel.edit(item) }) else null,
                         )
                     }
                 }
@@ -337,6 +339,18 @@ fun SftpScreen(
             dismissButton = {
                 TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.shelldon_cancel)) }
             },
+        )
+    }
+
+    state.editor?.let { editor ->
+        SftpEditorDialog(
+            editor = editor,
+            onTextChange = viewModel::editText,
+            onSave = { viewModel.saveEdit() },
+            onClose = viewModel::closeEditor,
+            onOverwrite = { viewModel.saveEdit(overwrite = true) },
+            onSaveCopy = viewModel::saveEditCopy,
+            onKeepEditing = viewModel::keepEditing,
         )
     }
 
