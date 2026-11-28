@@ -956,6 +956,31 @@ Each milestone is a branch and a pull request into `main`. The user merges after
 - **M12: onboarding and cleanup** (branch `m12-ssh-import`). Import from `~/.ssh` (config, known_hosts,
   keys), Files action on the host card, dependency clean-up (merged, PR #14). Next: CSV and other apps'
   exports, then export.
+- **SFTP resumable transfers** (fine-tuning, branch `sftp-resume`). A download or upload that stopped (link
+  dropped, cancelled) continues instead of starting over. Looked at: WinSCP and FileZilla (resume when the
+  target is smaller), rsync (`--partial`, hidden temp name), browsers (`.crdownload`). Android adds one
+  constraint: the destination of a download is a Storage Access Framework document, which cannot be
+  reopened and appended to reliably, and the person has to pick it again each time.
+  - **Download**: the bytes go to a file in the app's cache, named from host, path, size and time of the
+    remote file (so a changed file never matches an old part), and are copied to the chosen document only
+    when whole. Starting the same download again continues from the cache file. Parts older than seven days
+    are pruned when a file list opens; "clear cache" removes them too. At the end the remote size and time
+    are read again; a file that changed while it was copied is reported (`CHANGED`), not saved.
+  - **Upload** of a new file goes up as a hidden `.name.<mark>.shelldon-part` file next to the target (the
+    mark is a short hash of the local file's size and time) and is renamed when whole, so a stop never
+    leaves a half-written file under the real name, and an existing file is never replaced (SFTP `rename`
+    does not overwrite; it is checked before and after). Replacing a file, a source that cannot be read from
+    any point (a stream from another app), and a file of unknown or zero size are sent as before, without
+    resuming. A stopped upload leaves its hidden file on the server; "show hidden files" lists it.
+  - **What is checked before continuing**: the kept part is compared with the other side. Up to 4 MiB it is
+    compared whole, above that at 64 spread places of 4 KiB plus the last 32 KiB, a few reads at a time.
+    Any difference means start again from the beginning. This is a sample, not a hash of every byte (plain
+    SFTP has no hash call), so a change inside a big part that falls between the sampled places is not
+    seen. The identity in the file names (size and time) is what makes that unlikely; "Replace" is the
+    way to force a fresh copy of an upload.
+  - Not done: background transfers (they still stop when the screen is left or the session ends), a
+    queue that survives the app being closed, and resuming a folder download (folder download is a
+    separate branch).
 - **M13: Tools section** (noted 2026-11-20, not started). Ping and nslookup first, see "Tools section".
 - **SFTP permissions editor** (fine-tuning, branch `sftp-chmod`). Row menu "Permissions" on files and
   folders (not on links, sockets or devices): a grid of read, write and execute boxes for owner, group

@@ -15,6 +15,8 @@ this section collects what has been added on top of ConnectBot since the fork.
 - Import from other apps: CSV (columns are guessed and can be changed), MobaXterm sessions, PuTTY
   registry exports and mRemoteNG files, with folders and tags; passwords in those files are never
   imported, Telnet entries only on request
+- SFTP downloads and uploads that were stopped continue where they stopped, after checking that what is
+  already there still matches
 - SFTP browser, snippets, and a Tunnels tab for local, remote and SOCKS (`-L`, `-R`, `-D`) forwards
 - A permissions editor in the SFTP browser (owner, group and others boxes, octal, setuid, setgid and
   sticky, and optionally everything inside a folder)

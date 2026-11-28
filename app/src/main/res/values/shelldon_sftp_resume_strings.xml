@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shelldon SSH
+  Copyright 2026 the Shelldon SSH contributors
+  SPDX-License-Identifier: Apache-2.0
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- SFTP: continuing transfers that stopped -->
+    <string name="shelldon_sftp_resumed_from">Continuing after %1$s that were already there</string>
+    <string name="shelldon_sftp_resume_hint">Start it again to continue where it stopped.</string>
+    <string name="shelldon_sftp_problem_changed">the file changed on the server</string>
+</resources>
